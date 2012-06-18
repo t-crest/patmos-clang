@@ -1566,6 +1566,62 @@ Tool &TCEToolChain::SelectTool(const Compilation &C,
   return *T;
 }
 
+
+/// PatmosToolChain - A tool chain using the llvm bitcode tools to perform
+/// all sub-commands. See TCE tool.
+
+PatmosToolChain::PatmosToolChain(const Driver &D, const llvm::Triple& Triple)
+  : ToolChain(D, Triple) {
+  // Path mangling to find libexec
+  std::string Path(getDriver().Dir);
+
+  Path += "/../libexec";
+  getProgramPaths().push_back(Path);
+}
+
+PatmosToolChain::~PatmosToolChain() {
+  for (llvm::DenseMap<unsigned, Tool*>::iterator
+           it = Tools.begin(), ie = Tools.end(); it != ie; ++it)
+      delete it->second;
+}
+
+Tool &PatmosToolChain::SelectTool(const Compilation &C,
+                            const JobAction &JA,
+                               const ActionList &Inputs) const {
+  Action::ActionClass Key;
+  Key = Action::AnalyzeJobClass;
+
+  Tool *&T = Tools[Key];
+  if (!T) {
+    switch (Key) {
+    case Action::PreprocessJobClass:
+      T = new tools::gcc::Preprocess(*this); break;
+    case Action::AnalyzeJobClass:
+      T = new tools::Clang(*this); break;
+    default:
+     llvm_unreachable("Unsupported action for the Patmos target.");
+    }
+  }
+  return *T;
+}
+
+bool PatmosToolChain::IsMathErrnoDefault() const {
+  return true;
+}
+
+bool PatmosToolChain::IsUnwindTablesDefault() const {
+  return false;
+}
+
+const char *PatmosToolChain::GetDefaultRelocationModel() const {
+  return "static";
+}
+
+const char *PatmosToolChain::GetForcedPicModel() const {
+  return 0;
+}
+
+
 /// OpenBSD - OpenBSD tool chain which can call as(1) and ld(1) directly.
 
 OpenBSD::OpenBSD(const Driver &D, const llvm::Triple& Triple, const ArgList &Args)

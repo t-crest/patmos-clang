@@ -1704,6 +1704,12 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
         break;
       }
 
+      // Patmos on bare metal
+      if (Target.getArch() == llvm::Triple::patmos) {
+        TC = new toolchains::PatmosToolChain(*this, Target);
+        break;
+      }
+
       TC = new toolchains::Generic_GCC(*this, Target, Args);
       break;
     }

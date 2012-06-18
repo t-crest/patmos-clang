@@ -3611,6 +3611,9 @@ const TargetCodeGenInfo &CodeGenModule::getTargetCodeGenInfo() {
   default:
     return *(TheTargetCodeGenInfo = new DefaultTargetCodeGenInfo(Types));
 
+  case llvm::Triple::patmos:
+    return *(TheTargetCodeGenInfo = new DefaultTargetCodeGenInfo(Types));
+
   case llvm::Triple::mips:
   case llvm::Triple::mipsel:
     return *(TheTargetCodeGenInfo = new MIPSTargetCodeGenInfo(Types, true));

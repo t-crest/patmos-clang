@@ -568,6 +568,23 @@ private:
 
 };
 
+class LLVM_LIBRARY_VISIBILITY PatmosToolChain : public ToolChain {
+protected:
+  mutable llvm::DenseMap<unsigned, Tool*> Tools;
+
+public:
+  PatmosToolChain(const Driver &D, const llvm::Triple& Triple);
+  ~PatmosToolChain();
+
+  virtual Tool &SelectTool(const Compilation &C, const JobAction &JA,
+                           const ActionList &Inputs) const;
+
+  bool IsMathErrnoDefault() const;
+  bool IsUnwindTablesDefault() const;
+  const char* GetDefaultRelocationModel() const;
+  const char* GetForcedPicModel() const;
+};
+
 class LLVM_LIBRARY_VISIBILITY Windows : public ToolChain {
   mutable llvm::DenseMap<unsigned, Tool*> Tools;
 

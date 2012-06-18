@@ -3152,6 +3152,55 @@ const Builtin::Info HexagonTargetInfo::BuiltinInfo[] = {
 
 
 namespace {
+// Patmos abstract base class
+// TODO: builtins, inline asm (register names)
+class PatmosTargetInfo : public TargetInfo {
+public:
+  PatmosTargetInfo(const std::string& triple) : TargetInfo(triple)  {
+    BigEndian = true;
+    DescriptionString =
+                  ("e-S32-p:32:32:32-i8:8:8-i16:16:16-i32:32:32-i64:32:64-n32");
+  }
+
+  virtual void getTargetDefines(const LangOptions &Opts,
+                                MacroBuilder &Builder) const {
+    Builder.defineMacro("__PATMOS__");
+  }
+
+  virtual void getTargetBuiltins(const Builtin::Info *&Records,
+                                  unsigned &NumRecords) const {
+    Records = 0;
+    NumRecords = 0;
+  }
+
+  virtual const char *getVAListDeclaration() const {
+    return "typedef void* __builtin_va_list;";
+  }
+
+  virtual const char *getClobbers() const {
+    return "";
+  }
+
+  virtual void getGCCRegNames(const char * const *&Names,
+                              unsigned &NumNames) const {
+    Names = NULL;
+    NumNames = 0;
+  }
+
+  virtual void getGCCRegAliases(const GCCRegAlias *&Aliases,
+                                unsigned &NumAliases) const {
+    Aliases = NULL;
+    NumAliases = 0;
+  }
+
+  virtual bool validateAsmConstraint(const char *&Name,
+                                     TargetInfo::ConstraintInfo &info) const {
+    return true;
+  }
+};
+}
+
+namespace {
 class SparcV8TargetInfo : public TargetInfo {
   static const TargetInfo::GCCRegAlias GCCRegAliases[];
   static const char * const GCCRegNames[];
@@ -3910,6 +3959,9 @@ static TargetInfo *AllocateTarget(const std::string &T) {
   switch (Triple.getArch()) {
   default:
     return NULL;
+
+  case llvm::Triple::patmos:
+    return new PatmosTargetInfo(T);
 
   case llvm::Triple::hexagon:
     return new HexagonTargetInfo(T);
