@@ -1098,7 +1098,7 @@ void Driver::BuildActions(const ToolChain &TC, const DerivedArgList &Args,
         continue;
 
       // Otherwise construct the appropriate action.
-      Current.reset(ConstructPhaseAction(Args, Phase, Current.take()));
+      Current.reset(ConstructPhaseAction(TC, Args, Phase, Current.take()));
       if (Current->getType() == types::TY_Nothing)
         break;
     }
@@ -1118,8 +1118,8 @@ void Driver::BuildActions(const ToolChain &TC, const DerivedArgList &Args,
     Args.ClaimAllArgs(options::OPT_CompileOnly_Group);
 }
 
-Action *Driver::ConstructPhaseAction(const ArgList &Args, phases::ID Phase,
-                                     Action *Input) const {
+Action *Driver::ConstructPhaseAction(const ToolChain &TC, const ArgList &Args,
+                                     phases::ID Phase, Action *Input) const {
   llvm::PrettyStackTraceString CrashInfo("Constructing phase actions");
   // Build the appropriate action.
   switch (Phase) {
@@ -1151,7 +1151,7 @@ Action *Driver::ConstructPhaseAction(const ArgList &Args, phases::ID Phase,
       return new MigrateJobAction(Input, types::TY_Remap);
     } else if (Args.hasArg(options::OPT_emit_ast)) {
       return new CompileJobAction(Input, types::TY_AST);
-    } else if (IsUsingLTO(Args)) {
+    } else if (IsUsingLTO(TC, Args)) {
       types::ID Output =
         Args.hasArg(options::OPT_S) ? types::TY_LTO_IR : types::TY_LTO_BC;
       return new CompileJobAction(Input, Output);
@@ -1166,10 +1166,15 @@ Action *Driver::ConstructPhaseAction(const ArgList &Args, phases::ID Phase,
   llvm_unreachable("invalid phase in ConstructPhaseAction");
 }
 
-bool Driver::IsUsingLTO(const ArgList &Args) const {
+bool Driver::IsUsingLTO(const ToolChain &TC, const ArgList &Args) const {
   // Check for -emit-llvm or -flto.
   if (Args.hasArg(options::OPT_emit_llvm) ||
       Args.hasFlag(options::OPT_flto, options::OPT_fno_lto, false))
+    return true;
+
+  // the patmos platform is based on LLVM BC, so return true here to activate
+  // the emission of BC files by default.
+  if (TC.getTriple().getArch() == llvm::Triple::patmos)
     return true;
 
   // Check for -O4.

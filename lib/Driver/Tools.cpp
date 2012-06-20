@@ -649,6 +649,22 @@ static StringRef getARMFloatABI(const Driver &D,
 }
 
 
+void Clang::AddPatmosTargetArgs(const ArgList &Args,
+                                ArgStringList &CmdArgs) const {
+  const ToolChain &TC = getToolChain();
+
+  if (!Args.hasArg(options::OPT_nostdinc) &&
+      !Args.hasArg(options::OPT_nostdlibinc)) {
+    const ToolChain::path_list &filePaths = TC.getFilePaths();
+    for(ToolChain::path_list::const_iterator i = filePaths.begin(),
+        ie = filePaths.end(); i != ie; i++) {
+      // construct a library search path
+      CmdArgs.push_back("-isystem");
+      CmdArgs.push_back(strdup(i->c_str()));
+    }
+  }
+}
+
 void Clang::AddARMTargetArgs(const ArgList &Args,
                              ArgStringList &CmdArgs,
                              bool KernelOrKext) const {
@@ -1727,6 +1743,10 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   // Add target specific cpu and features flags.
   switch(getToolChain().getTriple().getArch()) {
   default:
+    break;
+
+  case llvm::Triple::patmos:
+    AddPatmosTargetArgs(Args, CmdArgs);
     break;
 
   case llvm::Triple::arm:
@@ -2842,6 +2862,137 @@ void ClangAs::ConstructJob(Compilation &C, const JobAction &JA,
   C.addCommand(new Command(JA, *this, Exec, CmdArgs));
 }
 
+
+void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
+                               const InputInfo &Output,
+                               const InputInfoList &Inputs,
+                               const ArgList &Args,
+                               const char *LinkingOutput) const {
+  const ToolChain &TC = getToolChain();
+  const Driver &D = TC.getDriver();
+  ArgStringList CmdArgs;
+
+  //----------------------------------------------------------------------------
+  // pass linker related command line options on to the linker
+
+  for (ArgList::const_iterator
+         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
+    Arg *A = *it;
+
+    if (A->getOption().matches(options::OPT_Wl_COMMA) ||
+        A->getOption().matches(options::OPT_Xlinker)) {
+      A->claim();
+      A->renderAsInput(Args, CmdArgs);
+    }
+    else if (A->getOption().matches(options::OPT_l)) {
+      // skip -l options here 
+      continue;
+    }
+    else if (A->getOption().isLinkerInput()) {
+      // It is unfortunate that we have to claim here, as this means
+      // we will basically never report anything interesting for
+      // platforms using a generic gcc, even if we are just using gcc
+      // to get to the assembler.
+      A->claim();
+      A->render(Args, CmdArgs);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  // append library search paths
+  Args.AddAllArgs(CmdArgs, options::OPT_L);
+
+  //----------------------------------------------------------------------------
+  // append output file
+
+  // TODO: make a temporary file here?
+  if (Output.isFilename()) {
+    CmdArgs.push_back("-o");
+    CmdArgs.push_back(Output.getFilename());
+  } else {
+    assert(Output.isNothing() && "Unexpected output");
+  }
+
+  //----------------------------------------------------------------------------
+  // append input files
+
+  for (InputInfoList::const_iterator
+         it = Inputs.begin(), ie = Inputs.end(); it != ie; ++it) {
+    const InputInfo &II = *it;
+
+    if (II.isFilename()) {
+      // Only operate on LLVM BC files
+      if (II.getType() == types::TY_AST)
+        D.Diag(diag::err_drv_no_ast_support) << TC.getTripleString();
+      else if (II.getType() != types::TY_LLVM_BC &&
+               II.getType() != types::TY_LTO_BC)
+        D.Diag(diag::err_drv_no_linker_llvm_support) << TC.getTripleString();
+
+      CmdArgs.push_back(II.getFilename());
+    }
+    else {
+      const Arg &A = II.getInputArg();
+
+      // Reverse translate some rewritten options.
+      if (A.getOption().matches(options::OPT_Z_reserved_lib_stdcxx)) {
+        CmdArgs.push_back("-lstdc++");
+        continue;
+      }
+      else if (A.getOption().matches(options::OPT_Wl_COMMA) ||
+               A.getOption().matches(options::OPT_Xlinker)) {
+        // already handled above
+        continue;
+      }
+
+      // Don't render as input
+      A.render(Args, CmdArgs);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  // link with newlib start-up files and libraries
+
+  addDirectoryList(Args, CmdArgs, "-L", "LIBRARY_PATH");
+
+  // append default search paths
+  const ToolChain::path_list &filePaths = TC.getFilePaths();
+  for(ToolChain::path_list::const_iterator i = filePaths.begin(),
+      ie = filePaths.end(); i != ie; i++) {
+    // construct a library search path
+    std::string path("-L" + *i);
+    CmdArgs.push_back(strdup(path.c_str()));
+  }
+
+  // link with start-up file
+  if (!Args.hasArg(options::OPT_nostartfiles))
+    CmdArgs.push_back(strdup(TC.GetFilePath("crt0.o").c_str()));
+
+  // add all -l options -- this is a bit hacky and might even be unsafe due to 
+  // the reordering of files and libraries?!?
+  Args.AddAllArgs(CmdArgs, options::OPT_l);
+
+  // link by default with newlib libc and libpatmos
+  if (!Args.hasArg(options::OPT_nostdlib))
+    CmdArgs.push_back("-lc");
+
+  if (!Args.hasArg(options::OPT_nodefaultlibs))
+    CmdArgs.push_back("-lpatmos");
+
+  
+  //----------------------------------------------------------------------------
+  // some linker-specific options
+
+  // the _start label has to be preserved
+  CmdArgs.push_back("-internalize-public-api-list=_start");
+
+  //----------------------------------------------------------------------------
+  // execute the command
+
+  const char *Exec =
+    Args.MakeArgString(TC.GetProgramPath("llvm-ld"));
+  C.addCommand(new Command(JA, *this, Exec, CmdArgs));
+}
+
 void gcc::Common::ConstructJob(Compilation &C, const JobAction &JA,
                                const InputInfo &Output,
                                const InputInfoList &Inputs,
@@ -3888,7 +4039,7 @@ void darwin::Link::AddLinkArgs(Compilation &C,
   // If we are using LTO, then automatically create a temporary file path for
   // the linker to use, so that it's lifetime will extend past a possible
   // dsymutil step.
-  if (Version[0] >= 116 && D.IsUsingLTO(Args)) {
+  if (Version[0] >= 116 && D.IsUsingLTO(getToolChain(), Args)) {
     const char *TmpPath = C.getArgs().MakeArgString(
       D.GetTemporaryPath("cc", types::getTypeTempSuffix(types::TY_Object)));
     C.addTempFile(TmpPath);
@@ -5268,7 +5419,8 @@ void linuxtools::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // Tell the linker to load the plugin. This has to come before AddLinkerInputs
   // as gold requires -plugin to come before any -plugin-opt that -Wl might
   // forward.
-  if (D.IsUsingLTO(Args) || Args.hasArg(options::OPT_use_gold_plugin)) {
+  if (D.IsUsingLTO(getToolChain(), Args) ||
+      Args.hasArg(options::OPT_use_gold_plugin)) {
     CmdArgs.push_back("-plugin");
     std::string Plugin = ToolChain.getDriver().Dir + "/../lib/LLVMgold.so";
     CmdArgs.push_back(Args.MakeArgString(Plugin));

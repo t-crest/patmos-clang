@@ -1559,6 +1559,7 @@ Tool &TCEToolChain::SelectTool(const Compilation &C,
       T = new tools::gcc::Preprocess(*this); break;
     case Action::AnalyzeJobClass:
       T = new tools::Clang(*this); break;
+    case Action::LinkJobClass:
     default:
      llvm_unreachable("Unsupported action for TCE target.");
     }
@@ -1568,15 +1569,25 @@ Tool &TCEToolChain::SelectTool(const Compilation &C,
 
 
 /// PatmosToolChain - A tool chain using the llvm bitcode tools to perform
-/// all sub-commands. See TCE tool.
+/// all sub-commands.
 
 PatmosToolChain::PatmosToolChain(const Driver &D, const llvm::Triple& Triple)
   : ToolChain(D, Triple) {
-  // Path mangling to find libexec
-  std::string Path(getDriver().Dir);
+  // Get install path to find tools and libraries
+  std::string Path(D.getInstalledDir());
 
-  Path += "/../libexec";
+  // tools?
   getProgramPaths().push_back(Path);
+  getProgramPaths().push_back(Path + "/bin/");
+  getProgramPaths().push_back(Path + "/../bin/");
+
+  // libraries?
+  getFilePaths().push_back(Path + "/patmos-unknown-elf/lib/");
+  getFilePaths().push_back(Path + "/../patmos-unknown-elf/lib/");
+
+  // includes?
+  getFilePaths().push_back(Path + "/patmos-unknown-elf/include/");
+  getFilePaths().push_back(Path + "/../patmos-unknown-elf/include/");
 }
 
 PatmosToolChain::~PatmosToolChain() {
@@ -1585,19 +1596,21 @@ PatmosToolChain::~PatmosToolChain() {
       delete it->second;
 }
 
-Tool &PatmosToolChain::SelectTool(const Compilation &C,
-                            const JobAction &JA,
-                               const ActionList &Inputs) const {
-  Action::ActionClass Key;
-  Key = Action::AnalyzeJobClass;
+Tool &PatmosToolChain::SelectTool(const Compilation &C, const JobAction &JA,
+                                  const ActionList &Inputs) const {
+  Action::ActionClass Key = JA.getKind();
 
   Tool *&T = Tools[Key];
   if (!T) {
     switch (Key) {
     case Action::PreprocessJobClass:
-      T = new tools::gcc::Preprocess(*this); break;
+      T = new tools::Clang(*this); break;
     case Action::AnalyzeJobClass:
       T = new tools::Clang(*this); break;
+    case Action::CompileJobClass:
+      T = new tools::Clang(*this); break;
+    case Action::LinkJobClass:
+      T = new tools::patmos::Link(*this); break;
     default:
      llvm_unreachable("Unsupported action for the Patmos target.");
     }

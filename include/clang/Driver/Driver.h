@@ -348,8 +348,8 @@ public:
   /// ConstructAction - Construct the appropriate action to do for
   /// \arg Phase on the \arg Input, taking in to account arguments
   /// like -fsyntax-only or --analyze.
-  Action *ConstructPhaseAction(const ArgList &Args, phases::ID Phase,
-                               Action *Input) const;
+  Action *ConstructPhaseAction(const ToolChain &TC, const ArgList &Args,
+                               phases::ID Phase, Action *Input) const;
 
 
   /// BuildJobsForAction - Construct the jobs to perform for the
@@ -387,7 +387,7 @@ public:
   bool ShouldUseClangCompiler(const Compilation &C, const JobAction &JA,
                               const llvm::Triple &ArchName) const;
 
-  bool IsUsingLTO(const ArgList &Args) const;
+  bool IsUsingLTO(const ToolChain &TC, const ArgList &Args) const;
 
 private:
   /// \brief Retrieves a ToolChain for a particular target triple.

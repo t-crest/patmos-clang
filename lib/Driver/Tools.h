@@ -36,6 +36,7 @@ namespace tools {
                                  const InputInfo &Output,
                                  const InputInfoList &Inputs) const;
 
+    void AddPatmosTargetArgs(const ArgList &Args, ArgStringList &CmdArgs) const;
     void AddARMTargetArgs(const ArgList &Args, ArgStringList &CmdArgs,
                           bool KernelOrKext) const;
     void AddMIPSTargetArgs(const ArgList &Args, ArgStringList &CmdArgs) const;
@@ -74,6 +75,24 @@ namespace tools {
                               const ArgList &TCArgs,
                               const char *LinkingOutput) const;
   };
+
+  /// patmos specific compilation flow.
+namespace patmos {
+  class LLVM_LIBRARY_VISIBILITY Link : public Tool  {
+  public:
+    Link(const ToolChain &TC) : Tool("patmos::Link",
+                                     "link  via llvm-ld & llc", TC) {}
+
+    virtual void ConstructJob(Compilation &C, const JobAction &JA,
+                              const InputInfo &Output,
+                              const InputInfoList &Inputs,
+                              const ArgList &TCArgs,
+                              const char *LinkingOutput) const;
+
+    virtual bool hasIntegratedCPP() const { return false; }
+    virtual bool isLinkJob() const { return true; }
+  };
+}
 
   /// gcc - Generic GCC tool implementations.
 namespace gcc {
