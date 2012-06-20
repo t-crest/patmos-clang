@@ -660,7 +660,7 @@ void Clang::AddPatmosTargetArgs(const ArgList &Args,
         ie = filePaths.end(); i != ie; i++) {
       // construct a library search path
       CmdArgs.push_back("-isystem");
-      CmdArgs.push_back(strdup(i->c_str()));
+      CmdArgs.push_back(Args.MakeArgString(i->c_str()));
     }
   }
 }
@@ -2870,7 +2870,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
                                const char *LinkingOutput) const {
   const ToolChain &TC = getToolChain();
   const Driver &D = TC.getDriver();
-  ArgStringList CmdArgs;
+  ArgStringList CmdArgs, LLCArgs;
 
   //----------------------------------------------------------------------------
   // pass linker related command line options on to the linker
@@ -2888,7 +2888,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
       // skip -l options here 
       continue;
     }
-    else if (A->getOption().isLinkerInput()) {
+    else if (A->getOption().isLinkerInput() ||
+             A->getOption().matches(options::OPT_v)) {
       // It is unfortunate that we have to claim here, as this means
       // we will basically never report anything interesting for
       // platforms using a generic gcc, even if we are just using gcc
@@ -2903,15 +2904,26 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   Args.AddAllArgs(CmdArgs, options::OPT_L);
 
   //----------------------------------------------------------------------------
-  // append output file
+  // append output file for linking
 
-  // TODO: make a temporary file here?
-  if (Output.isFilename()) {
-    CmdArgs.push_back("-o");
-    CmdArgs.push_back(Output.getFilename());
-  } else {
-    assert(Output.isNothing() && "Unexpected output");
+  char const *linkedBCFileName = NULL;
+  if (C.getArgs().hasArg(options::OPT_save_temps) && Output.isFilename()) {
+    // take the output's name and append a suffix
+    std::string name(Output.getFilename());
+    linkedBCFileName = Args.MakeArgString((name + ".bc").c_str());
   }
+  else {
+    StringRef Name = Output.isFilename() ?
+                       llvm::sys::path::filename(Output.getFilename()) : "lld-";
+    std::pair<StringRef, StringRef> Split = Name.split('.');
+    std::string TmpName = D.GetTemporaryPath(Split.first, "bc");
+    linkedBCFileName = Args.MakeArgString(TmpName.c_str());
+    C.addTempFile(linkedBCFileName);
+  }
+
+  assert(linkedBCFileName);
+  CmdArgs.push_back("-o");
+  CmdArgs.push_back(linkedBCFileName);
 
   //----------------------------------------------------------------------------
   // append input files
@@ -2960,12 +2972,12 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
       ie = filePaths.end(); i != ie; i++) {
     // construct a library search path
     std::string path("-L" + *i);
-    CmdArgs.push_back(strdup(path.c_str()));
+    CmdArgs.push_back(Args.MakeArgString(path.c_str()));
   }
 
   // link with start-up file
   if (!Args.hasArg(options::OPT_nostartfiles))
-    CmdArgs.push_back(strdup(TC.GetFilePath("crt0.o").c_str()));
+    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("crt0.o").c_str()));
 
   // add all -l options -- this is a bit hacky and might even be unsafe due to 
   // the reordering of files and libraries?!?
@@ -2978,19 +2990,51 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   if (!Args.hasArg(options::OPT_nodefaultlibs))
     CmdArgs.push_back("-lpatmos");
 
-  
   //----------------------------------------------------------------------------
   // some linker-specific options
 
   // the _start label has to be preserved
   CmdArgs.push_back("-internalize-public-api-list=_start");
 
-  //----------------------------------------------------------------------------
-  // execute the command
+  // link as a library
+  CmdArgs.push_back("-link-as-library");
 
-  const char *Exec =
-    Args.MakeArgString(TC.GetProgramPath("llvm-ld"));
+  //----------------------------------------------------------------------------
+  // execute the linker command
+
+  const char *Exec = Args.MakeArgString(TC.GetProgramPath("llvm-ld"));
   C.addCommand(new Command(JA, *this, Exec, CmdArgs));
+
+  //////////////////////////////////////////////////////////////////////////////
+  // build LLC command
+
+  //----------------------------------------------------------------------------
+  // append output file for code generation
+
+  if (Output.isFilename()) {
+    LLCArgs.push_back("-o");
+    LLCArgs.push_back(Output.getFilename());
+  }
+  else {
+    // write to standard-out if nothing is given?!?
+    LLCArgs.push_back("-o");
+    LLCArgs.push_back("-");
+  }
+
+  //----------------------------------------------------------------------------
+  // generate object file
+
+  if (JA.getType() == types::TY_Image) {
+    LLCArgs.push_back("-filetype=obj");
+  }
+
+  //----------------------------------------------------------------------------
+  // append linked BC name as input
+
+  LLCArgs.push_back(linkedBCFileName);
+
+  const char *LLCExec = Args.MakeArgString(TC.GetProgramPath("llc"));
+  C.addCommand(new Command(JA, *this, LLCExec, LLCArgs));
 }
 
 void gcc::Common::ConstructJob(Compilation &C, const JobAction &JA,
