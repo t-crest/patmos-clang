@@ -2922,7 +2922,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   assert(linkedBCFileName);
-  CmdArgs.push_back("-o");
+  CmdArgs.push_back("-b");
   CmdArgs.push_back(linkedBCFileName);
 
   //----------------------------------------------------------------------------
@@ -2996,8 +2996,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // the _start label has to be preserved
   CmdArgs.push_back("-internalize-public-api-list=_start");
 
-  // link as a library
-  CmdArgs.push_back("-link-as-library");
+  // suppress the emission of a linker script
+  CmdArgs.push_back("-no-script");
 
   //----------------------------------------------------------------------------
   // execute the linker command
