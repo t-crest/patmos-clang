@@ -3209,18 +3209,23 @@ public:
   }
 
   virtual bool validateAsmConstraint(const char *&Name,
-                                     TargetInfo::ConstraintInfo &Info) const {
+                                     TargetInfo::ConstraintInfo &Info) const
+  {
+    // clang actually accepts a few generic register constraints more (i,n,m,o,g,..),
+    // not much we can do about it.. For completeness, we list all currently supported
+    // constraints here.
     switch (*Name) {
     default:
       return false;
 
     case 'r': // CPU registers.
-    case 'd': // Equivalent to "r" unless generating MIPS16 code.
-    case 'y': // Equivalent to "r", backwards compatibility only.
-    case 'f': // floating-point registers.
-    case 'c': // $25 for indirect jumps
-    case 'l': // lo register
-    case 'x': // hilo register pair
+    // TODO do not accept read-only or special registers here
+    case 'R': // r0-r31, currently same as 'r'
+    case 'S': // sz-s15
+    case 'P': // p0-p7
+    // TODO define more classes for subsets of registers (r10-r28, ..)?
+    // TODO proper check for closing } and valid register name
+    case '{':
       Info.setAllowsRegister();
       return true;
     }
