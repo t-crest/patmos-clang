@@ -3182,9 +3182,24 @@ public:
   }
 
   virtual void getGCCRegNames(const char * const *&Names,
-                              unsigned &NumNames) const {
-    Names = NULL;
-    NumNames = 0;
+                              unsigned &NumNames) const
+  {
+    // TODO can't we get this from the backend tables somehow??
+    static const char * const GCCRegNames[] = {
+      // CPU register names
+      // Must match second column of GCCRegAliases
+      "$r0",   "$r1",   "$r2",   "$r3",   "$r4",   "$r5",   "$r6",   "$r7",
+      "$r8",   "$r9",   "$r10",  "$r11",  "$r12",  "$r13",  "$r14",  "$r15",
+      "$r16",  "$r17",  "$r18",  "$r19",  "$r20",  "$r21",  "$r22",  "$r23",
+      "$r24",  "$r25",  "$r26",  "$r27",  "$r28",  "$r29",  "$r30",  "$r31",
+      // Predicates
+      "$p0",  "$p1",  "$p2",  "$p3",  "$p4",  "$p5",  "$p6",  "$p7",
+      // Special registers
+      "$sz",  "$sm",  "$sl",  "$sh",  "$sb",  "$so",  "$st",  "$s7",
+      "$s8",  "$s9",  "$s10", "$s11", "$s12", "$s13", "$s14", "$s15"
+    };
+    Names = GCCRegNames;
+    NumNames = llvm::array_lengthof(GCCRegNames);
   }
 
   virtual void getGCCRegAliases(const GCCRegAlias *&Aliases,
@@ -3194,9 +3209,23 @@ public:
   }
 
   virtual bool validateAsmConstraint(const char *&Name,
-                                     TargetInfo::ConstraintInfo &info) const {
-    return true;
+                                     TargetInfo::ConstraintInfo &Info) const {
+    switch (*Name) {
+    default:
+      return false;
+
+    case 'r': // CPU registers.
+    case 'd': // Equivalent to "r" unless generating MIPS16 code.
+    case 'y': // Equivalent to "r", backwards compatibility only.
+    case 'f': // floating-point registers.
+    case 'c': // $25 for indirect jumps
+    case 'l': // lo register
+    case 'x': // hilo register pair
+      Info.setAllowsRegister();
+      return true;
+    }
   }
+
 };
 }
 
