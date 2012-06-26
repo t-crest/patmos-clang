@@ -3214,6 +3214,7 @@ public:
     // clang actually accepts a few generic register constraints more (i,n,m,o,g,..),
     // not much we can do about it.. For completeness, we list all currently supported
     // constraints here.
+
     switch (*Name) {
     default:
       return false;
@@ -3226,6 +3227,18 @@ public:
     // TODO define more classes for subsets of registers (r10-r28, ..)?
       Info.setAllowsRegister();
       return true;
+    case '{':
+      Name++;
+      while (*Name) {
+        if (*Name == '}') {
+          return true;
+        }
+        if (*Name != 'r' && *Name != 's' && *Name != 'p' && (*Name < '0' || *Name > '9')) {
+          return false;
+        }
+        Name++;
+      }
+      return false;
     }
   }
 
