@@ -3153,7 +3153,7 @@ const Builtin::Info HexagonTargetInfo::BuiltinInfo[] = {
 
 namespace {
 // Patmos abstract base class
-// TODO: builtins, inline asm (register names)
+// TODO: builtins
 class PatmosTargetInfo : public TargetInfo {
 public:
   PatmosTargetInfo(const std::string& triple) : TargetInfo(triple)  {
@@ -3224,8 +3224,6 @@ public:
     case 'S': // sz-s15
     case 'P': // p0-p7
     // TODO define more classes for subsets of registers (r10-r28, ..)?
-    // TODO proper check for closing } and valid register name
-    case '{':
       Info.setAllowsRegister();
       return true;
     }
