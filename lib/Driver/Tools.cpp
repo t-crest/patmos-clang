@@ -2862,6 +2862,26 @@ void ClangAs::ConstructJob(Compilation &C, const JobAction &JA,
   C.addCommand(new Command(JA, *this, Exec, CmdArgs));
 }
 
+static std::string get_patmos_ld(const ToolChain &TC)
+{
+  std::string tmp(TC.GetProgramPath("patmos-unknown-ld"));
+  if (tmp != "patmos-unknown-ld")
+    return tmp;
+
+  tmp = TC.GetProgramPath("patmos-ld");
+  if (tmp != "patmos-ld")
+    return tmp;
+
+  tmp = TC.GetProgramPath("patmos-elf-ld");
+  if (tmp != "patmos-elf-ld")
+    return tmp;
+
+  tmp = TC.GetProgramPath("ld");
+  if (tmp != "ld")
+    return tmp;
+
+  return TC.GetProgramPath((TC.getTriple().str() + "-ld").c_str());
+}
 
 void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
                                const InputInfo &Output,
@@ -2870,7 +2890,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
                                const char *LinkingOutput) const {
   const ToolChain &TC = getToolChain();
   const Driver &D = TC.getDriver();
-  ArgStringList CmdArgs, LLCArgs;
+  ArgStringList CmdArgs, LLCArgs, LDArgs;
 
   //----------------------------------------------------------------------------
   // pass linker related command line options on to the linker
@@ -3011,15 +3031,24 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   //----------------------------------------------------------------------------
   // append output file for code generation
 
-  if (Output.isFilename()) {
-    LLCArgs.push_back("-o");
-    LLCArgs.push_back(Output.getFilename());
+  char const *linkedOFileName = NULL;
+  if (C.getArgs().hasArg(options::OPT_save_temps) && Output.isFilename()) {
+    // take the output's name and append a suffix
+    std::string name(Output.getFilename());
+    linkedOFileName = Args.MakeArgString((name + ".bc.o").c_str());
   }
   else {
-    // write to standard-out if nothing is given?!?
-    LLCArgs.push_back("-o");
-    LLCArgs.push_back("-");
+    StringRef Name = Output.isFilename() ?
+                       llvm::sys::path::filename(Output.getFilename()) : "llc-";
+    std::pair<StringRef, StringRef> Split = Name.split('.');
+    std::string TmpName = D.GetTemporaryPath(Split.first, "o");
+    linkedOFileName = Args.MakeArgString(TmpName.c_str());
+    C.addTempFile(linkedOFileName);
   }
+
+  assert(linkedOFileName);
+  LLCArgs.push_back("-o");
+  LLCArgs.push_back(linkedOFileName);
 
   //----------------------------------------------------------------------------
   // generate object file
@@ -3035,6 +3064,39 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   const char *LLCExec = Args.MakeArgString(TC.GetProgramPath("llc"));
   C.addCommand(new Command(JA, *this, LLCExec, LLCArgs));
+
+  //////////////////////////////////////////////////////////////////////////////
+  // build LD command
+
+  //----------------------------------------------------------------------------
+  // append output file for code generation
+
+  if (Output.isFilename()) {
+    LDArgs.push_back("-o");
+    LDArgs.push_back(Output.getFilename());
+  }
+  else {
+    // write to standard-out if nothing is given?!?
+    LDArgs.push_back("-o");
+    LDArgs.push_back("-");
+  }
+
+  //----------------------------------------------------------------------------
+  // linking options
+
+  LDArgs.push_back("-static");
+  LDArgs.push_back("-nostdlib");
+
+  if (Args.hasArg(options::OPT_v))
+    LDArgs.push_back("-verbose");
+
+  //----------------------------------------------------------------------------
+  // append linked .O name as input
+
+  LDArgs.push_back(linkedOFileName);
+
+  const char *LDExec = Args.MakeArgString(get_patmos_ld(TC));
+  C.addCommand(new Command(JA, *this, LDExec, LDArgs));
 }
 
 void gcc::Common::ConstructJob(Compilation &C, const JobAction &JA,
