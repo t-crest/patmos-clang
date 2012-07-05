@@ -3087,6 +3087,13 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   LDArgs.push_back("-static");
   LDArgs.push_back("-nostdlib");
 
+  // FIXME: find some other solution to do this, e.g., define them in a linker
+  // script?
+  LDArgs.push_back("--defsym");
+  LDArgs.push_back("_shadow_stack_base=0x3FFFFFF");
+  LDArgs.push_back("--defsym");
+  LDArgs.push_back("_stack_cache_base=0x2FFFFFF");
+
   if (Args.hasArg(options::OPT_v))
     LDArgs.push_back("-verbose");
 
