@@ -1578,16 +1578,16 @@ PatmosToolChain::PatmosToolChain(const Driver &D, const llvm::Triple& Triple)
 
   // tools?
   getProgramPaths().push_back(Path);
-  getProgramPaths().push_back(Path + "/bin/");
-  getProgramPaths().push_back(Path + "/../bin/");
+  if (llvm::sys::fs::exists(Path + "/bin/"))
+    getProgramPaths().push_back(Path + "/bin/");
+  if (llvm::sys::fs::exists(Path + "/../bin/"))
+    getProgramPaths().push_back(Path + "/../bin/");
 
-  // libraries?
-  getFilePaths().push_back(Path + "/patmos-unknown-elf/lib/");
-  getFilePaths().push_back(Path + "/../patmos-unknown-elf/lib/");
-
-  // includes?
-  getFilePaths().push_back(Path + "/patmos-unknown-elf/include/");
-  getFilePaths().push_back(Path + "/../patmos-unknown-elf/include/");
+  // newlib libraries and includes?
+  if (llvm::sys::fs::exists(Path + "/patmos-unknown-elf/"))
+    getFilePaths().push_back(Path + "/patmos-unknown-elf/");
+  if (llvm::sys::fs::exists(Path + "/../patmos-unknown-elf/"))
+    getFilePaths().push_back(Path + "/../patmos-unknown-elf/");
 }
 
 PatmosToolChain::~PatmosToolChain() {
@@ -1633,6 +1633,23 @@ const char *PatmosToolChain::GetDefaultRelocationModel() const {
 const char *PatmosToolChain::GetForcedPicModel() const {
   return 0;
 }
+
+void PatmosToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
+                                                ArgStringList &CC1Args) const
+{
+  if (!DriverArgs.hasArg(options::OPT_nostdinc) &&
+      !DriverArgs.hasArg(options::OPT_nostdlibinc)) {
+    const ToolChain::path_list &filePaths = getFilePaths();
+    for(ToolChain::path_list::const_iterator i = filePaths.begin(),
+        ie = filePaths.end(); i != ie; i++) {
+      // construct a library search path
+      CC1Args.push_back("-isystem");
+      Twine IncPath = StringRef(*i) + "include/";
+      CC1Args.push_back(DriverArgs.MakeArgString(IncPath));
+    }
+  }
+}
+
 
 
 /// OpenBSD - OpenBSD tool chain which can call as(1) and ld(1) directly.

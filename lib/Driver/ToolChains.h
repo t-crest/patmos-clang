@@ -583,6 +583,10 @@ public:
   bool IsUnwindTablesDefault() const;
   const char* GetDefaultRelocationModel() const;
   const char* GetForcedPicModel() const;
+
+  virtual void AddClangSystemIncludeArgs(const ArgList &DriverArgs,
+                                         ArgStringList &CC1Args) const;
+
 };
 
 class LLVM_LIBRARY_VISIBILITY Windows : public ToolChain {

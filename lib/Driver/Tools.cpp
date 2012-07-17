@@ -650,19 +650,10 @@ static StringRef getARMFloatABI(const Driver &D,
 
 
 void Clang::AddPatmosTargetArgs(const ArgList &Args,
-                                ArgStringList &CmdArgs) const {
-  const ToolChain &TC = getToolChain();
+                                ArgStringList &CmdArgs) const
+{
+  // Add any special options needed by patmos target here.. (stack cache?, ...)
 
-  if (!Args.hasArg(options::OPT_nostdinc) &&
-      !Args.hasArg(options::OPT_nostdlibinc)) {
-    const ToolChain::path_list &filePaths = TC.getFilePaths();
-    for(ToolChain::path_list::const_iterator i = filePaths.begin(),
-        ie = filePaths.end(); i != ie; i++) {
-      // construct a library search path
-      CmdArgs.push_back("-isystem");
-      CmdArgs.push_back(Args.MakeArgString(i->c_str()));
-    }
-  }
 }
 
 void Clang::AddARMTargetArgs(const ArgList &Args,
@@ -2876,6 +2867,10 @@ static std::string get_patmos_ld(const ToolChain &TC)
   if (tmp != "patmos-elf-ld")
     return tmp;
 
+  tmp = TC.GetProgramPath("ld.gold");
+  if (tmp != "ld.gold")
+    return tmp;
+
   tmp = TC.GetProgramPath("ld");
   if (tmp != "ld")
     return tmp;
@@ -2991,13 +2986,13 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   for(ToolChain::path_list::const_iterator i = filePaths.begin(),
       ie = filePaths.end(); i != ie; i++) {
     // construct a library search path
-    std::string path("-L" + *i);
+    std::string path("-L" + *i + "lib/");
     CmdArgs.push_back(Args.MakeArgString(path.c_str()));
   }
 
   // link with start-up file
   if (!Args.hasArg(options::OPT_nostartfiles))
-    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("crt0.o").c_str()));
+    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/crt0.o").c_str()));
 
   // add all -l options -- this is a bit hacky and might even be unsafe due to 
   // the reordering of files and libraries?!?
@@ -3009,6 +3004,16 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   if (!Args.hasArg(options::OPT_nodefaultlibs))
     CmdArgs.push_back("-lpatmos");
+
+  // link by default with compiler-rt
+  if (!Args.hasArg(options::OPT_nodefaultlibs)) {
+    std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/libllsyms.lst");
+    CmdArgs.push_back(Args.MakeArgString(APIFile));
+
+    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/libllsyms.o").c_str()));
+    CmdArgs.push_back("-lll");
+  }
+
 
   //----------------------------------------------------------------------------
   // some linker-specific options
