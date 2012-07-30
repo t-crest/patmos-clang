@@ -3019,7 +3019,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // some linker-specific options
 
   // the _start label has to be preserved
-  CmdArgs.push_back("-internalize-public-api-list=_start");
+  CmdArgs.push_back("-internalize-public-api-list=_start,main");
 
   // suppress the emission of a linker script
   CmdArgs.push_back("-no-script");
@@ -3088,6 +3088,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   //----------------------------------------------------------------------------
   // linking options
+
+  Args.AddAllArgs(LDArgs, options::OPT_T_Group);
 
   LDArgs.push_back("-static");
   LDArgs.push_back("-nostdlib");
