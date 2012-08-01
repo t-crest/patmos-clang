@@ -3159,7 +3159,7 @@ public:
   PatmosTargetInfo(const std::string& triple) : TargetInfo(triple)  {
     BigEndian = true;
     DescriptionString =
-                  ("E-S32-p:32:32:32-i8:8:8-i16:16:16-i32:32:32-i64:32:64-n32");
+                  ("E-S32-p:32:32:32-i8:8:8-i16:16:16-i32:32:32-i64:32:64-f64:32:64-n32");
   }
 
   virtual void getTargetDefines(const LangOptions &Opts,
