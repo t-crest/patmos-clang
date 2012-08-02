@@ -2999,8 +2999,13 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   Args.AddAllArgs(CmdArgs, options::OPT_l);
 
   // link by default with newlib libc and libpatmos
-  if (!Args.hasArg(options::OPT_nostdlib))
+  if (!Args.hasArg(options::OPT_nostdlib)) {
+    std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/libcsyms.lst");
+    CmdArgs.push_back(Args.MakeArgString(APIFile));
+
+    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/libcsyms.o").c_str()));
     CmdArgs.push_back("-lc");
+  }
 
   if (!Args.hasArg(options::OPT_nodefaultlibs))
     CmdArgs.push_back("-lpatmos");
