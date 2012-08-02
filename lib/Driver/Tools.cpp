@@ -3034,6 +3034,11 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // build LLC command
 
   //----------------------------------------------------------------------------
+  // append -m options
+
+  Args.AddAllArgs(LLCArgs, options::OPT_m_Group);
+
+  //----------------------------------------------------------------------------
   // append output file for code generation
 
   char const *linkedOFileName = NULL;
