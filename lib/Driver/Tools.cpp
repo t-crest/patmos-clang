@@ -2867,16 +2867,24 @@ static std::string get_patmos_ld(const ToolChain &TC)
   if (tmp != "patmos-unknown-ld")
     return tmp;
 
-  tmp = TC.GetProgramPath("patmos-ld");
-  if (tmp != "patmos-ld")
-    return tmp;
-
   tmp = TC.GetProgramPath("patmos-elf-ld");
   if (tmp != "patmos-elf-ld")
     return tmp;
 
+  tmp = TC.GetProgramPath("patmos-gold");
+  if (tmp != "patmos-gold")
+    return tmp;
+
+  tmp = TC.GetProgramPath("patmos-ld");
+  if (tmp != "patmos-ld")
+    return tmp;
+
   tmp = TC.GetProgramPath("ld.gold");
   if (tmp != "ld.gold")
+    return tmp;
+
+  tmp = TC.GetProgramPath("ld-new");
+  if (tmp != "ld-new")
     return tmp;
 
   tmp = TC.GetProgramPath("ld");
