@@ -2855,7 +2855,15 @@ void ClangAs::ConstructJob(Compilation &C, const JobAction &JA,
 
 static std::string get_patmos_ld(const ToolChain &TC)
 {
-  std::string tmp(TC.GetProgramPath("patmos-unknown-ld"));
+  char *gold_envvar = getenv("PATMOS_GOLD");
+  if (gold_envvar && strcmp(gold_envvar,"")!=0 ) {
+    if (llvm::sys::fs::exists(gold_envvar))
+      return std::string(gold_envvar);
+    else
+      llvm::report_fatal_error("gold linker specified through PATMOS_GOLD environment variable not found.");
+  }
+
+  std::string tmp( TC.GetProgramPath("patmos-unknown-ld") );
   if (tmp != "patmos-unknown-ld")
     return tmp;
 
