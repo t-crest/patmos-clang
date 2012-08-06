@@ -2853,7 +2853,7 @@ void ClangAs::ConstructJob(Compilation &C, const JobAction &JA,
   C.addCommand(new Command(JA, *this, Exec, CmdArgs));
 }
 
-static std::string get_patmos_ld(const ToolChain &TC)
+static std::string get_patmos_gold(const ToolChain &TC)
 {
   char *gold_envvar = getenv("PATMOS_GOLD");
   if (gold_envvar && strcmp(gold_envvar,"")!=0 ) {
@@ -2893,6 +2893,37 @@ static std::string get_patmos_ld(const ToolChain &TC)
 
   return TC.GetProgramPath((TC.getTriple().str() + "-ld").c_str());
 }
+
+static std::string get_patmos_ld(const ToolChain &TC)
+{
+  std::string tmp = TC.GetProgramPath("patmos-llvm-ld");
+  if (tmp != "patmos-llvm-ld")
+    return tmp;
+
+  tmp = TC.GetProgramPath("patmos-ld");
+  if (tmp != "patmos-ld")
+    return tmp;
+
+  tmp = TC.GetProgramPath("llvm-ld");
+  if (tmp != "llvm-ld")
+    return tmp;
+
+  return TC.GetProgramPath((TC.getTriple().str() + "-llvm-ld").c_str());
+}
+
+static std::string get_patmos_llc(const ToolChain &TC)
+{
+  std::string tmp = TC.GetProgramPath("patmos-llc");
+  if (tmp != "patmos-llc")
+    return tmp;
+
+  tmp = TC.GetProgramPath("llc");
+  if (tmp != "llc")
+    return tmp;
+
+  return TC.GetProgramPath((TC.getTriple().str() + "-llc").c_str());
+}
+
 
 void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
                                const InputInfo &Output,
@@ -3051,7 +3082,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   //----------------------------------------------------------------------------
   // execute the linker command
 
-  const char *Exec = Args.MakeArgString(TC.GetProgramPath("llvm-ld"));
+  const char *Exec = Args.MakeArgString(get_patmos_ld(TC));
   C.addCommand(new Command(JA, *this, Exec, CmdArgs));
 
   //////////////////////////////////////////////////////////////////////////////
@@ -3096,7 +3127,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   LLCArgs.push_back(linkedBCFileName);
 
-  const char *LLCExec = Args.MakeArgString(TC.GetProgramPath("llc"));
+  const char *LLCExec = Args.MakeArgString(get_patmos_llc(TC));
   C.addCommand(new Command(JA, *this, LLCExec, LLCArgs));
 
   //////////////////////////////////////////////////////////////////////////////
@@ -3144,7 +3175,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   LDArgs.push_back(linkedOFileName);
 
-  const char *LDExec = Args.MakeArgString(get_patmos_ld(TC));
+  const char *LDExec = Args.MakeArgString(get_patmos_gold(TC));
   C.addCommand(new Command(JA, *this, LDExec, LDArgs));
 }
 
