@@ -2965,11 +2965,14 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
     if (II.isFilename()) {
       // Only operate on LLVM BC files
-      if (II.getType() == types::TY_AST)
+      if (II.getType() == types::TY_AST) {
         D.Diag(diag::err_drv_no_ast_support) << TC.getTripleString();
-      else if (II.getType() != types::TY_LLVM_BC &&
-               II.getType() != types::TY_LTO_BC)
+      } else if (II.getType() != types::TY_LLVM_BC &&
+                 II.getType() != types::TY_LTO_BC &&
+                 // we accept .a files too. We assume that they are bitcode archives, llvm-ld knows what to do in this case.
+                 II.getType() != types::TY_Object) {
         D.Diag(diag::err_drv_no_linker_llvm_support) << TC.getTripleString();
+      }
 
       CmdArgs.push_back(II.getFilename());
     }
