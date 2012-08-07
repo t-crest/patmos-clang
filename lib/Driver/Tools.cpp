@@ -3012,12 +3012,16 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
         continue;
       }
       else if (A.getOption().matches(options::OPT_Wl_COMMA) ||
-               A.getOption().matches(options::OPT_Xlinker)) {
+               A.getOption().matches(options::OPT_Xlinker) ||
+               A.getOption().matches(options::OPT_L) ||
+               // -l will be handled later
+               A.getOption().matches(options::OPT_l)) {
         // already handled above
         continue;
       }
 
       // Don't render as input
+      A.claim();
       A.render(Args, CmdArgs);
     }
   }
