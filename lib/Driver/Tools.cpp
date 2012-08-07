@@ -3056,14 +3056,23 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   if (!Args.hasArg(options::OPT_nodefaultlibs))
     CmdArgs.push_back("-lpatmos");
 
+
   // link by default with compiler-rt
   if (!Args.hasArg(options::OPT_nodefaultlibs)) {
-    std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/libllsyms.lst");
+    std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/librtsyms.lst");
     CmdArgs.push_back(Args.MakeArgString(APIFile));
 
-    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/libllsyms.o").c_str()));
-    CmdArgs.push_back("-lll");
+    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/librtsyms.o").c_str()));
+    CmdArgs.push_back("-lrt");
+
+    // TODO separate option for soft-floats?
+    APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/librtsfsyms.lst");
+    CmdArgs.push_back(Args.MakeArgString(APIFile));
+
+    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/librtsfsyms.o").c_str()));
+    CmdArgs.push_back("-lrtsf");
   }
+
 
 
   //----------------------------------------------------------------------------
