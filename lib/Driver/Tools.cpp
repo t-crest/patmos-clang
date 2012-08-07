@@ -2900,10 +2900,6 @@ static std::string get_patmos_ld(const ToolChain &TC)
   if (tmp != "patmos-llvm-ld")
     return tmp;
 
-  tmp = TC.GetProgramPath("patmos-ld");
-  if (tmp != "patmos-ld")
-    return tmp;
-
   tmp = TC.GetProgramPath("llvm-ld");
   if (tmp != "llvm-ld")
     return tmp;
