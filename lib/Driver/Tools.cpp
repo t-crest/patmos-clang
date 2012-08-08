@@ -3173,8 +3173,6 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   LDArgs.push_back("__heap_start=end");
   LDArgs.push_back("--defsym");
   LDArgs.push_back("__heap_end=0x2000000");
-  LDArgs.push_back("-Ttext");
-  LDArgs.push_back("0x100");
 
   if (Args.hasArg(options::OPT_v))
     LDArgs.push_back("-verbose");
