@@ -3160,6 +3160,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   Args.AddAllArgs(LDArgs, options::OPT_T_Group);
 
+  Args.AddAllArgs(LDArgs, options::OPT_e);
+
   LDArgs.push_back("-static");
   LDArgs.push_back("-nostdlib");
 
