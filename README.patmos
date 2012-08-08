@@ -1,0 +1,32 @@
+
+
+
+                             PATMOS CLANG README
+
+
+
+This is a port of the clang C compiler for the Patmos toolchain. It is to be 
+compiled as part of Patmos LLVM.
+
+
+--------------------------------------------------------------------------------
+1. Requirements
+
+ - LLVM for Patmos
+   https://github.com/t-crest/patmos-llvm
+
+--------------------------------------------------------------------------------
+2. Build and install
+
+This repository must be checked out as 
+
+    tools/clang 
+
+directory in the patmos-llvm repository. It is build as part of patmos-llvm.
+
+Please refer to the README.patmos file in patmos-llvm for additional build 
+instructions.
+
+Have fun!
+
+
