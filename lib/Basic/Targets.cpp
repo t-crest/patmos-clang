@@ -3155,16 +3155,49 @@ namespace {
 // Patmos abstract base class
 // TODO: builtins
 class PatmosTargetInfo : public TargetInfo {
+  bool SoftFloat : 1;
 public:
   PatmosTargetInfo(const std::string& triple) : TargetInfo(triple)  {
     BigEndian = true;
+    SoftFloat = true;
     DescriptionString =
                   ("E-S32-p:32:32:32-i8:8:8-i16:16:16-i32:32:32-i64:32:64-f64:32:64-n32");
+  }
+
+  virtual bool setFeatureEnabled(llvm::StringMap<bool> &Features,
+                                 StringRef Name,
+                                 bool Enabled) const {
+    if (Name == "hard-float" || Name == "soft-float") {
+      Features[Name] = Enabled;
+      return true;
+    }
+
+    return false;
+  }
+
+  virtual void HandleTargetFeatures(std::vector<std::string> &Features) {
+    SoftFloat = true;
+    for (unsigned i = 0, e = Features.size(); i != e; ++i) {
+      if (Features[i] == "+hard-float")
+        SoftFloat = false;
+      if (Features[i] == "+soft-float")
+        SoftFloat = true;
+    }
+  }
+
+  virtual bool hasFeature(StringRef Feature) const {
+    return llvm::StringSwitch<bool>(Feature)
+             .Case("softfloat", SoftFloat)
+             .Case("patmos", true)
+             .Default(false);
   }
 
   virtual void getTargetDefines(const LangOptions &Opts,
                                 MacroBuilder &Builder) const {
     Builder.defineMacro("__PATMOS__");
+
+    if (SoftFloat)
+      Builder.defineMacro("SOFT_FLOAT", "1");
   }
 
   virtual void getTargetBuiltins(const Builtin::Info *&Records,

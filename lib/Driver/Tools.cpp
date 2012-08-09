@@ -649,11 +649,61 @@ static StringRef getARMFloatABI(const Driver &D,
 }
 
 
+static StringRef getPatmosFloatABI(const Driver &D, const ArgList &Args, const llvm::Triple &Triple) {
+  // Select the float ABI as determined by -msoft-float, -mhard-float,
+  // and -mfloat-abi=.
+
+  // TODO determine default FloatABI based on the processor subtarget features
+  StringRef FloatABI = "soft";
+
+  if (Arg *A = Args.getLastArg(options::OPT_msoft_float,
+                               options::OPT_mhard_float,
+                               options::OPT_mfloat_abi_EQ)) {
+    if (A->getOption().matches(options::OPT_msoft_float))
+      FloatABI = "soft";
+    else if (A->getOption().matches(options::OPT_mhard_float))
+      FloatABI = "hard";
+    else {
+      FloatABI = A->getValue(Args);
+      if (FloatABI != "soft" && FloatABI != "hard") {
+        D.Diag(diag::err_drv_invalid_mfloat_abi)
+          << A->getAsString(Args);
+        FloatABI = "soft";
+      }
+    }
+  }
+
+  return FloatABI;
+}
+
 void Clang::AddPatmosTargetArgs(const ArgList &Args,
                                 ArgStringList &CmdArgs) const
 {
   // Add any special options needed by patmos target here.. (stack cache?, ...)
+  //CmdArgs.push_back("-add-rtlib-decls");
 
+  // Set correct floating-point flags
+  StringRef FloatABI = getPatmosFloatABI(getToolChain().getDriver(), Args,
+                                         getToolChain().getTriple());
+
+  if (FloatABI == "soft") {
+    // Floating point operations and argument passing are soft.
+    CmdArgs.push_back("-msoft-float");
+    CmdArgs.push_back("-mfloat-abi");
+    CmdArgs.push_back("soft");
+  }
+  else {
+    // Floating point operations and argument passing are hard.
+    if (FloatABI != "hard") {
+      getToolChain().getDriver().Diag(diag::err_drv_invalid_mfloat_abi) << FloatABI;
+    }
+    CmdArgs.push_back("-mfloat-abi");
+    CmdArgs.push_back("hard");
+
+    // Pass float mode to PatmosTargetInfo
+    CmdArgs.push_back("-target-feature");
+    CmdArgs.push_back("+hard-float");
+  }
 }
 
 void Clang::AddARMTargetArgs(const ArgList &Args,
@@ -2965,18 +3015,29 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // append output file for linking
 
   char const *linkedBCFileName = NULL;
-  if (C.getArgs().hasArg(options::OPT_save_temps) && Output.isFilename()) {
-    // take the output's name and append a suffix
-    std::string name(Output.getFilename());
-    linkedBCFileName = Args.MakeArgString((name + ".bc").c_str());
-  }
-  else {
-    StringRef Name = Output.isFilename() ?
-                       llvm::sys::path::filename(Output.getFilename()) : "lld-";
-    std::pair<StringRef, StringRef> Split = Name.split('.');
-    std::string TmpName = D.GetTemporaryPath(Split.first, "bc");
-    linkedBCFileName = Args.MakeArgString(TmpName.c_str());
-    C.addTempFile(linkedBCFileName);
+  if (C.getArgs().hasArg(options::OPT_emit_llvm)) {
+    // If we only emit bitcode, use the given output filename as bitcode output file
+    if (Output.isFilename()) {
+      linkedBCFileName = Args.MakeArgString(Output.getFilename());
+    }
+    else {
+      // write to standard-out if nothing is given?!?
+      linkedBCFileName = "-";
+    }
+  } else {
+    if (C.getArgs().hasArg(options::OPT_save_temps) && Output.isFilename()) {
+      // take the output's name and append a suffix
+      std::string name(Output.getFilename());
+      linkedBCFileName = Args.MakeArgString((name + ".bc").c_str());
+    }
+    else {
+      StringRef Name = Output.isFilename() ?
+                         llvm::sys::path::filename(Output.getFilename()) : "lld-";
+      std::pair<StringRef, StringRef> Split = Name.split('.');
+      std::string TmpName = D.GetTemporaryPath(Split.first, "bc");
+      linkedBCFileName = Args.MakeArgString(TmpName.c_str());
+      C.addTempFile(linkedBCFileName);
+    }
   }
 
   assert(linkedBCFileName);
@@ -3093,6 +3154,11 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   const char *Exec = Args.MakeArgString(get_patmos_ld(TC));
   C.addCommand(new Command(JA, *this, Exec, CmdArgs));
+
+  // If we only want to emit bitcode, we are done now.
+  if (Args.hasArg(options::OPT_emit_llvm)) {
+    return;
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   // build LLC command
