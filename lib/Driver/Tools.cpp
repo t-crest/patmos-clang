@@ -649,27 +649,34 @@ static StringRef getARMFloatABI(const Driver &D,
 }
 
 
-static StringRef getPatmosFloatABI(const Driver &D, const ArgList &Args, const llvm::Triple &Triple) {
+static StringRef getPatmosFloatABI(const Driver &D, const ArgList &Args,
+                                   const llvm::Triple &Triple,
+                                   bool &DefaultChanged)
+{
   // Select the float ABI as determined by -msoft-float, -mhard-float,
   // and -mfloat-abi=.
 
   // TODO determine default FloatABI based on the processor subtarget features
   StringRef FloatABI = "soft";
+  // Set to true when the user selects something different from the (subtarget) default.
+  DefaultChanged = false;
 
   if (Arg *A = Args.getLastArg(options::OPT_msoft_float,
                                options::OPT_mhard_float,
                                options::OPT_mfloat_abi_EQ)) {
-    if (A->getOption().matches(options::OPT_msoft_float))
+    if (A->getOption().matches(options::OPT_msoft_float)) {
       FloatABI = "soft";
-    else if (A->getOption().matches(options::OPT_mhard_float))
+    } else if (A->getOption().matches(options::OPT_mhard_float)) {
       FloatABI = "hard";
-    else {
+      DefaultChanged = true;
+    } else {
       FloatABI = A->getValue(Args);
       if (FloatABI != "soft" && FloatABI != "hard") {
         D.Diag(diag::err_drv_invalid_mfloat_abi)
           << A->getAsString(Args);
         FloatABI = "soft";
       }
+      DefaultChanged = (FloatABI != "soft");
     }
   }
 
@@ -683,8 +690,9 @@ void Clang::AddPatmosTargetArgs(const ArgList &Args,
   //CmdArgs.push_back("-add-rtlib-decls");
 
   // Set correct floating-point flags
+  bool Changed;
   StringRef FloatABI = getPatmosFloatABI(getToolChain().getDriver(), Args,
-                                         getToolChain().getTriple());
+                                         getToolChain().getTriple(), Changed);
 
   if (FloatABI == "soft") {
     // Floating point operations and argument passing are soft.
@@ -3166,7 +3174,30 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   //----------------------------------------------------------------------------
   // append -m options
 
-  Args.AddAllArgs(LLCArgs, options::OPT_m_Group);
+  // floating point arguments are different for LLC
+  bool ChangedFloatABI;
+  StringRef FloatABI = getPatmosFloatABI(getToolChain().getDriver(), Args,
+                                         getToolChain().getTriple(), ChangedFloatABI);
+
+  for (ArgList::const_iterator
+         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
+    Arg *A = *it;
+
+    if (A->getOption().matches(options::OPT_msoft_float) ||
+        A->getOption().matches(options::OPT_mhard_float) ||
+        A->getOption().matches(options::OPT_mfloat_abi_EQ)) {
+      continue;
+    }
+    else if (A->getOption().matches(options::OPT_m_Group)) {
+      A->claim();
+      A->render(Args, LLCArgs);
+    }
+  }
+
+  if (ChangedFloatABI) {
+    LLCArgs.push_back("-float-abi");
+    LLCArgs.push_back(FloatABI == "hard" ? "hard" : "soft");
+  }
 
   //----------------------------------------------------------------------------
   // append output file for code generation
