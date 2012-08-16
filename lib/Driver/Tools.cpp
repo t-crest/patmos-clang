@@ -687,7 +687,7 @@ void Clang::AddPatmosTargetArgs(const ArgList &Args,
                                 ArgStringList &CmdArgs) const
 {
   // Add any special options needed by patmos target here.. (stack cache?, ...)
-  if (!Args.hasArg(options::OPT_mno_runtime_deps)) {
+  if (Args.hasArg(options::OPT_fadd_runtime_deps)) {
     CmdArgs.push_back("-fadd-runtime-deps");
   }
 
@@ -2990,6 +2990,12 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   const Driver &D = TC.getDriver();
   ArgStringList CmdArgs, LLCArgs, LDArgs;
 
+  bool ChangedFloatABI;
+  StringRef FloatABI = getPatmosFloatABI(getToolChain().getDriver(), Args,
+                                         getToolChain().getTriple(), ChangedFloatABI);
+
+  bool AddLibSyms = !C.getArgs().hasArg(options::OPT_nolibsyms);
+
   //----------------------------------------------------------------------------
   // pass linker related command line options on to the linker
 
@@ -3084,10 +3090,19 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
       }
       else if (A.getOption().matches(options::OPT_Wl_COMMA) ||
                A.getOption().matches(options::OPT_Xlinker) ||
-               A.getOption().matches(options::OPT_L) ||
-               // -l will be handled later
-               A.getOption().matches(options::OPT_l)) {
+               A.getOption().matches(options::OPT_L)) {
         // already handled above
+        continue;
+      }
+      else if (A.getOption().matches(options::OPT_l)) {
+
+        if (AddLibSyms && A.getAsString(Args) == "-lm") {
+          std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/libmsyms.lst");
+          CmdArgs.push_back(Args.MakeArgString(APIFile));
+          CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/libmsyms.o").c_str()));
+        }
+
+        // will be handled later
         continue;
       }
 
@@ -3121,10 +3136,12 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   // link by default with newlib libc and libpatmos
   if (!Args.hasArg(options::OPT_nostdlib)) {
-    std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/libcsyms.lst");
-    CmdArgs.push_back(Args.MakeArgString(APIFile));
+    if (AddLibSyms) {
+      std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/libcsyms.lst");
+      CmdArgs.push_back(Args.MakeArgString(APIFile));
+      CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/libcsyms.o").c_str()));
+    }
 
-    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/libcsyms.o").c_str()));
     CmdArgs.push_back("-lc");
   }
 
@@ -3134,18 +3151,25 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   // link by default with compiler-rt
   if (!Args.hasArg(options::OPT_nodefaultlibs)) {
-    std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/librtsyms.lst");
-    CmdArgs.push_back(Args.MakeArgString(APIFile));
 
-    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/librtsyms.o").c_str()));
+    // softfloat has dependencies to librt, link first
+    if (FloatABI != "hard") {
+      if (AddLibSyms) {
+        std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/librtsfsyms.lst");
+        CmdArgs.push_back(Args.MakeArgString(APIFile));
+        CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/librtsfsyms.o").c_str()));
+      }
+
+      CmdArgs.push_back("-lrtsf");
+    }
+
+    if (AddLibSyms) {
+      std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/librtsyms.lst");
+      CmdArgs.push_back(Args.MakeArgString(APIFile));
+      CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/librtsyms.o").c_str()));
+    }
+
     CmdArgs.push_back("-lrt");
-
-    // TODO separate option for soft-floats?
-    APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/librtsfsyms.lst");
-    CmdArgs.push_back(Args.MakeArgString(APIFile));
-
-    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/librtsfsyms.o").c_str()));
-    CmdArgs.push_back("-lrtsf");
   }
 
 
@@ -3177,10 +3201,6 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // append -m options
 
   // floating point arguments are different for LLC
-  bool ChangedFloatABI;
-  StringRef FloatABI = getPatmosFloatABI(getToolChain().getDriver(), Args,
-                                         getToolChain().getTriple(), ChangedFloatABI);
-
   for (ArgList::const_iterator
          it = Args.begin(), ie = Args.end(); it != ie; ++it) {
     Arg *A = *it;

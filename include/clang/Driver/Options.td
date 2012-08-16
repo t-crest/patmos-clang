@@ -813,8 +813,10 @@ def working_directory : Separate<"-working-directory">,
 def working_directory_EQ : Joined<"-working-directory=">,
   Alias<working_directory>;
 
-def mno_runtime_deps : Flag<"-mno-runtime-deps">,
-  HelpText<"Do not add dependencies to Patmos runtime libraries.">;
+def nolibsyms : Flag<"-nolibsyms">, 
+  HelpText<"Do not link with libsyms files.">;
+def fadd_runtime_deps : Flag<"-fadd-runtime-deps">,
+  HelpText<"Add dependencies to runtime libraries.">;
 
 // Double dash options, which are usually an alias for one of the previous
 // options.
