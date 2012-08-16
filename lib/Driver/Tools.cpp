@@ -687,7 +687,9 @@ void Clang::AddPatmosTargetArgs(const ArgList &Args,
                                 ArgStringList &CmdArgs) const
 {
   // Add any special options needed by patmos target here.. (stack cache?, ...)
-  //CmdArgs.push_back("-add-rtlib-decls");
+  if (!Args.hasArg(options::OPT_mno_runtime_deps)) {
+    CmdArgs.push_back("-fadd-runtime-deps");
+  }
 
   // Set correct floating-point flags
   bool Changed;

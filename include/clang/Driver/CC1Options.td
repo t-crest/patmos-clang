@@ -256,6 +256,11 @@ def Os : Flag<"-Os">, HelpText<"Optimize for size">;
 def Oz : Flag<"-Oz">, HelpText<"Optimize for size, regardless of performance">;
 def pg : Flag<"-pg">, HelpText<"Enable mcount instrumentation">;
 
+def fadd_runtime_deps : Flag<"-fadd-runtime-deps">, 
+  HelpText<"Add dependencies to runtime library functions for the linker.">;
+def flower_runtime_calls : Flag<"-flower-runtime-calls">,
+  HelpText<"Lower operations to runtime calls where possible (requires -fadd-runtime-deps).">;
+  
 //===----------------------------------------------------------------------===//
 // Dependency Output Options
 //===----------------------------------------------------------------------===//

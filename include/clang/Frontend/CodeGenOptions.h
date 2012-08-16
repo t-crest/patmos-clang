@@ -114,6 +114,9 @@ public:
   unsigned StackAlignment;        /// Overrides default stack alignment,
                                   /// if not 0.
 
+  unsigned AddRuntimeDeps    : 1; /// Add dependencies to runtime library functions.
+  unsigned LowerRuntimeCalls : 1; /// Lower instructions to runtime calls.
+
   /// The code model to use (-mcmodel).
   std::string CodeModel;
 
@@ -216,6 +219,8 @@ public:
     VerifyModule = 1;
     StackRealignment = 0;
     StackAlignment = 0;
+    AddRuntimeDeps = 0;
+    LowerRuntimeCalls = 0;
 
     Inlining = NoInlining;
     RelocationModel = "pic";

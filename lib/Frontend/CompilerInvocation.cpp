@@ -296,6 +296,10 @@ static void CodeGenOptsToArgs(const CodeGenOptions &Opts, ToArgsList &Res) {
     Res.push_back("-disable-llvm-verifier");
   for (unsigned i = 0, e = Opts.BackendOptions.size(); i != e; ++i)
     Res.push_back("-backend-option", Opts.BackendOptions[i]);
+  if (Opts.AddRuntimeDeps)
+    Res.push_back("-fadd-runtime-deps");
+  if (Opts.LowerRuntimeCalls)
+    Res.push_back("-flower-runtime-calls");
 }
 
 static void DependencyOutputOptsToArgs(const DependencyOutputOptions &Opts,
@@ -1164,6 +1168,8 @@ static bool ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args, InputKind IK,
     StringRef Val = A->getValue(Args);
     Val.getAsInteger(10, Opts.StackAlignment);
   }
+  Opts.AddRuntimeDeps = Args.hasArg(OPT_fadd_runtime_deps);
+  Opts.LowerRuntimeCalls = Args.hasArg(OPT_flower_runtime_calls);
 
   if (Arg *A = Args.getLastArg(OPT_fobjc_dispatch_method_EQ)) {
     StringRef Name = A->getValue(Args);

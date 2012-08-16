@@ -223,6 +223,9 @@ void EmitAssemblyHelper::CreatePasses() {
       MPM->add(createStripSymbolsPass(true));
   }
   
+  if (CodeGenOpts.AddRuntimeDeps) {
+    MPM->add(createAddRuntimeDependenciesPass(CodeGenOpts.LowerRuntimeCalls, CodeGenOpts.FloatABI));
+  }
   
   PMBuilder.populateModulePassManager(*MPM);
 }
