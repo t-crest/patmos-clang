@@ -663,11 +663,15 @@ static StringRef getPatmosFloatABI(const Driver &D, const ArgList &Args,
 
   if (Arg *A = Args.getLastArg(options::OPT_msoft_float,
                                options::OPT_mhard_float,
-                               options::OPT_mfloat_abi_EQ)) {
+                               options::OPT_mfloat_abi_EQ,
+                               options::OPT_mno_soft_float)) {
     if (A->getOption().matches(options::OPT_msoft_float)) {
       FloatABI = "soft";
     } else if (A->getOption().matches(options::OPT_mhard_float)) {
       FloatABI = "hard";
+      DefaultChanged = true;
+    } else if (A->getOption().matches(options::OPT_mno_soft_float)) {
+      FloatABI = "none";
       DefaultChanged = true;
     } else {
       FloatABI = A->getValue(Args);
@@ -701,6 +705,12 @@ void Clang::AddPatmosTargetArgs(const ArgList &Args,
     CmdArgs.push_back("-msoft-float");
     CmdArgs.push_back("-mfloat-abi");
     CmdArgs.push_back("soft");
+  }
+  else if (FloatABI == "none") {
+    // Do not use floats at all
+    // TODO anything else to add?
+    CmdArgs.push_back("-mfloat-abi");
+    CmdArgs.push_back("none");
   }
   else {
     // Floating point operations and argument passing are hard.
@@ -3153,7 +3163,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   if (!Args.hasArg(options::OPT_nodefaultlibs)) {
 
     // softfloat has dependencies to librt, link first
-    if (FloatABI != "hard") {
+    if (FloatABI != "hard" && FloatABI != "none") {
       if (AddLibSyms) {
         std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/librtsfsyms.lst");
         CmdArgs.push_back(Args.MakeArgString(APIFile));
@@ -3207,7 +3217,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
     if (A->getOption().matches(options::OPT_msoft_float) ||
         A->getOption().matches(options::OPT_mhard_float) ||
-        A->getOption().matches(options::OPT_mfloat_abi_EQ)) {
+        A->getOption().matches(options::OPT_mfloat_abi_EQ) ||
+        A->getOption().matches(options::OPT_mno_soft_float)) {
       continue;
     }
     else if (A->getOption().matches(options::OPT_m_Group)) {
