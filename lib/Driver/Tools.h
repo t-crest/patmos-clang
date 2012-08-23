@@ -91,6 +91,24 @@ namespace patmos {
 
     virtual bool hasIntegratedCPP() const { return false; }
     virtual bool isLinkJob() const { return true; }
+
+  private:
+    // Some helper methods to construct arguments in ConstructJob
+    const char * CreateOutputFilename(Compilation &C, const InputInfo &Output,
+                                      const char * TmpPrefix,
+                                      const char *Suffix,
+                                      bool IsLastPass) const;
+
+    void AddLibraryPaths(const ArgList &Args, ArgStringList &CmdArgs, bool LinkBinaries) const;
+
+    /// If we only have one input file and no libraries, return the name of the input file, else return null.
+    /// The UseLTO argument tells the function if ELF files will be handled later or should cause an error
+    /// when linking bitcode files.
+    const char *AddInputFiles(const ArgList &Args, ArgStringList &CmdArgs, const InputInfoList &Inputs,
+                       bool AddLibSyms, bool LinkBinaries, bool UseLTO) const;
+
+    void AddStandardLibs(const ArgList &Args, ArgStringList &CmdArgs, bool AddDefaultLibs,
+                       bool AddStdLibs, bool AddLibC, bool AddLibSyms, StringRef FloatABI) const;
   };
 }
 

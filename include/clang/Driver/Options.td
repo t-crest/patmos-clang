@@ -262,6 +262,10 @@ def emit_ast : Flag<"-emit-ast">,
   HelpText<"Emit Clang AST files for source inputs">;
 def emit_llvm : Flag<"-emit-llvm">,
   HelpText<"Use the LLVM representation for assembler and object files">;
+def emit_obj : Flag<"-emit-obj">,
+  HelpText<"Generate a relocatable object instead of an executable object">;
+def emit_asm : Flag<"-emit-asm">,
+  HelpText<"Generate native assembler code">;
 def exported__symbols__list : Separate<"-exported_symbols_list">;
 def e : JoinedOrSeparate<"-e">;
 def fPIC : Flag<"-fPIC">, Group<f_Group>;
@@ -589,6 +593,8 @@ def iwithprefix : JoinedOrSeparate<"-iwithprefix">, Group<clang_i_Group>;
 def iwithsysroot : JoinedOrSeparate<"-iwithsysroot">, Group<clang_i_Group>;
 def i : Joined<"-i">, Group<i_Group>;
 def keep__private__externs : Flag<"-keep_private_externs">;
+def link_as_object: Flag<"-link-as-object">, 
+        HelpText<"Do not link in libraries or startup code">;
 def l : JoinedOrSeparate<"-l">, Flags<[LinkerInput, RenderJoined]>;
 def lazy__framework : Separate<"-lazy_framework">, Flags<[LinkerInput]>;
 def lazy__library : Separate<"-lazy_library">, Flags<[LinkerInput]>;

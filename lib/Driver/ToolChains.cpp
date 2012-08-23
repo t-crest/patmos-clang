@@ -1583,6 +1583,12 @@ PatmosToolChain::PatmosToolChain(const Driver &D, const llvm::Triple& Triple)
   if (llvm::sys::fs::exists(Path + "/../bin/"))
     getProgramPaths().push_back(Path + "/../bin/");
 
+  // add lib to search paths so that we can look for LLVMgold.so
+  if (llvm::sys::fs::exists(Path + "/lib/"))
+    getProgramPaths().push_back(Path + "/lib/");
+  if (llvm::sys::fs::exists(Path + "/../lib/"))
+    getProgramPaths().push_back(Path + "/../lib/");
+
   // newlib libraries and includes?
   if (llvm::sys::fs::exists(Path + "/patmos-unknown-elf/"))
     getFilePaths().push_back(Path + "/patmos-unknown-elf/");
