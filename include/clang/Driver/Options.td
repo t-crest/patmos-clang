@@ -36,6 +36,7 @@ def i_Group               : OptionGroup<"<i group>">, Group<CompileOnly_Group>;
 def clang_i_Group         : OptionGroup<"<clang i group>">, Group<i_Group>;
 def m_Group               : OptionGroup<"<m group>">, Group<CompileOnly_Group>;
 def m_x86_Features_Group  : OptionGroup<"<m x86 features group>">, Group<m_Group>;
+def m_Patmos_Group        : OptionGroup<"<m Patmos group>">;
 def u_Group               : OptionGroup<"<u group>">;
 
 def pedantic_Group        : OptionGroup<"<pedantic group>">,
@@ -682,6 +683,11 @@ def multi__module : Flag<"-multi_module">;
 def multiply__defined__unused : Separate<"-multiply_defined_unused">;
 def multiply__defined : Separate<"-multiply_defined">;
 def mwarn_nonportable_cfstrings : Flag<"-mwarn-nonportable-cfstrings">, Group<m_Group>;
+def mpatmos_stack_base : Joined<"-mpatmos-stack-base=">, Group<m_Patmos_Group>;
+def mpatmos_shadow_stack_base : Joined<"-mpatmos-shadow-stack-base=">, Group<m_Patmos_Group>;
+def mpatmos_heap_end : Joined<"-mpatmos-heap-end=">, Group<m_Patmos_Group>;
+def mpatmos_uart_status_base : Joined<"-mpatmos-uart-status-base=">, Group<m_Patmos_Group>;
+def mpatmos_uart_data_base : Joined<"-mpatmos-uart-data-base=">, Group<m_Patmos_Group>;
 def m_Separate : Separate<"-m">, Group<m_Group>;
 def m_Joined : Joined<"-m">, Group<m_Group>;
 def no_canonical_prefixes : Flag<"-no-canonical-prefixes">, Flags<[HelpHidden]>,

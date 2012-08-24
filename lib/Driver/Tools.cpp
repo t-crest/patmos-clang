@@ -2990,6 +2990,23 @@ static std::string get_patmos_llc(const ToolChain &TC)
   return TC.GetProgramPath((TC.getTriple().str() + "-llc").c_str());
 }
 
+/// render_patmos_symbol - check if a -mpatmos-<symbol> option was given, if
+/// so render a --defsym to the out arguments list using its value. Otherwise,
+/// render a --defsym using the default value.
+static void render_patmos_symbol(OptSpecifier Opt, const char* Symbol,
+                                 const ArgList &Args, const char *Default,
+                                 ArgStringList &Out)
+{
+  Out.push_back("--defsym");
+  std::string tmp(Symbol);
+  tmp += "=";
+
+  // get option value
+  Arg *a = Args.getLastArg(Opt);
+  tmp += a ? a->getValue(Args) : Default;
+
+  Out.push_back(Args.MakeArgString(tmp));
+}
 
 void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
                                const InputInfo &Output,
@@ -3218,7 +3235,9 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     if (A->getOption().matches(options::OPT_msoft_float) ||
         A->getOption().matches(options::OPT_mhard_float) ||
         A->getOption().matches(options::OPT_mfloat_abi_EQ) ||
-        A->getOption().matches(options::OPT_mno_soft_float)) {
+        A->getOption().matches(options::OPT_mno_soft_float) ||
+        A->getOption().matches(options::OPT_m_Patmos_Group)) {
+      A->claim();
       continue;
     }
     else if (A->getOption().matches(options::OPT_m_Group)) {
@@ -3295,16 +3314,26 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   LDArgs.push_back("-static");
   LDArgs.push_back("-nostdlib");
 
-  // FIXME: find some other solution to do this, e.g., define them in a linker
-  // script?
-  LDArgs.push_back("--defsym");
-  LDArgs.push_back("_shadow_stack_base=0x4000000");
-  LDArgs.push_back("--defsym");
-  LDArgs.push_back("_stack_cache_base=0x3000000");
+  render_patmos_symbol(options::OPT_mpatmos_uart_status_base,
+                       "_uart_status_base", Args, "0xF0000000", LDArgs);
+
+  render_patmos_symbol(options::OPT_mpatmos_uart_data_base,
+                       "_uart_data_base", Args, "0xF0000001", LDArgs);
+
+  render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
+                       "_shadow_stack_base", Args, "0x4000000", LDArgs);
+
+  render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
+                       "_shadow_stack_base", Args, "0x4000000", LDArgs);
+
+  render_patmos_symbol(options::OPT_mpatmos_stack_base,
+                       "_stack_cache_base", Args, "0x3000000", LDArgs);
+
+  render_patmos_symbol(options::OPT_mpatmos_heap_end,
+                       "__heap_end", Args, "0x2000000", LDArgs);
+
   LDArgs.push_back("--defsym");
   LDArgs.push_back("__heap_start=end");
-  LDArgs.push_back("--defsym");
-  LDArgs.push_back("__heap_end=0x2000000");
 
   if (Args.hasArg(options::OPT_v))
     LDArgs.push_back("-verbose");
