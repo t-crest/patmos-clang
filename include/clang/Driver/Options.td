@@ -262,10 +262,6 @@ def emit_ast : Flag<"-emit-ast">,
   HelpText<"Emit Clang AST files for source inputs">;
 def emit_llvm : Flag<"-emit-llvm">,
   HelpText<"Use the LLVM representation for assembler and object files">;
-def emit_obj : Flag<"-emit-obj">,
-  HelpText<"Generate a relocatable object instead of an executable object">;
-def emit_asm : Flag<"-emit-asm">,
-  HelpText<"Generate native assembler code">;
 def exported__symbols__list : Separate<"-exported_symbols_list">;
 def e : JoinedOrSeparate<"-e">;
 def fPIC : Flag<"-fPIC">, Group<f_Group>;
@@ -497,6 +493,16 @@ def fpack_struct : Flag<"-fpack-struct">, Group<f_Group>;
 def fno_pack_struct : Flag<"-fno-pack-struct">, Group<f_Group>;
 def fpack_struct_EQ : Joined<"-fpack-struct=">, Group<f_Group>;
 def fpascal_strings : Flag<"-fpascal-strings">, Group<f_Group>;
+
+def fpatmos_emit_obj : Flag<"-fpatmos-emit-obj">,
+  HelpText<"Generate a relocatable object instead of an executable object or bitcode">;
+def fpatmos_emit_asm : Flag<"-fpatmos-emit-asm">,
+  HelpText<"Generate native assembler code">;
+def fpatmos_link_object: Flag<"-fpatmos-link-object">, 
+        HelpText<"Do not link in libraries or startup code">;
+def fpatmos_lto_defaultlibs: Flag<"-fpatmos-lto-defaultlibs">, 
+        HelpText<"Do not link in libraries or startup code">;
+
 def fpch_preprocess : Flag<"-fpch-preprocess">, Group<f_Group>;
 def fpic : Flag<"-fpic">, Group<f_Group>;
 def fno_pic : Flag<"-fno-pic">, Group<f_Group>;
@@ -593,8 +599,6 @@ def iwithprefix : JoinedOrSeparate<"-iwithprefix">, Group<clang_i_Group>;
 def iwithsysroot : JoinedOrSeparate<"-iwithsysroot">, Group<clang_i_Group>;
 def i : Joined<"-i">, Group<i_Group>;
 def keep__private__externs : Flag<"-keep_private_externs">;
-def link_as_object: Flag<"-link-as-object">, 
-        HelpText<"Do not link in libraries or startup code">;
 def l : JoinedOrSeparate<"-l">, Flags<[LinkerInput, RenderJoined]>;
 def lazy__framework : Separate<"-lazy_framework">, Flags<[LinkerInput]>;
 def lazy__library : Separate<"-lazy_library">, Flags<[LinkerInput]>;

@@ -1614,7 +1614,9 @@ Tool &PatmosToolChain::SelectTool(const Compilation &C, const JobAction &JA,
     case Action::AnalyzeJobClass:
       T = new tools::Clang(*this); break;
     case Action::CompileJobClass:
-      T = new tools::Clang(*this); break;
+      T = new tools::patmos::Compile(*this); break;
+    case Action::AssembleJobClass:
+      T = new tools::patmos::Assemble(*this); break;
     case Action::LinkJobClass:
       T = new tools::patmos::Link(*this); break;
     default:

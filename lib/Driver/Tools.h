@@ -78,6 +78,28 @@ namespace tools {
 
   /// patmos specific compilation flow.
 namespace patmos {
+
+  class LLVM_LIBRARY_VISIBILITY Compile : public Clang  {
+  public:
+    Compile(const ToolChain &TC) : Clang(TC) {}
+
+    virtual bool hasIntegratedAssembler() const { return false; }
+  };
+
+  class LLVM_LIBRARY_VISIBILITY Assemble : public Tool  {
+  public:
+    Assemble(const ToolChain &TC) : Tool("patmos::Assemble",
+                                     "assemble via llvm-mc", TC) {}
+
+    virtual void ConstructJob(Compilation &C, const JobAction &JA,
+                              const InputInfo &Output,
+                              const InputInfoList &Inputs,
+                              const ArgList &TCArgs,
+                              const char *LinkingOutput) const;
+
+    virtual bool hasIntegratedCPP() const { return false; }
+  };
+
   class LLVM_LIBRARY_VISIBILITY Link : public Tool  {
   public:
     Link(const ToolChain &TC) : Tool("patmos::Link",

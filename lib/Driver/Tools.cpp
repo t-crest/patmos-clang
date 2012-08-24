@@ -2978,6 +2978,19 @@ static std::string get_patmos_ld(const ToolChain &TC)
   return TC.GetProgramPath((TC.getTriple().str() + "-llvm-ld").c_str());
 }
 
+static std::string get_patmos_mc(const ToolChain &TC)
+{
+  std::string tmp = TC.GetProgramPath("patmos-llvm-mc");
+  if (tmp != "patmos-llvm-mc")
+    return tmp;
+
+  tmp = TC.GetProgramPath("llvm-mc");
+  if (tmp != "llvm-mc")
+    return tmp;
+
+  return TC.GetProgramPath((TC.getTriple().str() + "-llvm-mc").c_str());
+}
+
 static std::string get_patmos_llc(const ToolChain &TC)
 {
   std::string tmp = TC.GetProgramPath("patmos-llc");
@@ -3007,6 +3020,33 @@ static void render_patmos_symbol(OptSpecifier Opt, const char* Symbol,
   tmp += a ? a->getValue(Args) : Default;
 
   Out.push_back(Args.MakeArgString(tmp));
+}
+
+void patmos::Assemble::ConstructJob(Compilation &C, const JobAction &JA,
+                               const InputInfo &Output,
+                               const InputInfoList &Inputs,
+                               const ArgList &Args,
+                               const char *LinkingOutput) const
+{
+  const ToolChain &TC = getToolChain();
+  ArgStringList CmdArgs;
+
+  assert(Inputs.size() == 1 && "Unexpected number of inputs.");
+  const InputInfo &Input = Inputs[0];
+
+  CmdArgs.push_back("-triple");
+  CmdArgs.push_back(TC.getTripleString().c_str());
+
+  CmdArgs.push_back("-assemble");
+  CmdArgs.push_back("-filetype=obj");
+
+  CmdArgs.push_back("-o");
+  CmdArgs.push_back(Output.getFilename());
+
+  CmdArgs.push_back(Input.getFilename());
+
+  const char *MCExec = Args.MakeArgString(get_patmos_mc(TC));
+  C.addCommand(new Command(JA, *this, MCExec, CmdArgs));
 }
 
 const char * patmos::Link::CreateOutputFilename(Compilation &C,
@@ -3221,7 +3261,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
                                const InputInfo &Output,
                                const InputInfoList &Inputs,
                                const ArgList &Args,
-                               const char *LinkingOutput) const {
+                               const char *LinkingOutput) const
+{
   const ToolChain &TC = getToolChain();
   const Driver &D = TC.getDriver();
   ArgStringList CmdArgs, LLCArgs, LDArgs;
@@ -3248,7 +3289,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
 
   // Do not link in -l, do not link in startup code or standard-libs
-  bool LinkAsObject = C.getArgs().hasArg(options::OPT_link_as_object);
+  bool LinkAsObject = C.getArgs().hasArg(options::OPT_fpatmos_link_object);
 
   if (LinkAsObject) {
     AddStartFiles = false;
@@ -3259,9 +3300,9 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // Do not execute llc and gold
   bool EmitLLVM = C.getArgs().hasArg(options::OPT_emit_llvm);
   // Do not execute gold
-  bool EmitObject = C.getArgs().hasArg(options::OPT_emit_obj);
+  bool EmitObject = C.getArgs().hasArg(options::OPT_fpatmos_emit_obj);
   // Do not execute gold, emit assembler
-  bool EmitAsm = C.getArgs().hasArg(options::OPT_emit_asm);
+  bool EmitAsm = C.getArgs().hasArg(options::OPT_fpatmos_emit_asm);
 
   // link -l and ELF .o files with gold and libLTO plugin
   bool UseLTO = C.getArgs().hasArg(options::OPT_flto);
@@ -3440,7 +3481,9 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   // Checking for JA.getType() == types::TY_Image does not tell us if we want to
   // generate asm code since we told clang that assembly files are .bc files
-  if (!EmitAsm) {
+  if (EmitAsm) {
+    LLCArgs.push_back("-show-mc-encoding");
+  } else {
     LLCArgs.push_back("-filetype=obj");
   }
 
@@ -3513,15 +3556,13 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // append binaries and -l options if we are using LTO
 
   if (UseLTO) {
-    if (C.getArgs().hasArg(options::OPT_use_gold_plugin)) {
-      // try to add -plugin option
-      std::string tmp( TC.GetProgramPath("LLVMgold.so", true) );
-      if (tmp != "LLVMgold.so") {
-        LDArgs.push_back("-plugin");
+    // try to add -plugin option, this is actually required
+    std::string tmp( TC.GetProgramPath("LLVMgold.so", true) );
+    if (tmp != "LLVMgold.so") {
+      LDArgs.push_back("--plugin");
 
-        char *cstr = new char[tmp.size()+1];
-        LDArgs.push_back(strcpy(cstr, tmp.c_str()));
-      }
+      char *cstr = new char[tmp.size()+1];
+      LDArgs.push_back(strcpy(cstr, tmp.c_str()));
     }
 
     AddLibraryPaths(Args, LDArgs, true);
