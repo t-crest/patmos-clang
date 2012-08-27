@@ -16,6 +16,7 @@
 
 #include "llvm/ADT/Triple.h"
 #include "llvm/Support/Compiler.h"
+#include "llvm/Support/Path.h"
 
 namespace clang {
 namespace driver {
@@ -79,9 +80,60 @@ namespace tools {
   /// patmos specific compilation flow.
 namespace patmos {
 
-  class LLVM_LIBRARY_VISIBILITY Compile : public Clang  {
+  class PatmosBaseTool {
+    const ToolChain &TC;
   public:
-    Compile(const ToolChain &TC) : Clang(TC) {}
+    PatmosBaseTool(const ToolChain &TC) : TC(TC) {}
+
+  protected:
+    // Some helper methods to construct arguments in ConstructJob
+    llvm::sys::LLVMFileType getFileType(std::string filename) const;
+
+    bool isBitcodeFile(std::string filename) const {
+      return getFileType(filename) == llvm::sys::Bitcode_FileType;
+    }
+
+    const char * CreateOutputFilename(Compilation &C, const InputInfo &Output,
+                                      const char * TmpPrefix,
+                                      const char *Suffix,
+                                      bool IsLastPass) const;
+
+    /// Add -L arguments
+    void AddLibraryPaths(const ArgList &Args, ArgStringList &CmdArgs,
+                         bool LinkBinaries) const;
+
+    /// The UseLTO argument tells the function if .a should be handled by
+    /// gold or llvm-ld. The HasGoldPass arguments tells the function if
+    /// we will execute gold or if linking with ELFs should throw an error.
+    void AddInputFiles(const ArgList &Args, ArgStringList &CmdArgs,
+                              const InputInfoList &Inputs,
+                              bool AddLibSyms, bool IsGoldPass,
+                              bool HasGoldPass,
+                              bool UseLTO, int &CntLinkerInput) const;
+
+    /// Add arguments to link with libc, librt, librtsf, libpatmos
+    void AddStandardLibs(const ArgList &Args, ArgStringList &CmdArgs,
+                         bool AddDefaultLibs, bool AddStdLibs, bool AddLibC,
+                         bool AddLibSyms, StringRef FloatABI,
+                         int &CntLinkerInput) const;
+
+    void ConstructLLCJob(const Tool &Creator, Compilation &C, const JobAction &JA,
+                      const char *OutputFilename,
+                      const char *InputFilename,
+                      const ArgList &TCArgs,
+                      bool EmitAsm, bool IsLastPass) const;
+  };
+
+  class LLVM_LIBRARY_VISIBILITY Compile : public Clang, protected PatmosBaseTool
+  {
+  public:
+    Compile(const ToolChain &TC) : Clang(TC), PatmosBaseTool(TC) {}
+
+    virtual void ConstructJob(Compilation &C, const JobAction &JA,
+                              const InputInfo &Output,
+                              const InputInfoList &Inputs,
+                              const ArgList &TCArgs,
+                              const char *LinkingOutput) const;
 
     virtual bool hasIntegratedAssembler() const { return false; }
   };
@@ -100,10 +152,11 @@ namespace patmos {
     virtual bool hasIntegratedCPP() const { return false; }
   };
 
-  class LLVM_LIBRARY_VISIBILITY Link : public Tool  {
+  class LLVM_LIBRARY_VISIBILITY Link : public Tool, protected PatmosBaseTool {
   public:
     Link(const ToolChain &TC) : Tool("patmos::Link",
-                                     "link  via llvm-ld & llc", TC) {}
+                                     "link  via llvm-ld & llc", TC),
+                                PatmosBaseTool(TC) {}
 
     virtual void ConstructJob(Compilation &C, const JobAction &JA,
                               const InputInfo &Output,
@@ -114,23 +167,6 @@ namespace patmos {
     virtual bool hasIntegratedCPP() const { return false; }
     virtual bool isLinkJob() const { return true; }
 
-  private:
-    // Some helper methods to construct arguments in ConstructJob
-    const char * CreateOutputFilename(Compilation &C, const InputInfo &Output,
-                                      const char * TmpPrefix,
-                                      const char *Suffix,
-                                      bool IsLastPass) const;
-
-    void AddLibraryPaths(const ArgList &Args, ArgStringList &CmdArgs, bool LinkBinaries) const;
-
-    /// If we only have one input file and no libraries, return the name of the input file, else return null.
-    /// The UseLTO argument tells the function if ELF files will be handled later or should cause an error
-    /// when linking bitcode files.
-    const char *AddInputFiles(const ArgList &Args, ArgStringList &CmdArgs, const InputInfoList &Inputs,
-                       bool AddLibSyms, bool LinkBinaries, bool UseLTO) const;
-
-    void AddStandardLibs(const ArgList &Args, ArgStringList &CmdArgs, bool AddDefaultLibs,
-                       bool AddStdLibs, bool AddLibC, bool AddLibSyms, StringRef FloatABI) const;
   };
 }
 

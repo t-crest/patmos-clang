@@ -31,6 +31,7 @@
 #include "llvm/Support/Host.h"
 #include "llvm/Support/Process.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/Path.h"
 
 #include "InputInfo.h"
 #include "ToolChains.h"
@@ -3022,41 +3023,23 @@ static void render_patmos_symbol(OptSpecifier Opt, const char* Symbol,
   Out.push_back(Args.MakeArgString(tmp));
 }
 
-void patmos::Assemble::ConstructJob(Compilation &C, const JobAction &JA,
-                               const InputInfo &Output,
-                               const InputInfoList &Inputs,
-                               const ArgList &Args,
-                               const char *LinkingOutput) const
-{
-  const ToolChain &TC = getToolChain();
-  ArgStringList CmdArgs;
+llvm::sys::LLVMFileType
+patmos::PatmosBaseTool::getFileType(std::string filename) const {
+  llvm::sys::Path Pathname( filename );
 
-  assert(Inputs.size() == 1 && "Unexpected number of inputs.");
-  const InputInfo &Input = Inputs[0];
-
-  CmdArgs.push_back("-triple");
-  CmdArgs.push_back(TC.getTripleString().c_str());
-
-  CmdArgs.push_back("-assemble");
-  CmdArgs.push_back("-filetype=obj");
-
-  CmdArgs.push_back("-o");
-  CmdArgs.push_back(Output.getFilename());
-
-  CmdArgs.push_back(Input.getFilename());
-
-  const char *MCExec = Args.MakeArgString(get_patmos_mc(TC));
-  C.addCommand(new Command(JA, *this, MCExec, CmdArgs));
+  std::string Magic;
+  Pathname.getMagicNumber(Magic, 64);
+  return llvm::sys::IdentifyFileType(Magic.c_str(), 64);
 }
 
-const char * patmos::Link::CreateOutputFilename(Compilation &C,
+const char * patmos::PatmosBaseTool::CreateOutputFilename(Compilation &C,
     const InputInfo &Output, const char * TmpPrefix, const char *Suffix,
     bool IsLastPass) const
 {
   const char * filename = NULL;
 
   const ArgList &Args = C.getArgs();
-  const Driver &D = getToolChain().getDriver();
+  const Driver &D = TC.getDriver();
 
   if (IsLastPass) {
     if (Output.isFilename()) {
@@ -3084,11 +3067,10 @@ const char * patmos::Link::CreateOutputFilename(Compilation &C,
   return filename;
 }
 
-void patmos::Link::AddLibraryPaths(const ArgList &Args, ArgStringList &CmdArgs,
-    bool LinkBinaries) const
+void patmos::PatmosBaseTool::AddLibraryPaths(const ArgList &Args,
+                                             ArgStringList &CmdArgs,
+                                             bool LinkBinaries) const
 {
-  const ToolChain &TC = getToolChain();
-
   Args.AddAllArgs(CmdArgs, options::OPT_L);
 
   addDirectoryList(Args, CmdArgs, "-L", "LIBRARY_PATH");
@@ -3103,21 +3085,16 @@ void patmos::Link::AddLibraryPaths(const ArgList &Args, ArgStringList &CmdArgs,
   }
 }
 
-const char *patmos::Link::AddInputFiles(const ArgList &Args,
+void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
                    ArgStringList &CmdArgs, const InputInfoList &Inputs,
-                   bool AddLibSyms, bool LinkBinaries, bool UseLTO) const
+                   bool AddLibSyms, bool IsGoldPass, bool HasGoldPass,
+                   bool UseLTO, int &CntLinkerInput) const
 {
-  const ToolChain &TC = getToolChain();
   const Driver &D = TC.getDriver();
-
-  const char *filename = NULL;
-
-  bool hasLibs = false;
-  int cntInputs = 0;
 
   // If we are linking bitcode and are using LTO later, do not link libraries
   // for now but let gold handle them.
-  bool AddLibraries = LinkBinaries || !UseLTO;
+  bool AddLibraries = (IsGoldPass && UseLTO) || (!IsGoldPass && !UseLTO);
 
   // TODO llvm-ld has been removed in LLVM 3.2. To support llvm-link, either add
   // archive and -l support to llvm-link, or resolve -l here (but we still need
@@ -3135,24 +3112,44 @@ const char *patmos::Link::AddInputFiles(const ArgList &Args,
       } else if (II.getType() == types::TY_LLVM_BC ||
                  II.getType() == types::TY_LTO_BC)
       {
-        cntInputs++;
-        filename = II.getFilename();
-
-        // If we are linking binaries with gold, assume that .bc files have already been linked in to the main .o file
-        if (LinkBinaries) {
+        // If we are linking binaries with gold, assume that .bc files have
+        // already been linked in to the main .o file
+        if (IsGoldPass) {
           continue;
         }
+
       } else if (II.getType() == types::TY_Object) {
 
-        // We accept .a files even when linking bitcode too. We assume that they are bitcode archives,
-        // llvm-ld knows what to do in this case or throws an error if they are not bitcode archives.
+        llvm::sys::LLVMFileType FT = getFileType(II.getFilename());
 
-        // However, we count then as library as they need special handling by the linker
-        hasLibs = true;
+        if (FT == llvm::sys::Archive_FileType) {
+          // We accept .a files even when linking bitcode too. We assume that they
+          // are bitcode archives, llvm-ld knows what to do in this case or throws
+          // an error if they are not bitcode archives.
 
-        if (!AddLibraries) {
-          // When linking bitcode, we ignore .a (bitcode or ELF) and .o (ELF) files for now, but only if LTO is used later.
-          continue;
+          // TODO check for bitcode/ELF archive
+
+          // Link .a files with gold like libraries, if we use LTO later
+          if (!AddLibraries) {
+            continue;
+          }
+        }
+        else if (FT == llvm::sys::Bitcode_FileType) {
+          if (IsGoldPass) {
+            // Again, assume that .bc files have been handled by llvm-ld and llc
+            continue;
+          }
+        } else {
+          // Some sort of binary file.. link with gold, even if LTO is not used
+          if (!IsGoldPass) {
+            if (!HasGoldPass) {
+              // TODO use D.Diag() ?
+              llvm::report_fatal_error("Cannot link binary files when "
+                                  "generating bitcode or object file output");
+            } else {
+              continue;
+            }
+          }
         }
 
       } else {
@@ -3160,6 +3157,8 @@ const char *patmos::Link::AddInputFiles(const ArgList &Args,
       }
 
       CmdArgs.push_back(II.getFilename());
+      CntLinkerInput++;
+
     }
     else {
       const Arg &A = II.getInputArg();
@@ -3169,7 +3168,6 @@ const char *patmos::Link::AddInputFiles(const ArgList &Args,
         if (AddLibraries) {
           CmdArgs.push_back("-lstdc++");
         }
-        hasLibs = true;
         continue;
       }
       else if (A.getOption().matches(options::OPT_Wl_COMMA) ||
@@ -3180,9 +3178,7 @@ const char *patmos::Link::AddInputFiles(const ArgList &Args,
       }
       else if (A.getOption().matches(options::OPT_l)) {
 
-        // TODO why does -l match Inputs anyway??? We should check Args instead ?!
-
-        hasLibs = true;
+        // TODO why does -l match Inputs anyway? We should check Args instead ?!
 
         if (AddLibSyms && A.getAsString(Args) == "-lm") {
           std::string APIFile = "-internalize-public-api-file=" +
@@ -3190,6 +3186,7 @@ const char *patmos::Link::AddInputFiles(const ArgList &Args,
           CmdArgs.push_back(Args.MakeArgString(APIFile));
           CmdArgs.push_back(Args.MakeArgString(
                                  TC.GetFilePath("lib/libmsyms.o").c_str()));
+          CntLinkerInput++;
         }
 
         // -l is handled later
@@ -3208,21 +3205,23 @@ const char *patmos::Link::AddInputFiles(const ArgList &Args,
     Args.AddAllArgs(CmdArgs, options::OPT_l);
   }
 
-  return cntInputs == 1 && !hasLibs ? filename : NULL;
 }
 
-void patmos::Link::AddStandardLibs(const ArgList &Args, ArgStringList &CmdArgs,
+void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
+                   ArgStringList &CmdArgs,
                    bool AddDefaultLibs, bool AddStdLibs, bool AddLibC,
-                   bool AddLibSyms, StringRef FloatABI) const
+                   bool AddLibSyms, StringRef FloatABI,
+                   int &CntLinkerInput) const
 {
-  const ToolChain &TC = getToolChain();
-
   // link by default with newlib libc and libpatmos
   if (AddLibC) {
     if (AddLibSyms) {
-      std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/libcsyms.lst");
+      std::string APIFile = "-internalize-public-api-file=" +
+                            TC.GetFilePath("lib/libcsyms.lst");
       CmdArgs.push_back(Args.MakeArgString(APIFile));
-      CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/libcsyms.o").c_str()));
+      CmdArgs.push_back(Args.MakeArgString(
+                            TC.GetFilePath("lib/libcsyms.o").c_str()));
+      CntLinkerInput++;
     }
 
     CmdArgs.push_back("-lc");
@@ -3239,203 +3238,41 @@ void patmos::Link::AddStandardLibs(const ArgList &Args, ArgStringList &CmdArgs,
     // softfloat has dependencies to librt, link first
     if (FloatABI != "hard" && FloatABI != "none") {
       if (AddLibSyms) {
-        std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/librtsfsyms.lst");
+        std::string APIFile = "-internalize-public-api-file=" +
+                              TC.GetFilePath("lib/librtsfsyms.lst");
         CmdArgs.push_back(Args.MakeArgString(APIFile));
-        CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/librtsfsyms.o").c_str()));
+        CmdArgs.push_back(Args.MakeArgString(
+                              TC.GetFilePath("lib/librtsfsyms.o").c_str()));
+        CntLinkerInput++;
       }
 
       CmdArgs.push_back("-lrtsf");
     }
 
     if (AddLibSyms) {
-      std::string APIFile = "-internalize-public-api-file=" + TC.GetFilePath("lib/librtsyms.lst");
+      std::string APIFile = "-internalize-public-api-file=" +
+                            TC.GetFilePath("lib/librtsyms.lst");
       CmdArgs.push_back(Args.MakeArgString(APIFile));
-      CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/librtsyms.o").c_str()));
+      CmdArgs.push_back(Args.MakeArgString(
+                            TC.GetFilePath("lib/librtsyms.o").c_str()));
+      CntLinkerInput++;
     }
 
     CmdArgs.push_back("-lrt");
   }
 }
 
-void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
-                               const InputInfo &Output,
-                               const InputInfoList &Inputs,
-                               const ArgList &Args,
-                               const char *LinkingOutput) const
+void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
+    Compilation &C, const JobAction &JA,
+    const char *OutputFilename, const char *InputFilename,
+    const ArgList &Args,
+    bool EmitAsm, bool IsLastPass) const
 {
-  const ToolChain &TC = getToolChain();
-  const Driver &D = TC.getDriver();
-  ArgStringList CmdArgs, LLCArgs, LDArgs;
-
-  //----------------------------------------------------------------------------
-  // read out various command line options
+  ArgStringList LLCArgs;
 
   bool ChangedFloatABI;
-  StringRef FloatABI = getPatmosFloatABI(getToolChain().getDriver(), Args,
-                                         getToolChain().getTriple(),
-                                         ChangedFloatABI);
-
-  // add lib*syms.o and --internalize options to llvm-ld
-  bool AddLibSyms = !C.getArgs().hasArg(options::OPT_nolibsyms);
-  // add crt0
-  bool AddStartFiles = !C.getArgs().hasArg(options::OPT_nostartfiles);
-  // add libpatmos, librt, librtsf
-  // TODO maybe move libpatmos to AddStdLibs
-  bool AddDefaultLibs = !C.getArgs().hasArg(options::OPT_nodefaultlibs);
-  // add libc, ..
-  bool AddStdLibs = !C.getArgs().hasArg(options::OPT_nostdlib);
-  // add libc
-  bool AddLibC = !C.getArgs().hasArg(options::OPT_nolibc) && AddStdLibs;
-
-
-  // Do not link in -l, do not link in startup code or standard-libs
-  bool LinkAsObject = C.getArgs().hasArg(options::OPT_fpatmos_link_object);
-
-  if (LinkAsObject) {
-    AddStartFiles = false;
-    AddLibSyms = false;
-  }
-
-
-  // Do not execute llc and gold
-  bool EmitLLVM = C.getArgs().hasArg(options::OPT_emit_llvm);
-  // Do not execute gold
-  bool EmitObject = C.getArgs().hasArg(options::OPT_fpatmos_emit_obj);
-  // Do not execute gold, emit assembler
-  bool EmitAsm = C.getArgs().hasArg(options::OPT_fpatmos_emit_asm);
-
-  // link -l and ELF .o files with gold and libLTO plugin
-  bool UseLTO = C.getArgs().hasArg(options::OPT_flto);
-
-
-  //----------------------------------------------------------------------------
-  // Sanity checks and check for some unsupported options
-
-  if (EmitObject && EmitAsm) {
-    llvm::report_fatal_error("-emit-obj and -emit-asm are mutually exclusive");
-  }
-  if (EmitLLVM && (EmitObject || EmitAsm)) {
-    llvm::report_fatal_error("-emit-llvm cannot be used with -emit-obj or -emit-asm");
-  }
-  if (UseLTO && (EmitLLVM || EmitObject || EmitAsm)) {
-    llvm::report_fatal_error("-emit-* cannot be used when linking with LTO support");
-  }
-  if (UseLTO && LinkAsObject) {
-    llvm::report_fatal_error("-link-as-object and linking with LTO support is mutually exclusive.");
-  }
-
-  if (Arg *A = Args.getLastArg(options::OPT_shared)) {
-    D.Diag(diag::err_drv_unsupported_opt) << A->getAsString(Args);
-  }
-  if (Arg *A = Args.getLastArg(options::OPT_static)) {
-    D.Diag(diag::err_drv_unsupported_opt) << A->getAsString(Args);
-  }
-
-  //----------------------------------------------------------------------------
-  // pass some linker related command line options on to the linker
-
-  // Always throw an error when we link with an ELF file in this stage
-  CmdArgs.push_back("-emit-llvm");
-
-  if (LinkAsObject) {
-    // Do not link in -l libraries, just add them as dependencies
-    CmdArgs.push_back("-link-as-library");
-  }
-
-  for (ArgList::const_iterator
-         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
-    Arg *A = *it;
-
-    if (A->getOption().matches(options::OPT_Wl_COMMA) ||
-        A->getOption().matches(options::OPT_Xlinker)) {
-      A->claim();
-      A->renderAsInput(Args, CmdArgs);
-    }
-    else if (A->getOption().isLinkerInput() ||
-             A->getOption().matches(options::OPT_v)) {
-      // It is unfortunate that we have to claim here, as this means
-      // we will basically never report anything interesting for
-      // platforms using a generic gcc, even if we are just using gcc
-      // to get to the assembler.
-      A->claim();
-      A->render(Args, CmdArgs);
-    }
-  }
-
-  //----------------------------------------------------------------------------
-  // append library search paths
-
-  AddLibraryPaths(Args, CmdArgs, false);
-
-  //----------------------------------------------------------------------------
-  // append output file for linking
-
-  char const *linkedBCFileName = CreateOutputFilename(C, Output, "lld-", "bc",
-                                    C.getArgs().hasArg(options::OPT_emit_llvm));
-
-  assert(linkedBCFileName);
-  CmdArgs.push_back("-b");
-  CmdArgs.push_back(linkedBCFileName);
-
-  //----------------------------------------------------------------------------
-  // link with start-up file
-
-  if (AddStartFiles) {
-    // TODO check if this is a .bc file or an ELF file
-    // In the latter case
-    // - pass this to gold instead
-    // - if UseLTO, make sure we skip llvm-ld and llc if there are no bitcode
-    //   input files!
-    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("lib/crt0.o").c_str()));
-  }
-
-  //----------------------------------------------------------------------------
-  // append input files
-
-  const char *SingleFile = AddInputFiles(Args, CmdArgs, Inputs,
-                                    AddLibSyms && !LinkAsObject, false, UseLTO);
-
-  //----------------------------------------------------------------------------
-  // link with newlib libraries
-
-  if (!LinkAsObject && !UseLTO) {
-    // Do not link in standard libraries if we link as object (or should we??)
-    AddStandardLibs(Args, CmdArgs, AddDefaultLibs, AddStdLibs, AddLibC,
-                                    AddLibSyms && !LinkAsObject, FloatABI);
-  }
-
-  //----------------------------------------------------------------------------
-  // some linker-specific options
-
-  // the _start label has to be preserved
-  CmdArgs.push_back("-internalize-public-api-list=_start,main");
-
-  // suppress the emission of a linker script
-  CmdArgs.push_back("-no-script");
-
-  //----------------------------------------------------------------------------
-  // execute the linker command
-
-  if (!SingleFile || AddStartFiles || EmitLLVM || !LinkAsObject) {
-
-    const char *Exec = Args.MakeArgString(get_patmos_ld(TC));
-    C.addCommand(new Command(JA, *this, Exec, CmdArgs));
-
-  } else {
-    // In case we only have a single file and do not link with libraries (and
-    // are not the last pass) then we can skip this linker pass
-
-    linkedBCFileName = SingleFile;
-  }
-
-
-  // If we only want to emit bitcode, we are done now.
-  if (EmitLLVM) {
-    return;
-  }
-
-  //////////////////////////////////////////////////////////////////////////////
-  // build LLC command
+  StringRef FloatABI = getPatmosFloatABI(TC.getDriver(), C.getArgs(),
+                                         TC.getTriple(), ChangedFloatABI);
 
   //----------------------------------------------------------------------------
   // append -m options
@@ -3467,14 +3304,9 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   //----------------------------------------------------------------------------
   // append output file for code generation
 
-  bool StopAfterLLC = EmitAsm || EmitObject || LinkAsObject;
-
-  char const *linkedOFileName = CreateOutputFilename(C, Output, "llc-", "bc.o",
-                                                     StopAfterLLC);
-
-  assert(linkedOFileName);
+  assert(OutputFilename);
   LLCArgs.push_back("-o");
-  LLCArgs.push_back(linkedOFileName);
+  LLCArgs.push_back(OutputFilename);
 
   //----------------------------------------------------------------------------
   // generate object file
@@ -3490,11 +3322,304 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   //----------------------------------------------------------------------------
   // append linked BC name as input
 
-  LLCArgs.push_back(linkedBCFileName);
+  LLCArgs.push_back(InputFilename);
 
   const char *LLCExec = Args.MakeArgString(get_patmos_llc(TC));
-  C.addCommand(new Command(JA, *this, LLCExec, LLCArgs));
+  C.addCommand(new Command(JA, Creator, LLCExec, LLCArgs));
+}
 
+void patmos::Compile::ConstructJob(Compilation &C, const JobAction &JA,
+                               const InputInfo &Output,
+                               const InputInfoList &Inputs,
+                               const ArgList &Args,
+                               const char *LinkingOutput) const
+{
+  // TODO to make this more standard-compliant, set to false
+  bool EmitLLVM = true;
+  // only used when EmitLLVM is false
+  bool EmitAsm = false;
+  // do we have a link phase where we call llc
+  bool IsLastPhase = false;
+
+  if (Arg *A = C.getArgs().getLastArg(options::OPT_emit_llvm,
+                  options::OPT_fpatmos_emit_obj, options::OPT_fpatmos_emit_asm))
+  {
+    if (A->getOption().matches(options::OPT_emit_llvm)) {
+      EmitLLVM = true;
+    }
+    else if (A->getOption().matches(options::OPT_fpatmos_emit_obj)) {
+      EmitLLVM = false;
+      EmitAsm = false;
+    }
+    else if (A->getOption().matches(options::OPT_fpatmos_emit_asm)) {
+      EmitLLVM = false;
+      EmitAsm = true;
+    }
+    A->claim();
+  }
+  if (C.getArgs().hasArg(options::OPT_S))
+  {
+    EmitAsm = true;
+    IsLastPhase = true;
+  }
+  if (C.getArgs().hasArg(options::OPT_c))
+  {
+    EmitAsm = false;
+    IsLastPhase = true;
+  }
+
+  // If this is not the last phase or if we emit llvm-code, we just call clang
+  if (EmitLLVM || !IsLastPhase) {
+    Clang::ConstructJob(C, JA, Output, Inputs, Args, LinkingOutput);
+  } else {
+    // Run llc afterwards, no linking phase
+    const char *BCFilename = CreateOutputFilename(C, Output, "clang-",
+                                                  "bc", false);
+
+    const InputInfo TmpOutput(BCFilename, types::TY_LLVM_BC,
+                              Inputs[0].getFilename());
+
+    //--------------------------------------------------------------------------
+    // Run clang
+
+    Clang::ConstructJob(C, JA, TmpOutput, Inputs, Args, LinkingOutput);
+
+    //--------------------------------------------------------------------------
+    // Run LLC on output
+
+    ConstructLLCJob(*this, C, JA, Output.getFilename(), BCFilename, Args,
+                    EmitAsm, true);
+
+  }
+
+}
+
+void patmos::Assemble::ConstructJob(Compilation &C, const JobAction &JA,
+                               const InputInfo &Output,
+                               const InputInfoList &Inputs,
+                               const ArgList &Args,
+                               const char *LinkingOutput) const
+{
+  const ToolChain &TC = getToolChain();
+  ArgStringList CmdArgs;
+
+  assert(Inputs.size() == 1 && "Unexpected number of inputs.");
+  const InputInfo &Input = Inputs[0];
+
+  CmdArgs.push_back("-triple");
+  CmdArgs.push_back(TC.getTripleString().c_str());
+
+  CmdArgs.push_back("-assemble");
+  CmdArgs.push_back("-filetype=obj");
+
+  CmdArgs.push_back("-o");
+  CmdArgs.push_back(Output.getFilename());
+
+  CmdArgs.push_back(Input.getFilename());
+
+  const char *MCExec = Args.MakeArgString(get_patmos_mc(TC));
+  C.addCommand(new Command(JA, *this, MCExec, CmdArgs));
+}
+
+void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
+                               const InputInfo &Output,
+                               const InputInfoList &Inputs,
+                               const ArgList &Args,
+                               const char *LinkingOutput) const
+{
+  const ToolChain &TC = getToolChain();
+  const Driver &D = TC.getDriver();
+  ArgStringList CmdArgs, LDArgs;
+
+  //----------------------------------------------------------------------------
+  // read out various command line options
+
+  bool ChangedFloatABI;
+  StringRef FloatABI = getPatmosFloatABI(TC.getDriver(), C.getArgs(),
+                                         TC.getTriple(),ChangedFloatABI);
+
+  // add lib*syms.o and --internalize options to llvm-ld
+  bool AddLibSyms = !C.getArgs().hasArg(options::OPT_nolibsyms);
+  // add crt0
+  bool AddStartFiles = !C.getArgs().hasArg(options::OPT_nostartfiles);
+  // add libpatmos, librt, librtsf
+  // TODO maybe move libpatmos to AddStdLibs
+  bool AddDefaultLibs = !C.getArgs().hasArg(options::OPT_nodefaultlibs);
+  // add libc, ..
+  bool AddStdLibs = !C.getArgs().hasArg(options::OPT_nostdlib);
+  // add libc
+  bool AddLibC = !C.getArgs().hasArg(options::OPT_nolibc) && AddStdLibs;
+
+
+  // Do not link in -l, do not link in startup code or standard-libs
+  bool LinkAsObject = C.getArgs().hasArg(options::OPT_fpatmos_link_object);
+
+  if (LinkAsObject) {
+    AddStartFiles = false;
+    AddLibSyms = false;
+    AddDefaultLibs = false;
+    AddStdLibs = false;
+  }
+
+
+  // Do not execute llc and gold
+  bool EmitLLVM = C.getArgs().hasArg(options::OPT_emit_llvm);
+  // Do not execute gold
+  bool EmitObject = C.getArgs().hasArg(options::OPT_fpatmos_emit_obj);
+  // Do not execute gold, emit assembler
+  bool EmitAsm = C.getArgs().hasArg(options::OPT_fpatmos_emit_asm);
+
+  // link all -l and ELF .o files with gold and libLTO plugin
+  bool UseLTO = C.getArgs().hasArg(options::OPT_flto);
+  // link runtime libraries, libc and libm with gold
+  //bool UseLTORuntime = false;
+
+
+  bool StopAfterLLC = EmitAsm || EmitObject || LinkAsObject;
+
+
+  //----------------------------------------------------------------------------
+  // Sanity checks and check for some unsupported options
+
+  if (EmitObject && EmitAsm) {
+    llvm::report_fatal_error("-fpatmos-emit-obj and -fpatmos-emit-asm are mutually exclusive");
+  }
+  if (EmitLLVM && (EmitObject || EmitAsm)) {
+    llvm::report_fatal_error("-emit-llvm cannot be used with -fpatmos-emit-obj or -fpatmos-emit-asm");
+  }
+  if (UseLTO && (EmitLLVM || EmitObject || EmitAsm)) {
+    llvm::report_fatal_error("-emit-* cannot be used when linking with LTO support");
+  }
+  if (UseLTO && LinkAsObject) {
+    llvm::report_fatal_error("-fpatmos-link-object and linking with LTO support is mutually exclusive.");
+  }
+
+  if (Arg *A = Args.getLastArg(options::OPT_shared)) {
+    D.Diag(diag::err_drv_unsupported_opt) << A->getAsString(Args);
+  }
+  if (Arg *A = Args.getLastArg(options::OPT_static)) {
+    D.Diag(diag::err_drv_unsupported_opt) << A->getAsString(Args);
+  }
+
+  //----------------------------------------------------------------------------
+  // pass some linker related command line options on to the bitcode linker
+
+  // Always throw an error when we link with an ELF file in this stage
+  CmdArgs.push_back("-emit-llvm");
+
+  if (LinkAsObject) {
+    // Do not link in -l libraries, just add them as dependencies
+    CmdArgs.push_back("-link-as-library");
+  }
+
+  for (ArgList::const_iterator
+         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
+    Arg *A = *it;
+
+    if (A->getOption().matches(options::OPT_Wl_COMMA) ||
+        A->getOption().matches(options::OPT_Xlinker)) {
+      A->claim();
+      A->renderAsInput(Args, CmdArgs);
+    }
+    else if (A->getOption().isLinkerInput() ||
+             A->getOption().matches(options::OPT_v)) {
+      // It is unfortunate that we have to claim here, as this means
+      // we will basically never report anything interesting for
+      // platforms using a generic gcc, even if we are just using gcc
+      // to get to the assembler.
+      A->claim();
+      A->render(Args, CmdArgs);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  // append library search paths (-L)
+
+  AddLibraryPaths(Args, CmdArgs, false);
+
+  //----------------------------------------------------------------------------
+  // append output file for linking
+
+  char const *linkedBCFileName = CreateOutputFilename(C, Output, "lld-", "bc",
+                                    C.getArgs().hasArg(options::OPT_emit_llvm));
+
+  assert(linkedBCFileName);
+  CmdArgs.push_back("-b");
+  CmdArgs.push_back(linkedBCFileName);
+
+  //----------------------------------------------------------------------------
+  // link with start-up file crt0.o
+
+  int CntLinkerInput = 0;
+  bool LinkBinaryStartFiles = false;
+
+  if (AddStartFiles) {
+    std::string Crt0Filename = TC.GetFilePath("lib/crt0.o");
+    if (isBitcodeFile(Crt0Filename)) {
+
+      CmdArgs.push_back(Args.MakeArgString(Crt0Filename));
+
+      CntLinkerInput++;
+    } else {
+      LinkBinaryStartFiles = true;
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  // append input files
+
+  // TODO to replace llvm-ld with llvm-link, resolve -l here? check for ELF
+  // files and archives.
+
+  AddInputFiles(Args, CmdArgs, Inputs, AddLibSyms && !LinkAsObject,
+                false, !EmitLLVM && !StopAfterLLC, UseLTO, CntLinkerInput);
+
+  //----------------------------------------------------------------------------
+  // link with newlib libraries
+
+  if (!LinkAsObject && !UseLTO) {
+    // Do not link in standard libraries if we link as object (or should we??)
+    AddStandardLibs(Args, CmdArgs, AddDefaultLibs, AddStdLibs, AddLibC,
+                                   AddLibSyms && !LinkAsObject, FloatABI,
+                                   CntLinkerInput);
+  }
+
+  //----------------------------------------------------------------------------
+  // some linker-specific options
+
+  // the _start label has to be preserved
+  CmdArgs.push_back("-internalize-public-api-list=_start,main");
+
+  // suppress the emission of a linker script
+  CmdArgs.push_back("-no-script");
+
+  //----------------------------------------------------------------------------
+  // execute the linker command
+
+  if (CntLinkerInput > 0) {
+
+    const char *Exec = Args.MakeArgString(get_patmos_ld(TC));
+    C.addCommand(new Command(JA, *this, Exec, CmdArgs));
+
+  }
+
+  // If we only want to emit bitcode, we are done now.
+  if (EmitLLVM) {
+    return;
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  // build LLC command
+
+  char const *linkedOFileName = CreateOutputFilename(C, Output, "llc-", "bc.o",
+                                                     StopAfterLLC);
+
+  if (CntLinkerInput > 0) {
+
+    ConstructLLCJob(*this, C, JA, linkedOFileName, linkedBCFileName, Args,
+                    EmitAsm, StopAfterLLC);
+
+  }
 
   // If we do not want to create an executable file, we are done now
   if (StopAfterLLC) {
@@ -3548,29 +3673,43 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     LDArgs.push_back("-verbose");
 
   //----------------------------------------------------------------------------
+  // link in crt0 if it is a binary file
+
+  if (AddStartFiles && LinkBinaryStartFiles) {
+    // No need to check for file type, has already been done
+    std::string Crt0Filename = TC.GetFilePath("lib/crt0.o");
+    CmdArgs.push_back(Args.MakeArgString(Crt0Filename));
+  }
+
+  //----------------------------------------------------------------------------
   // append linked .O name as input
 
-  LDArgs.push_back(linkedOFileName);
+  if (CntLinkerInput > 0) {
+    LDArgs.push_back(linkedOFileName);
+  }
 
   //----------------------------------------------------------------------------
   // append binaries and -l options if we are using LTO
 
   if (UseLTO) {
     // try to add -plugin option, this is actually required
-    std::string tmp( TC.GetProgramPath("LLVMgold.so", true) );
-    if (tmp != "LLVMgold.so") {
+    std::string plugin( TC.GetProgramPath("LLVMgold.so", true) );
+    if (plugin != "LLVMgold.so") {
       LDArgs.push_back("--plugin");
-
-      char *cstr = new char[tmp.size()+1];
-      LDArgs.push_back(strcpy(cstr, tmp.c_str()));
+      LDArgs.push_back(Args.MakeArgString(plugin));
     }
 
     AddLibraryPaths(Args, LDArgs, true);
 
-    AddInputFiles(Args, LDArgs, Inputs, false, true, UseLTO);
+    AddInputFiles(Args, LDArgs, Inputs, false, true, true, UseLTO,
+                  CntLinkerInput);
 
     AddStandardLibs(Args, LDArgs, AddDefaultLibs, AddStdLibs, AddLibC, false,
-                    FloatABI);
+                    FloatABI, CntLinkerInput);
+  } else {
+    // Link in any ELF files but not libraries or anything
+    AddInputFiles(Args, LDArgs, Inputs, false, true, true, UseLTO,
+                  CntLinkerInput);
   }
 
   const char *LDExec = Args.MakeArgString(get_patmos_gold(TC));

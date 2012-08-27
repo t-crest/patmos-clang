@@ -499,9 +499,9 @@ def fpatmos_emit_obj : Flag<"-fpatmos-emit-obj">,
 def fpatmos_emit_asm : Flag<"-fpatmos-emit-asm">,
   HelpText<"Generate native assembler code">;
 def fpatmos_link_object: Flag<"-fpatmos-link-object">, 
-        HelpText<"Do not link in libraries or startup code">;
+        HelpText<"Link as object, i.e., do not link in libraries or startup code">;
 def fpatmos_lto_defaultlibs: Flag<"-fpatmos-lto-defaultlibs">, 
-        HelpText<"Do not link in libraries or startup code">;
+        HelpText<"Link runtime libraries, libc and libm with gold">;
 
 def fpch_preprocess : Flag<"-fpch-preprocess">, Group<f_Group>;
 def fpic : Flag<"-fpic">, Group<f_Group>;
