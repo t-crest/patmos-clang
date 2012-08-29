@@ -3144,7 +3144,8 @@ void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
           if (!IsGoldPass) {
             if (!HasGoldPass) {
               // TODO use D.Diag() ?
-              llvm::report_fatal_error("Cannot link binary files when "
+              llvm::report_fatal_error(Twine(II.getFilename()) +
+                                  ": Cannot link binary files when "
                                   "generating bitcode or object file output");
             } else {
               continue;
@@ -3180,13 +3181,11 @@ void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
 
         // TODO why does -l match Inputs anyway? We should check Args instead ?!
 
-        if (AddLibSyms && A.getAsString(Args) == "-lm") {
-          std::string APIFile = "-internalize-public-api-file=" +
-                                 TC.GetFilePath("lib/libmsyms.lst");
-          CmdArgs.push_back(Args.MakeArgString(APIFile));
-          CmdArgs.push_back(Args.MakeArgString(
-                                 TC.GetFilePath("lib/libmsyms.o").c_str()));
-          CntLinkerInput++;
+        if (A.getAsString(Args) == "-lm") {
+          // do not add -lm here, this is added later
+          AddSystemLibrary(Args, CmdArgs, "lib/libmsyms.o",
+                                          "lib/libmsyms.lst", NULL,
+                                          AddLibSyms, IsGoldPass, CntLinkerInput);
         }
 
         // -l is handled later
@@ -3207,24 +3206,48 @@ void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
 
 }
 
+void patmos::PatmosBaseTool::AddSystemLibrary(const ArgList &Args,
+                      ArgStringList &CmdArgs,
+                      const char *libo, const char *libsyms,
+                      const char *libflag,
+                      bool AddLibSyms, bool IsGoldPass,
+                      int &CntLinkerInput) const
+{
+  if (AddLibSyms) {
+    std::string symsfile = TC.GetFilePath(libsyms);
+    std::string ofile = TC.GetFilePath(libo);
+
+    // We do not check if the .o file is bitcode or ELF here:
+    // If we use -flto, this is only called for gold, which can handle both
+    // If we do not use -flto, we can only link bitcode anyway
+
+    if (!IsGoldPass) {
+      std::string APIFile = "-internalize-public-api-file=" + symsfile;
+      CmdArgs.push_back(Args.MakeArgString(APIFile));
+    }
+
+    CmdArgs.push_back(Args.MakeArgString(ofile));
+    CntLinkerInput++;
+  }
+
+  if (libflag) {
+    CmdArgs.push_back(libflag);
+  }
+}
+
+
 void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
                    ArgStringList &CmdArgs,
                    bool AddDefaultLibs, bool AddStdLibs, bool AddLibC,
                    bool AddLibSyms, StringRef FloatABI,
+                   bool IsGoldPass,
                    int &CntLinkerInput) const
 {
   // link by default with newlib libc and libpatmos
   if (AddLibC) {
-    if (AddLibSyms) {
-      std::string APIFile = "-internalize-public-api-file=" +
-                            TC.GetFilePath("lib/libcsyms.lst");
-      CmdArgs.push_back(Args.MakeArgString(APIFile));
-      CmdArgs.push_back(Args.MakeArgString(
-                            TC.GetFilePath("lib/libcsyms.o").c_str()));
-      CntLinkerInput++;
-    }
-
-    CmdArgs.push_back("-lc");
+    AddSystemLibrary(Args, CmdArgs, "lib/libcsyms.o",
+                                    "lib/libcsyms.lst", "-lc",
+                                    AddLibSyms, IsGoldPass, CntLinkerInput);
   }
 
   // TODO check for AddStdLibs instead?
@@ -3237,28 +3260,14 @@ void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
 
     // softfloat has dependencies to librt, link first
     if (FloatABI != "hard" && FloatABI != "none") {
-      if (AddLibSyms) {
-        std::string APIFile = "-internalize-public-api-file=" +
-                              TC.GetFilePath("lib/librtsfsyms.lst");
-        CmdArgs.push_back(Args.MakeArgString(APIFile));
-        CmdArgs.push_back(Args.MakeArgString(
-                              TC.GetFilePath("lib/librtsfsyms.o").c_str()));
-        CntLinkerInput++;
-      }
-
-      CmdArgs.push_back("-lrtsf");
+      AddSystemLibrary(Args, CmdArgs, "lib/librtsfsyms.o",
+                                      "lib/librtsfsyms.lst", "-lrtsf",
+                                      AddLibSyms, IsGoldPass, CntLinkerInput);
     }
 
-    if (AddLibSyms) {
-      std::string APIFile = "-internalize-public-api-file=" +
-                            TC.GetFilePath("lib/librtsyms.lst");
-      CmdArgs.push_back(Args.MakeArgString(APIFile));
-      CmdArgs.push_back(Args.MakeArgString(
-                            TC.GetFilePath("lib/librtsyms.o").c_str()));
-      CntLinkerInput++;
-    }
-
-    CmdArgs.push_back("-lrt");
+    AddSystemLibrary(Args, CmdArgs, "lib/librtsyms.o",
+                                    "lib/librtsyms.lst", "-lrt",
+                                    AddLibSyms, IsGoldPass, CntLinkerInput);
   }
 }
 
@@ -3450,17 +3459,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // add libc
   bool AddLibC = !C.getArgs().hasArg(options::OPT_nolibc) && AddStdLibs;
 
-
   // Do not link in -l, do not link in startup code or standard-libs
   bool LinkAsObject = C.getArgs().hasArg(options::OPT_fpatmos_link_object);
-
-  if (LinkAsObject) {
-    AddStartFiles = false;
-    AddLibSyms = false;
-    AddDefaultLibs = false;
-    AddStdLibs = false;
-  }
-
 
   // Do not execute llc and gold
   bool EmitLLVM = C.getArgs().hasArg(options::OPT_emit_llvm);
@@ -3472,8 +3472,23 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // link all -l and ELF .o files with gold and libLTO plugin
   bool UseLTO = C.getArgs().hasArg(options::OPT_flto);
   // link runtime libraries, libc and libm with gold
-  //bool UseLTORuntime = false;
+  bool UseLTORuntime = C.getArgs().hasArg(options::OPT_fpatmos_lto_defaultlibs)
+                       || UseLTO;
 
+
+  if (LinkAsObject) {
+    AddStartFiles = false;
+    AddLibSyms = false;
+    AddDefaultLibs = false;
+    AddStdLibs = false;
+  }
+
+  if (UseLTORuntime) {
+    // The libsyms stuff does not work either way when using LTO,
+    // This must either be fixed in gold, or newlib+compiler-rt must be compiled
+    // as binary ELF
+    AddLibSyms = false;
+  }
 
   bool StopAfterLLC = EmitAsm || EmitObject || LinkAsObject;
 
@@ -3487,10 +3502,10 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   if (EmitLLVM && (EmitObject || EmitAsm)) {
     llvm::report_fatal_error("-emit-llvm cannot be used with -fpatmos-emit-obj or -fpatmos-emit-asm");
   }
-  if (UseLTO && (EmitLLVM || EmitObject || EmitAsm)) {
+  if ((UseLTO || UseLTORuntime) && (EmitLLVM || EmitObject || EmitAsm)) {
     llvm::report_fatal_error("-emit-* cannot be used when linking with LTO support");
   }
-  if (UseLTO && LinkAsObject) {
+  if ((UseLTO || UseLTORuntime) && LinkAsObject) {
     llvm::report_fatal_error("-fpatmos-link-object and linking with LTO support is mutually exclusive.");
   }
 
@@ -3571,17 +3586,17 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // TODO to replace llvm-ld with llvm-link, resolve -l here? check for ELF
   // files and archives.
 
-  AddInputFiles(Args, CmdArgs, Inputs, AddLibSyms && !LinkAsObject,
+  AddInputFiles(Args, CmdArgs, Inputs, AddLibSyms,
                 false, !EmitLLVM && !StopAfterLLC, UseLTO, CntLinkerInput);
 
   //----------------------------------------------------------------------------
   // link with newlib libraries
 
-  if (!LinkAsObject && !UseLTO) {
+  if (!LinkAsObject && !UseLTORuntime) {
     // Do not link in standard libraries if we link as object (or should we??)
     AddStandardLibs(Args, CmdArgs, AddDefaultLibs, AddStdLibs, AddLibC,
-                                   AddLibSyms && !LinkAsObject, FloatABI,
-                                   CntLinkerInput);
+                                   AddLibSyms, FloatABI,
+                                   false, CntLinkerInput);
   }
 
   //----------------------------------------------------------------------------
@@ -3691,7 +3706,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   //----------------------------------------------------------------------------
   // append binaries and -l options if we are using LTO
 
-  if (UseLTO) {
+  if (UseLTO || UseLTORuntime) {
     // try to add -plugin option, this is actually required
     std::string plugin( TC.GetProgramPath("LLVMgold.so", true) );
     if (plugin != "LLVMgold.so") {
@@ -3700,16 +3715,15 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     }
 
     AddLibraryPaths(Args, LDArgs, true);
+  }
 
-    AddInputFiles(Args, LDArgs, Inputs, false, true, true, UseLTO,
-                  CntLinkerInput);
+  // TODO -lm should depend on UseLTORuntime instead of UseLTO
+  AddInputFiles(Args, LDArgs, Inputs, AddLibSyms, true, true, UseLTO,
+                CntLinkerInput);
 
-    AddStandardLibs(Args, LDArgs, AddDefaultLibs, AddStdLibs, AddLibC, false,
-                    FloatABI, CntLinkerInput);
-  } else {
-    // Link in any ELF files but not libraries or anything
-    AddInputFiles(Args, LDArgs, Inputs, false, true, true, UseLTO,
-                  CntLinkerInput);
+  if (UseLTORuntime) {
+    AddStandardLibs(Args, LDArgs, AddDefaultLibs, AddStdLibs, AddLibC,
+                    AddLibSyms, FloatABI, true, CntLinkerInput);
   }
 
   const char *LDExec = Args.MakeArgString(get_patmos_gold(TC));

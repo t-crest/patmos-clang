@@ -107,14 +107,21 @@ namespace patmos {
     /// we will execute gold or if linking with ELFs should throw an error.
     void AddInputFiles(const ArgList &Args, ArgStringList &CmdArgs,
                               const InputInfoList &Inputs,
-                              bool AddLibSyms, bool IsGoldPass,
-                              bool HasGoldPass,
-                              bool UseLTO, int &CntLinkerInput) const;
+                              bool AddLibSyms,
+                              bool IsGoldPass, bool HasGoldPass, bool UseLTO,
+                              int &CntLinkerInput) const;
+
+    void AddSystemLibrary(const ArgList &Args, ArgStringList &CmdArgs,
+                          const char *libo, const char *libsyms,
+                          const char *libflag,
+                          bool AddLibSyms, bool IsGoldPass,
+                          int &CntLinkerInput) const;
 
     /// Add arguments to link with libc, librt, librtsf, libpatmos
     void AddStandardLibs(const ArgList &Args, ArgStringList &CmdArgs,
                          bool AddDefaultLibs, bool AddStdLibs, bool AddLibC,
                          bool AddLibSyms, StringRef FloatABI,
+                         bool IsGoldPass,
                          int &CntLinkerInput) const;
 
     void ConstructLLCJob(const Tool &Creator, Compilation &C, const JobAction &JA,
