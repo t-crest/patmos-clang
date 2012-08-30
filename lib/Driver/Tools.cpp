@@ -676,9 +676,10 @@ static StringRef getPatmosFloatABI(const Driver &D, const ArgList &Args,
       DefaultChanged = true;
     } else {
       FloatABI = A->getValue(Args);
-      if (FloatABI != "soft" && FloatABI != "hard") {
-        D.Diag(diag::err_drv_invalid_mfloat_abi)
-          << A->getAsString(Args);
+      if (FloatABI != "soft" && FloatABI != "hard" &&
+          FloatABI != "none" && FloatABI != "simple")
+      {
+        D.Diag(diag::err_drv_invalid_mfloat_abi) << A->getAsString(Args);
         FloatABI = "soft";
       }
       DefaultChanged = (FloatABI != "soft");
