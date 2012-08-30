@@ -109,6 +109,7 @@ namespace patmos {
                               const InputInfoList &Inputs,
                               bool AddLibSyms,
                               bool IsGoldPass, bool HasGoldPass, bool UseLTO,
+                              bool UseLTORuntime,
                               int &CntLinkerInput) const;
 
     void AddSystemLibrary(const ArgList &Args, ArgStringList &CmdArgs,

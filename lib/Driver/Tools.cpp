@@ -3089,7 +3089,7 @@ void patmos::PatmosBaseTool::AddLibraryPaths(const ArgList &Args,
 void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
                    ArgStringList &CmdArgs, const InputInfoList &Inputs,
                    bool AddLibSyms, bool IsGoldPass, bool HasGoldPass,
-                   bool UseLTO, int &CntLinkerInput) const
+                   bool UseLTO, bool UseLTORuntime, int &CntLinkerInput) const
 {
   const Driver &D = TC.getDriver();
 
@@ -3149,12 +3149,14 @@ void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
                                   ": Cannot link binary files when "
                                   "generating bitcode or object file output");
             } else {
+              // we will link this later with gold, let gold deal with this
               continue;
             }
           }
         }
 
       } else {
+        // Unhandled input file type
         D.Diag(diag::err_drv_no_linker_llvm_support) << TC.getTripleString();
       }
 
@@ -3180,29 +3182,42 @@ void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
       }
       else if (A.getOption().matches(options::OPT_l)) {
 
-        // TODO why does -l match Inputs anyway? We should check Args instead ?!
+        // -l is marked as LinkerInput, so we should always get all -l flags
+        // here, in the correct order.
 
+        // -lm is special .. we handle this like a runtime library (should we?)
+        // since we need to link in the libsyms stuff.
+        // If we have UseLTORuntime
+        //   - we link in -lm with llvm-ld (if !UseLTO), but not the syms stuff
+        //   - we link in -lm and the syms.o file with gold again
+        // If we do not use UseLTORuntime
+        //   - we link in -lm and syms with llvm-ld
+        //   - we do nothing for gold
         if (A.getAsString(Args) == "-lm") {
-          // do not add -lm here, this is added later
-          AddSystemLibrary(Args, CmdArgs, "lib/libmsyms.o",
-                                          "lib/libmsyms.lst", NULL,
-                                          AddLibSyms, IsGoldPass, CntLinkerInput);
+          if ((UseLTORuntime && IsGoldPass) || (!UseLTORuntime && !IsGoldPass))
+          {
+            AddSystemLibrary(Args, CmdArgs, "lib/libmsyms.o",
+                                            "lib/libmsyms.lst", "-lm",
+                                            AddLibSyms, IsGoldPass,
+                                            CntLinkerInput);
+            continue;
+          } else if (!UseLTORuntime) {
+            // In case !UseLTORuntime and IsGoldPass, skip -lm
+            continue;
+          }
+          // Handle case UseLTORuntime and !IsGoldPass below like other libs
         }
 
-        // -l is handled later
-        continue;
+        if (!AddLibraries) {
+          // -l options will be/have been handled at a different phase
+          continue;
+        }
       }
 
       // Don't render as input
       A.claim();
       A.render(Args, CmdArgs);
     }
-  }
-
-  // add all -l options -- this is a bit hacky and might even be unsafe due to
-  // the reordering of files and libraries?!?
-  if (AddLibraries) {
-    Args.AddAllArgs(CmdArgs, options::OPT_l);
   }
 
 }
@@ -3244,6 +3259,10 @@ void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
                    bool IsGoldPass,
                    int &CntLinkerInput) const
 {
+  // Note: We assume that this is called only once, either for llvm-ld or for
+  // gold (if UseLTORuntime=true), never for both. Hence we do not need to check
+  // if we should add the libsyms stuff or not, just add it whenever we add -l
+
   // link by default with newlib libc and libpatmos
   if (AddLibC) {
     AddSystemLibrary(Args, CmdArgs, "lib/libcsyms.o",
@@ -3446,7 +3465,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   bool ChangedFloatABI;
   StringRef FloatABI = getPatmosFloatABI(TC.getDriver(), C.getArgs(),
-                                         TC.getTriple(),ChangedFloatABI);
+                                         TC.getTriple(), ChangedFloatABI);
 
   // add lib*syms.o and --internalize options to llvm-ld
   bool AddLibSyms = !C.getArgs().hasArg(options::OPT_nolibsyms);
@@ -3537,8 +3556,10 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
       A->claim();
       A->renderAsInput(Args, CmdArgs);
     }
-    else if (A->getOption().isLinkerInput() ||
-             A->getOption().matches(options::OPT_v)) {
+    else if ((A->getOption().isLinkerInput() &&
+              !A->getOption().matches(options::OPT_l)) ||
+             A->getOption().matches(options::OPT_v))
+    {
       // It is unfortunate that we have to claim here, as this means
       // we will basically never report anything interesting for
       // platforms using a generic gcc, even if we are just using gcc
@@ -3588,7 +3609,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // files and archives.
 
   AddInputFiles(Args, CmdArgs, Inputs, AddLibSyms,
-                false, !EmitLLVM && !StopAfterLLC, UseLTO, CntLinkerInput);
+                false, !EmitLLVM && !StopAfterLLC, UseLTO, UseLTORuntime,
+                CntLinkerInput);
 
   //----------------------------------------------------------------------------
   // link with newlib libraries
@@ -3718,9 +3740,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     AddLibraryPaths(Args, LDArgs, true);
   }
 
-  // TODO -lm should depend on UseLTORuntime instead of UseLTO
-  AddInputFiles(Args, LDArgs, Inputs, AddLibSyms, true, true, UseLTO,
-                CntLinkerInput);
+  AddInputFiles(Args, LDArgs, Inputs, AddLibSyms, true, true,
+                UseLTO, UseLTORuntime, CntLinkerInput);
 
   if (UseLTORuntime) {
     AddStandardLibs(Args, LDArgs, AddDefaultLibs, AddStdLibs, AddLibC,
