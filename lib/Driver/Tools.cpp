@@ -3547,6 +3547,12 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("-link-as-library");
   }
 
+  // Disable optimizations when building with -O0
+  // TODO translate -O1, -O2, .. to proper arguments enabling specific passes
+  if (C.getArgs().hasArg(options::OPT_O0)) {
+    CmdArgs.push_back("-disable-opt");
+  }
+
   for (ArgList::const_iterator
          it = Args.begin(), ie = Args.end(); it != ie; ++it) {
     Arg *A = *it;
