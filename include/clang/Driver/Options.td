@@ -380,7 +380,8 @@ def flax_vector_conversions : Flag<"-flax-vector-conversions">, Group<f_Group>;
 def flimit_debug_info : Flag<"-flimit-debug-info">, Group<f_Group>,
   HelpText<"Limit debug information produced to reduce size of debug binary">;
 def flimited_precision_EQ : Joined<"-flimited-precision=">, Group<f_Group>;
-def flto : Flag<"-flto">, Group<f_Group>;
+def flto : Flag<"-flto">, Group<f_Group>, Flags<[HelpHidden]>,
+  HelpText<"Use link time optimization.">;
 def fno_lto : Flag<"-fno-lto">, Group<f_Group>;
 def fmacro_backtrace_limit_EQ : Joined<"-fmacro-backtrace-limit=">,
                                 Group<f_Group>;
@@ -494,14 +495,14 @@ def fno_pack_struct : Flag<"-fno-pack-struct">, Group<f_Group>;
 def fpack_struct_EQ : Joined<"-fpack-struct=">, Group<f_Group>;
 def fpascal_strings : Flag<"-fpascal-strings">, Group<f_Group>;
 
-def fpatmos_emit_obj : Flag<"-fpatmos-emit-obj">,
+def fpatmos_emit_obj : Flag<"-fpatmos-emit-obj">, 
   HelpText<"Generate a relocatable object instead of an executable object or bitcode">;
 def fpatmos_emit_asm : Flag<"-fpatmos-emit-asm">,
   HelpText<"Generate native assembler code">;
 def fpatmos_link_object: Flag<"-fpatmos-link-object">, 
-        HelpText<"Link as object, i.e., do not link in libraries or startup code">;
-def fpatmos_lto_defaultlibs: Flag<"-fpatmos-lto-defaultlibs">, 
-        HelpText<"Link runtime libraries, libc and libm with gold">;
+  HelpText<"Link as object, i.e., do not link in libraries or startup code">;
+def fpatmos_lto_defaultlibs: Flag<"-fpatmos-lto-defaultlibs">, Flags<[HelpHidden]>,
+  HelpText<"Link runtime libraries, libc and libm with gold">;
 
 def fpch_preprocess : Flag<"-fpch-preprocess">, Group<f_Group>;
 def fpic : Flag<"-fpic">, Group<f_Group>;
@@ -707,17 +708,21 @@ def no_integrated_as : Flag<"-no-integrated-as">, Flags<[DriverOption]>;
 def no_integrated_cpp : Flag<"-no-integrated-cpp">, Flags<[DriverOption]>;
 def no__dead__strip__inits__and__terms : Flag<"-no_dead_strip_inits_and_terms">;
 def nobuiltininc : Flag<"-nobuiltininc">;
-def nodefaultlibs : Flag<"-nodefaultlibs">;
+def nodefaultlibs : Flag<"-nodefaultlibs">, Flags<[HelpHidden]>,
+  HelpText<"Do not link with default system support libraries.">;
 def nofixprebinding : Flag<"-nofixprebinding">;
-def nolibc : Flag<"-nolibc">;
+def nolibc : Flag<"-nolibc">, Flags<[HelpHidden]>,
+  HelpText<"Do not link with libc.">;
 def nomultidefs : Flag<"-nomultidefs">;
 def noprebind : Flag<"-noprebind">;
 def noseglinkedit : Flag<"-noseglinkedit">;
-def nostartfiles : Flag<"-nostartfiles">;
+def nostartfiles : Flag<"-nostartfiles">, Flags<[HelpHidden]>,
+  HelpText<"Do not link with start files such as crt0.">;
 def nostdinc : Flag<"-nostdinc">;
 def nostdlibinc : Flag<"-nostdlibinc">;
 def nostdincxx : Flag<"-nostdinc++">;
-def nostdlib : Flag<"-nostdlib">;
+def nostdlib : Flag<"-nostdlib">, Flags<[HelpHidden]>,
+  HelpText<"Do not link with standard libraries such as libc.">;
 def object : Flag<"-object">;
 def o : JoinedOrSeparate<"-o">, Flags<[DriverOption, RenderAsInput]>,
   HelpText<"Write output to <file>">, MetaVarName<"<file>">;
@@ -829,9 +834,9 @@ def working_directory : Separate<"-working-directory">,
 def working_directory_EQ : Joined<"-working-directory=">,
   Alias<working_directory>;
 
-def nolibsyms : Flag<"-nolibsyms">, 
+def nolibsyms : Flag<"-nolibsyms">, Flags<[HelpHidden]>,
   HelpText<"Do not link with libsyms files.">;
-def fadd_runtime_deps : Flag<"-fadd-runtime-deps">,
+def fadd_runtime_deps : Flag<"-fadd-runtime-deps">, Flags<[HelpHidden]>,
   HelpText<"Add dependencies to runtime libraries.">;
 
 // Double dash options, which are usually an alias for one of the previous
