@@ -692,6 +692,9 @@ static StringRef getPatmosFloatABI(const Driver &D, const ArgList &Args,
 void Clang::AddPatmosTargetArgs(const ArgList &Args,
                                 ArgStringList &CmdArgs) const
 {
+  // we do not want to have the host includes here
+  CmdArgs.push_back("-nostdsysteminc");
+
   // Add any special options needed by patmos target here.. (stack cache?, ...)
   if (Args.hasArg(options::OPT_fadd_runtime_deps)) {
     CmdArgs.push_back("-fadd-runtime-deps");
