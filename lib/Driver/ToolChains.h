@@ -576,6 +576,9 @@ public:
   PatmosToolChain(const Driver &D, const llvm::Triple& Triple);
   ~PatmosToolChain();
 
+  virtual std::string ComputeLLVMTriple(const ArgList &Args,
+                                 types::ID InputType = types::TY_INVALID) const;
+
   virtual Tool &SelectTool(const Compilation &C, const JobAction &JA,
                            const ActionList &Inputs) const;
 

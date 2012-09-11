@@ -3179,6 +3179,7 @@ void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
       }
       else if (A.getOption().matches(options::OPT_Wl_COMMA) ||
                A.getOption().matches(options::OPT_Xlinker) ||
+               A.getOption().matches(options::OPT_Xgold) ||
                A.getOption().matches(options::OPT_L)) {
         // already handled
         continue;
@@ -3326,6 +3327,10 @@ void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
       A->claim();
       A->render(Args, LLCArgs);
     }
+    else if (A->getOption().matches(options::OPT_Xllc)) {
+      A->claim();
+      A->renderAsInput(Args, LLCArgs);
+    }
   }
 
   if (ChangedFloatABI) {
@@ -3367,6 +3372,8 @@ void patmos::Compile::ConstructJob(Compilation &C, const JobAction &JA,
                                const char *LinkingOutput) const
 {
   // TODO to make this more standard-compliant, set to false
+  // Note: by default, patmos-clang emits .bc even with no --emit-llvm
+  //       This is done in Driver::IsUsingLTO() (returns always true for patmos)
   bool EmitLLVM = true;
   // only used when EmitLLVM is false
   bool EmitAsm = false;
@@ -3402,7 +3409,9 @@ void patmos::Compile::ConstructJob(Compilation &C, const JobAction &JA,
 
   // If this is not the last phase or if we emit llvm-code, we just call clang
   if (EmitLLVM || !IsLastPhase) {
+
     Clang::ConstructJob(C, JA, Output, Inputs, Args, LinkingOutput);
+
   } else {
     // Run llc afterwards, no linking phase
     const char *BCFilename = CreateOutputFilename(C, Output, "clang-",
@@ -3439,7 +3448,18 @@ void patmos::Assemble::ConstructJob(Compilation &C, const JobAction &JA,
   const InputInfo &Input = Inputs[0];
 
   CmdArgs.push_back("-triple");
-  CmdArgs.push_back(TC.getTripleString().c_str());
+  CmdArgs.push_back(Args.MakeArgString(TC.ComputeLLVMTriple(Args)));
+
+  for (ArgList::const_iterator
+         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
+    Arg *A = *it;
+
+    if (A->getOption().matches(options::OPT_Wa_COMMA) ||
+        A->getOption().matches(options::OPT_Xassembler)) {
+      A->claim();
+      A->renderAsInput(Args, CmdArgs);
+    }
+  }
 
   CmdArgs.push_back("-assemble");
   CmdArgs.push_back("-filetype=obj");
@@ -3566,7 +3586,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
       A->renderAsInput(Args, CmdArgs);
     }
     else if ((A->getOption().isLinkerInput() &&
-              !A->getOption().matches(options::OPT_l)) ||
+              !A->getOption().matches(options::OPT_l) &&
+              !A->getOption().matches(options::OPT_Xgold)) ||
              A->getOption().matches(options::OPT_v))
     {
       // It is unfortunate that we have to claim here, as this means
@@ -3687,6 +3708,16 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   //----------------------------------------------------------------------------
   // linking options
+
+  for (ArgList::const_iterator
+         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
+    Arg *A = *it;
+
+    if (A->getOption().matches(options::OPT_Xgold)) {
+      A->claim();
+      A->renderAsInput(Args, LDArgs);
+    }
+  }
 
   Args.AddAllArgs(LDArgs, options::OPT_T_Group);
 

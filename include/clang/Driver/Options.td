@@ -217,6 +217,12 @@ def Xclang : Separate<"-Xclang">,
   Flags<[NoForward]>;
 def Xlinker : Separate<"-Xlinker">, Flags<[LinkerInput, RenderAsInput]>,
   HelpText<"Pass <arg> to the linker">, MetaVarName<"<arg>">;
+def Xllc : Separate<"-Xllc">, Flags<[RenderAsInput]>,
+  HelpText<"Pass <arg> to the bitcode compiler llc (Patmos only)">, 
+  MetaVarName<"<arg>">;
+def Xgold : Separate<"-Xgold">, Flags<[LinkerInput, RenderAsInput]>,
+  HelpText<"Pass <arg> to the gold ELF linker (Patmos only)">, 
+  MetaVarName<"<arg>">;
 def Xpreprocessor : Separate<"-Xpreprocessor">,
   HelpText<"Pass <arg> to the preprocessor">, MetaVarName<"<arg>">;
 def X_Flag : Flag<"-X">;

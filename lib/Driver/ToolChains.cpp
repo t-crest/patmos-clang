@@ -1602,6 +1602,27 @@ PatmosToolChain::~PatmosToolChain() {
       delete it->second;
 }
 
+std::string PatmosToolChain::ComputeLLVMTriple(const ArgList &Args,
+                               types::ID InputType) const
+{
+  if (getTriple().getArch() != llvm::Triple::patmos) {
+    llvm_unreachable("Invalid architecture for Patmos tool chain");
+  }
+
+  std::string Triple = getTripleString();
+
+  // This is a bit of a workaround: when we call patmos-clang without
+  // -target, then clang uses 'patmos' as default target (the prefix of the
+  // program call). To avoid target-name mismatches, we normalize that to
+  // the full default triple.
+  if (Triple == "patmos") {
+    return "patmos-unknown-elf";
+  }
+
+  return Triple;
+}
+
+
 Tool &PatmosToolChain::SelectTool(const Compilation &C, const JobAction &JA,
                                   const ActionList &Inputs) const {
   Action::ActionClass Key = JA.getKind();
