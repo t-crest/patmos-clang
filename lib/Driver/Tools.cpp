@@ -3730,7 +3730,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
                        "_uart_status_base", Args, "0xF0000000", LDArgs);
 
   render_patmos_symbol(options::OPT_mpatmos_uart_data_base,
-                       "_uart_data_base", Args, "0xF0000001", LDArgs);
+                       "_uart_data_base", Args, "0xF0000004", LDArgs);
 
   render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
                        "_shadow_stack_base", Args, "0x4000000", LDArgs);
