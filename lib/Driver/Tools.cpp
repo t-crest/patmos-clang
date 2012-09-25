@@ -3258,7 +3258,7 @@ void patmos::PatmosBaseTool::AddSystemLibrary(const ArgList &Args,
 
 void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
                    ArgStringList &CmdArgs,
-                   bool AddDefaultLibs, bool AddStdLibs, bool AddLibC,
+                   bool AddRuntimeLibs, bool AddStdLibs, bool AddLibC,
                    bool AddLibSyms, StringRef FloatABI,
                    bool IsGoldPass,
                    int &CntLinkerInput) const
@@ -3275,12 +3275,12 @@ void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
   }
 
   // TODO check for AddStdLibs instead?
-  if (AddDefaultLibs)
+  if (AddRuntimeLibs)
     CmdArgs.push_back("-lpatmos");
 
 
   // link by default with compiler-rt
-  if (AddDefaultLibs) {
+  if (AddRuntimeLibs) {
 
     // softfloat has dependencies to librt, link first
     if (FloatABI != "hard" && FloatABI != "none") {
@@ -3483,6 +3483,22 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   const Driver &D = TC.getDriver();
   ArgStringList CmdArgs, LDArgs;
 
+  // In the link phase, we do the following:
+  // - run llvm-ld, link in:
+  //    - startup files if not -nostartfiles
+  //    - all bitcode input files
+  //    - all -l<library>, except when -flto is used
+  //    - all standard libraries, except when disabled or -flto
+  //      or -fpatmos-lto-defaultlibs is used
+  //    - all runtime libs, except when disabled or -flto
+  //      or -fpatmos-lto-defaultlibs is used
+  //    - all required libsyms.o files for linked in libs, except when disabled
+  // - run llc on result, perform optimization on linked bitcode
+  // - run gold on result, link in:
+  //    - all ELF input files
+  //    - all -l<library> if -flto is used
+  //    - all standard libs if -flto or -fpatmos-lto-
+
   //----------------------------------------------------------------------------
   // read out various command line options
 
@@ -3496,11 +3512,13 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   bool AddStartFiles = !C.getArgs().hasArg(options::OPT_nostartfiles);
   // add libpatmos, librt, librtsf
   // TODO maybe move libpatmos to AddStdLibs
-  bool AddDefaultLibs = !C.getArgs().hasArg(options::OPT_nodefaultlibs);
+  bool AddRuntimeLibs = !C.getArgs().hasArg(options::OPT_noruntimelibs);
   // add libc, ..
   bool AddStdLibs = !C.getArgs().hasArg(options::OPT_nostdlib);
   // add libc
   bool AddLibC = !C.getArgs().hasArg(options::OPT_nolibc) && AddStdLibs;
+  // add any default libs at all?
+  bool AddDefaultLibs = !C.getArgs().hasArg(options::OPT_nodefaultlibs);
 
   // Do not link in -l, do not link in startup code or standard-libs
   bool LinkAsObject = C.getArgs().hasArg(options::OPT_fpatmos_link_object);
@@ -3518,14 +3536,18 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   bool UseLTORuntime = C.getArgs().hasArg(options::OPT_fpatmos_lto_defaultlibs)
                        || UseLTO;
 
-
+  if (!AddDefaultLibs) {
+    AddRuntimeLibs = false;
+    AddStdLibs = false;
+    AddLibC = false;
+  }
   if (LinkAsObject) {
     AddStartFiles = false;
     AddLibSyms = false;
-    AddDefaultLibs = false;
+    AddRuntimeLibs = false;
     AddStdLibs = false;
+    AddLibC = false;
   }
-
   if (UseLTORuntime) {
     // The libsyms stuff does not work either way when using LTO,
     // This must either be fixed in gold, or newlib+compiler-rt must be compiled
@@ -3647,7 +3669,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   if (!LinkAsObject && !UseLTORuntime) {
     // Do not link in standard libraries if we link as object (or should we??)
-    AddStandardLibs(Args, CmdArgs, AddDefaultLibs, AddStdLibs, AddLibC,
+    AddStandardLibs(Args, CmdArgs, AddRuntimeLibs, AddStdLibs, AddLibC,
                                    AddLibSyms, FloatABI,
                                    false, CntLinkerInput);
   }
@@ -3784,7 +3806,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
                 UseLTO, UseLTORuntime, CntLinkerInput);
 
   if (UseLTORuntime) {
-    AddStandardLibs(Args, LDArgs, AddDefaultLibs, AddStdLibs, AddLibC,
+    AddStandardLibs(Args, LDArgs, AddRuntimeLibs, AddStdLibs, AddLibC,
                     AddLibSyms, FloatABI, true, CntLinkerInput);
   }
 

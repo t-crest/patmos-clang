@@ -715,12 +715,14 @@ def no_integrated_cpp : Flag<"-no-integrated-cpp">, Flags<[DriverOption]>;
 def no__dead__strip__inits__and__terms : Flag<"-no_dead_strip_inits_and_terms">;
 def nobuiltininc : Flag<"-nobuiltininc">;
 def nodefaultlibs : Flag<"-nodefaultlibs">, Flags<[HelpHidden]>,
-  HelpText<"Do not link with default system support libraries.">;
+  HelpText<"Do not link with default runtime or system libraries.">;
 def nofixprebinding : Flag<"-nofixprebinding">;
 def nolibc : Flag<"-nolibc">, Flags<[HelpHidden]>,
   HelpText<"Do not link with libc.">;
 def nomultidefs : Flag<"-nomultidefs">;
 def noprebind : Flag<"-noprebind">;
+def noruntimelibs : Flag<"-noruntimelibs">, Flags<[HelpHidden]>,
+  HelpText<"Do not link with default runtime libraries.">;
 def noseglinkedit : Flag<"-noseglinkedit">;
 def nostartfiles : Flag<"-nostartfiles">, Flags<[HelpHidden]>,
   HelpText<"Do not link with start files such as crt0.">;
