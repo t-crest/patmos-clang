@@ -3308,7 +3308,9 @@ void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
                                          TC.getTriple(), ChangedFloatABI);
 
   //----------------------------------------------------------------------------
-  // append -m options
+  // append -O and -m options
+
+  Args.AddAllArgs(LLCArgs, options::OPT_O_Group);
 
   // floating point arguments are different for LLC
   for (ArgList::const_iterator
