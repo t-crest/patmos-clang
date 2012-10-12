@@ -3552,7 +3552,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   }
   if (UseLTORuntime) {
     // The libsyms stuff does not work either way when using LTO,
-    // This must either be fixed in gold, or newlib+compiler-rt must be compiled
+    // This must either be fixed in gold, or newlib/compiler-rt must be compiled
     // as binary ELF
     AddLibSyms = false;
   }
@@ -3646,10 +3646,9 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   if (AddStartFiles) {
     std::string Crt0Filename = TC.GetFilePath("lib/crt0.o");
+
     if (isBitcodeFile(Crt0Filename)) {
-
       CmdArgs.push_back(Args.MakeArgString(Crt0Filename));
-
       CntLinkerInput++;
     } else {
       LinkBinaryStartFiles = true;
@@ -3688,11 +3687,10 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   //----------------------------------------------------------------------------
   // execute the linker command
 
+  // TODO if we only have one linker input, use that one directly as llc input
   if (CntLinkerInput > 0) {
-
     const char *Exec = Args.MakeArgString(get_patmos_ld(TC));
     C.addCommand(new Command(JA, *this, Exec, CmdArgs));
-
   }
 
   // If we only want to emit bitcode, we are done now.
@@ -3707,10 +3705,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
                                                      StopAfterLLC);
 
   if (CntLinkerInput > 0) {
-
     ConstructLLCJob(*this, C, JA, linkedOFileName, linkedBCFileName, Args,
                     EmitAsm, StopAfterLLC);
-
   }
 
   // If we do not want to create an executable file, we are done now
@@ -3780,7 +3776,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   if (AddStartFiles && LinkBinaryStartFiles) {
     // No need to check for file type, has already been done
     std::string Crt0Filename = TC.GetFilePath("lib/crt0.o");
-    CmdArgs.push_back(Args.MakeArgString(Crt0Filename));
+    LDArgs.push_back(Args.MakeArgString(Crt0Filename));
   }
 
   //----------------------------------------------------------------------------
