@@ -3160,8 +3160,15 @@ public:
   PatmosTargetInfo(const std::string& triple) : TargetInfo(triple)  {
     BigEndian = true;
     SoftFloat = true;
+    // Keep in sync with PatmosTargetMachine and compiler-rt/lib/patmos/*.ll
     DescriptionString =
-                  ("E-S32-p:32:32:32-i8:8:8-i16:16:16-i32:32:32-i64:32:64-f64:32:64-n32");
+      ("E-S32-p:32:32:32-i8:8:8-i16:16:16-i32:32:32-i64:32:32-f64:32:32-s0:32:32-v64:32:32-v128:32:32-n32");
+    // Note: those values must be kept in sync with the DescriptionString!
+    DoubleAlign = 32;
+    LongLongAlign = 32;
+    LongDoubleAlign = 32;
+    SuitableAlign = 32;
+    PreferWidthAligned = false;
   }
 
   virtual bool setFeatureEnabled(llvm::StringMap<bool> &Features,

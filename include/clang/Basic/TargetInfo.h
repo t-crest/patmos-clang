@@ -67,6 +67,7 @@ protected:
   bool BigEndian;
   bool TLSSupported;
   bool NoAsmVariants;  // True if {|} are normal characters.
+  bool PreferWidthAligned;  // if true, use max(align, width) as preferred align
   unsigned char PointerWidth, PointerAlign;
   unsigned char BoolWidth, BoolAlign;
   unsigned char IntWidth, IntAlign;
@@ -639,6 +640,12 @@ public:
   /// generated.
   bool hasNoAsmVariants() const {
     return NoAsmVariants;
+  }
+
+  // doPreferWidthAligned - Return true if the preferred alignment should be
+  // max(width,align) instead of just the ABI alignment.
+  bool doPreferWidthAligned() const {
+    return PreferWidthAligned;
   }
 
   /// getEHDataRegisterNumber - Return the register number that

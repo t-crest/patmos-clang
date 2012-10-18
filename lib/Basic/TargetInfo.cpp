@@ -30,6 +30,7 @@ TargetInfo::TargetInfo(const std::string &T) : Triple(T) {
   BigEndian = true;
   TLSSupported = true;
   NoAsmVariants = false;
+  PreferWidthAligned = true;
   PointerWidth = PointerAlign = 32;
   BoolWidth = BoolAlign = 8;
   IntWidth = IntAlign = 32;
