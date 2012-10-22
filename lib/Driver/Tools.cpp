@@ -3557,7 +3557,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     AddLibSyms = false;
   }
 
-  bool StopAfterLLC = EmitAsm || EmitObject || LinkAsObject;
+  bool StopAfterLLC = EmitAsm || EmitObject;
 
 
   //----------------------------------------------------------------------------
@@ -3743,29 +3743,34 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   Args.AddAllArgs(LDArgs, options::OPT_e);
 
-  LDArgs.push_back("-static");
   LDArgs.push_back("-nostdlib");
+  LDArgs.push_back("-static");
 
-  render_patmos_symbol(options::OPT_mpatmos_uart_status_base,
-                       "_uart_status_base", Args, "0xF0000000", LDArgs);
+  if (LinkAsObject) {
+    // Keep relocations
+    LDArgs.push_back("-r");
+  } else {
+    render_patmos_symbol(options::OPT_mpatmos_uart_status_base,
+                         "_uart_status_base", Args, "0xF0000000", LDArgs);
 
-  render_patmos_symbol(options::OPT_mpatmos_uart_data_base,
-                       "_uart_data_base", Args, "0xF0000004", LDArgs);
+    render_patmos_symbol(options::OPT_mpatmos_uart_data_base,
+                         "_uart_data_base", Args, "0xF0000004", LDArgs);
 
-  render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
-                       "_shadow_stack_base", Args, "0x4000000", LDArgs);
+    render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
+                         "_shadow_stack_base", Args, "0x4000000", LDArgs);
 
-  render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
-                       "_shadow_stack_base", Args, "0x4000000", LDArgs);
+    render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
+                         "_shadow_stack_base", Args, "0x4000000", LDArgs);
 
-  render_patmos_symbol(options::OPT_mpatmos_stack_base,
-                       "_stack_cache_base", Args, "0x3000000", LDArgs);
+    render_patmos_symbol(options::OPT_mpatmos_stack_base,
+                         "_stack_cache_base", Args, "0x3000000", LDArgs);
 
-  render_patmos_symbol(options::OPT_mpatmos_heap_end,
-                       "__heap_end", Args, "0x2000000", LDArgs);
+    render_patmos_symbol(options::OPT_mpatmos_heap_end,
+                         "__heap_end", Args, "0x2000000", LDArgs);
 
-  LDArgs.push_back("--defsym");
-  LDArgs.push_back("__heap_start=end");
+    LDArgs.push_back("--defsym");
+    LDArgs.push_back("__heap_start=end");
+  }
 
   if (Args.hasArg(options::OPT_v))
     LDArgs.push_back("-verbose");
