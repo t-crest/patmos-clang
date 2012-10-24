@@ -287,6 +287,9 @@ static bool ExecuteAssembler(AssemblerInvocation &Opts,
   OwningPtr<MCRegisterInfo> MRI(TheTarget->createMCRegInfo(Opts.Triple));
   assert(MRI && "Unable to create target register info!");
 
+  OwningPtr<MCInstrInfo> MII(TheTarget->createMCInstrInfo());
+  assert(MII && "Unable to create target instruction info!");
+
   bool IsBinary = Opts.OutputType == AssemblerInvocation::FT_Obj;
   formatted_raw_ostream *Out = GetOutputStream(Opts, Diags, IsBinary);
   if (!Out)
@@ -295,7 +298,7 @@ static bool ExecuteAssembler(AssemblerInvocation &Opts,
   // FIXME: This is not pretty. MCContext has a ptr to MCObjectFileInfo and
   // MCObjectFileInfo needs a MCContext reference in order to initialize itself.
   OwningPtr<MCObjectFileInfo> MOFI(new MCObjectFileInfo());
-  MCContext Ctx(*MAI, *MRI, MOFI.get(), &SrcMgr);
+  MCContext Ctx(*MAI, *MRI, *MII, MOFI.get(), &SrcMgr);
   // FIXME: Assembler behavior can change with -static.
   MOFI->InitMCObjectFileInfo(Opts.Triple,
                              Reloc::Default, CodeModel::Default, Ctx);
