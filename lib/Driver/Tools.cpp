@@ -3192,7 +3192,7 @@ void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
         // -lm is special .. we handle this like a runtime library (should we?)
         // since we need to link in the libsyms stuff.
         // If we have UseLTORuntime
-        //   - we link in -lm with llvm-ld (if !UseLTO), but not the syms stuff
+        //   - we do nothing for llvm-ld
         //   - we link in -lm and the syms.o file with gold again
         // If we do not use UseLTORuntime
         //   - we link in -lm and syms with llvm-ld
@@ -3204,12 +3204,8 @@ void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
                                             "lib/libmsyms.lst", "-lm",
                                             AddLibSyms, IsGoldPass,
                                             CntLinkerInput);
-            continue;
-          } else if (!UseLTORuntime) {
-            // In case !UseLTORuntime and IsGoldPass, skip -lm
-            continue;
           }
-          // Handle case UseLTORuntime and !IsGoldPass below like other libs
+          continue;
         }
 
         if (!AddLibraries) {
