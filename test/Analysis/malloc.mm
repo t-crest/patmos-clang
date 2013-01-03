@@ -1,5 +1,5 @@
 // RUN: %clang_cc1 -analyze -analyzer-checker=core,unix.Malloc -analyzer-store=region -verify -fblocks %s
-#include "system-header-simulator-objc.h"
+#include "Inputs/system-header-simulator-objc.h"
 
 typedef __typeof(sizeof(int)) size_t;
 void *malloc(size_t);
@@ -9,7 +9,6 @@ void free(void *);
 void testNSDatafFreeWhenDoneNoError(NSUInteger dataLength) {
   unsigned char *data = (unsigned char *)malloc(42);
   NSData *nsdata = [NSData dataWithBytesNoCopy:data length:dataLength];
-  free(data); // no warning
 }
 
 void testNSDataFreeWhenDoneYES(NSUInteger dataLength) {
@@ -22,6 +21,16 @@ void testNSDataFreeWhenDoneYES2(NSUInteger dataLength) {
   NSData *nsdata = [[NSData alloc] initWithBytesNoCopy:data length:dataLength freeWhenDone:1]; // no-warning
 }
 
+void testNSStringFreeWhenDoneYES3(NSUInteger dataLength) {
+  unsigned char *data = (unsigned char *)malloc(42);
+  NSString *nsstr = [[NSString alloc] initWithBytesNoCopy:data length:dataLength encoding:NSUTF8StringEncoding freeWhenDone:1];
+}
+
+void testNSStringFreeWhenDoneYES4(NSUInteger dataLength) {
+  unichar *data = (unichar*)malloc(42);
+  NSString *nsstr = [[NSString alloc] initWithCharactersNoCopy:data length:dataLength freeWhenDone:1];
+  free(data); //expected-warning {{Attempt to free non-owned memory}}
+}
 
 void testNSStringFreeWhenDoneYES(NSUInteger dataLength) {
   unsigned char *data = (unsigned char *)malloc(42);
@@ -55,11 +64,17 @@ void testNSStringFreeWhenDoneNO2(NSUInteger dataLength) {
   NSString *nsstr = [[NSString alloc] initWithCharactersNoCopy:data length:dataLength freeWhenDone:0]; // expected-warning{{leak}}
 }
 
-// TODO: False Negative.
-void testNSDatafFreeWhenDoneFN(NSUInteger dataLength) {
-  unsigned char *data = (unsigned char *)malloc(42);
-  NSData *nsdata = [NSData dataWithBytesNoCopy:data length:dataLength freeWhenDone:1];
-  free(data); // false negative
+void testRelinquished1() {
+  void *data = malloc(42);
+  NSData *nsdata = [NSData dataWithBytesNoCopy:data length:42 freeWhenDone:1];
+  free(data); // expected-warning {{Attempt to free non-owned memory}}
+}
+
+void testRelinquished2() {
+  void *data = malloc(42);
+  NSData *nsdata;
+  free(data);
+  [NSData dataWithBytesNoCopy:data length:42]; // expected-warning {{Attempt to free released memory}}
 }
 
 // Test CF/NS...NoCopy. PR12100: Pointers can escape when custom deallocators are provided.
@@ -153,4 +168,113 @@ static void releaseDataCallback (void *info, const void *data, size_t size) {
 void testCGDataProviderCreateWithData() { 
   void* b = calloc(8, 8);
   CGDataProviderRef p = CGDataProviderCreateWithData(0, b, 8*8, releaseDataCallback);
+}
+
+// Assume that functions which take a function pointer can free memory even if
+// they are defined in system headers and take the const pointer to the
+// allocated memory. (radar://11160612)
+extern CGDataProviderRef UnknownFunWithCallback(void *info,
+    const void *data, size_t size,
+    CGDataProviderReleaseDataCallback releaseData)
+    __attribute__((visibility("default")));
+void testUnknownFunWithCallBack() { 
+  void* b = calloc(8, 8);
+  CGDataProviderRef p = UnknownFunWithCallback(0, b, 8*8, releaseDataCallback);
+}
+
+// Test blocks.
+void acceptBlockParam(void *, void (^block)(void *), unsigned);
+void testCallWithBlockCallback() {
+  void *l = malloc(12);
+  acceptBlockParam(l, ^(void *i) { free(i); }, sizeof(char *));
+}
+
+// Test blocks in system headers.
+void testCallWithBlockCallbackInSystem() {
+  void *l = malloc(12);
+  SystemHeaderFunctionWithBlockParam(l, ^(void *i) { free(i); }, sizeof(char *));
+}
+
+// Test escape into NSPointerArray. radar://11691035, PR13140
+void foo(NSPointerArray* pointerArray) {
+  
+  void* p1 = malloc (1024);
+  if (p1) {
+    [pointerArray addPointer:p1];
+  }
+
+  void* p2 = malloc (1024);
+  if (p2) {
+    [pointerArray insertPointer:p2 atIndex:1];
+  }
+
+  void* p3 = malloc (1024);
+  if (p3) {
+    [pointerArray replacePointerAtIndex:1 withPointer:p3];
+  }
+
+  // Freeing the buffer is allowed.
+  void* buffer = [pointerArray pointerAtIndex:0];
+  free(buffer);
+}
+
+void noCrashOnVariableArgumentSelector() {
+  NSMutableString *myString = [NSMutableString stringWithString:@"some text"];
+  [myString appendFormat:@"some text = %d", 3];
+}
+
+void test12365078_check() {
+  unichar *characters = (unichar*)malloc(12);
+  NSString *string = [[NSString alloc] initWithCharactersNoCopy:characters length:12 freeWhenDone:1];
+  if (!string) free(characters); // no-warning
+}
+
+void test12365078_nocheck() {
+  unichar *characters = (unichar*)malloc(12);
+  NSString *string = [[NSString alloc] initWithCharactersNoCopy:characters length:12 freeWhenDone:1];
+}
+
+void test12365078_false_negative() {
+  unichar *characters = (unichar*)malloc(12);
+  NSString *string = [[NSString alloc] initWithCharactersNoCopy:characters length:12 freeWhenDone:1];
+  if (!string) {;}
+}
+
+void test12365078_no_malloc(unichar *characters) {
+  NSString *string = [[NSString alloc] initWithCharactersNoCopy:characters length:12 freeWhenDone:1];
+  if (!string) {free(characters);}
+}
+
+NSString *test12365078_no_malloc_returnValue(unichar *characters) {
+  NSString *string = [[NSString alloc] initWithCharactersNoCopy:characters length:12 freeWhenDone:1];
+  if (!string) {
+    return 0; // no-warning
+  }
+  return string;
+}
+
+void test12365078_nocheck_nomalloc(unichar *characters) {
+  NSString *string = [[NSString alloc] initWithCharactersNoCopy:characters length:12 freeWhenDone:1];
+  free(characters); // expected-warning {{Attempt to free non-owned memory}}
+}
+
+void test12365078_nested(unichar *characters) {
+  NSString *string = [[NSString alloc] initWithCharactersNoCopy:characters length:12 freeWhenDone:1];
+  if (!string) {    
+    NSString *string2 = [[NSString alloc] initWithCharactersNoCopy:characters length:12 freeWhenDone:1];
+    if (!string2) {    
+      NSString *string3 = [[NSString alloc] initWithCharactersNoCopy:characters length:12 freeWhenDone:1];
+      if (!string3) {    
+        NSString *string4 = [[NSString alloc] initWithCharactersNoCopy:characters length:12 freeWhenDone:1];
+        if (!string4)
+          free(characters);
+      }
+    }
+  }
+}
+
+void test12365078_check_positive() {
+  unichar *characters = (unichar*)malloc(12);
+  NSString *string = [[NSString alloc] initWithCharactersNoCopy:characters length:12 freeWhenDone:1];
+  if (string) free(characters); // expected-warning{{Attempt to free non-owned memory}}
 }

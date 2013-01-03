@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -triple x86_64-pc-linux-gnu -emit-llvm -fexceptions -fobjc-exceptions -fgnu-runtime -o - %s | FileCheck %s
+// RUN: %clang_cc1 -triple x86_64-pc-linux-gnu -emit-llvm -fexceptions -fobjc-exceptions -fobjc-runtime=gcc -o - %s | FileCheck %s
 
 void opaque(void);
 void log(int i);
@@ -20,7 +20,7 @@ void test0() {
 
     // CHECK: call void @log(i32 0)
 
-    // CHECK: call void @objc_exception_throw
+    // CHECK: resume
 
     log(0);
   }

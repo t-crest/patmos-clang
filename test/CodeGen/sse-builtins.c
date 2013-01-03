@@ -1,7 +1,38 @@
 // RUN: %clang_cc1 -ffreestanding -triple i386-apple-darwin9 -target-cpu pentium4 -target-feature +sse4.1 -g -emit-llvm %s -o - | FileCheck %s
 
+#include <xmmintrin.h>
 #include <emmintrin.h>
 #include <smmintrin.h>
+
+__m128 test_rsqrt_ss(__m128 x) {
+  // CHECK: define {{.*}} @test_rsqrt_ss
+  // CHECK: call <4 x float> @llvm.x86.sse.rsqrt.ss
+  // CHECK: extractelement <4 x float> {{.*}}, i32 0
+  // CHECK: extractelement <4 x float> {{.*}}, i32 1
+  // CHECK: extractelement <4 x float> {{.*}}, i32 2
+  // CHECK: extractelement <4 x float> {{.*}}, i32 3
+  return _mm_rsqrt_ss(x);
+}
+
+__m128 test_rcp_ss(__m128 x) {
+  // CHECK: define {{.*}} @test_rcp_ss
+  // CHECK: call <4 x float> @llvm.x86.sse.rcp.ss
+  // CHECK: extractelement <4 x float> {{.*}}, i32 0
+  // CHECK: extractelement <4 x float> {{.*}}, i32 1
+  // CHECK: extractelement <4 x float> {{.*}}, i32 2
+  // CHECK: extractelement <4 x float> {{.*}}, i32 3
+  return _mm_rcp_ss(x);
+}
+
+__m128 test_sqrt_ss(__m128 x) {
+  // CHECK: define {{.*}} @test_sqrt_ss
+  // CHECK: call <4 x float> @llvm.x86.sse.sqrt.ss
+  // CHECK: extractelement <4 x float> {{.*}}, i32 0
+  // CHECK: extractelement <4 x float> {{.*}}, i32 1
+  // CHECK: extractelement <4 x float> {{.*}}, i32 2
+  // CHECK: extractelement <4 x float> {{.*}}, i32 3
+  return _mm_sqrt_ss(x);
+}
 
 __m128 test_loadl_pi(__m128 x, void* y) {
   // CHECK: define {{.*}} @test_loadl_pi
@@ -150,4 +181,10 @@ __m128d test_mm_round_sd(__m128d x, __m128d y) {
   // CHECK: define {{.*}} @test_mm_round_sd
   // CHECK: @llvm.x86.sse41.round.sd
   return _mm_round_sd(x, y, 2);
+}
+
+void test_storel_epi64(__m128i x, void* y) {
+  // CHECK: define void @test_storel_epi64
+  // CHECK: store {{.*}} i64* {{.*}}, align 1{{$}}
+  _mm_storel_epi64(y, x);
 }

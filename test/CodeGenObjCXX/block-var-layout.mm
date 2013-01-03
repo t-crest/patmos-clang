@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -x objective-c++ -fblocks -fobjc-gc -triple x86_64-apple-darwin -fobjc-fragile-abi -emit-llvm %s -o %t-64.ll
+// RUN: %clang_cc1 -x objective-c++ -fblocks -fobjc-gc -triple x86_64-apple-darwin -fobjc-runtime=macosx-fragile-10.5 -emit-llvm %s -o %t-64.ll
 // RUN: FileCheck -check-prefix LP64 --input-file=%t-64.ll %s
 
 // See commentary in test/CodeGenObjC/block-var-layout.m, from which
@@ -80,7 +80,7 @@ void (^d)() = ^{
 
 // Test4
 // struct S (int, id, int, id, int, id)
-// 01 41 11 11
+// 01 41 11 11 00
 // CHECK-LP64: @"\01L_OBJC_CLASS_NAME_{{.*}}" = internal global [5 x i8] c"\01A\11\11\00"
     struct S s2;
     void (^e)() = ^{
@@ -118,8 +118,8 @@ void Test5() {
   union U u2;
 
 // struct s2 (int, id, int, id, int, id?), union u2 (id?)
-// 01 41 11 12 70 00
-// CHECK-LP64: @"\01L_OBJC_CLASS_NAME_{{.*}}" = internal global [6 x i8] c"\01A\11\12p\00"
+// 01 41 11 12 00
+// CHECK-LP64: @"\01L_OBJC_CLASS_NAME_{{.*}}" = internal global [5 x i8] c"\01A\11\12\00"
   void (^c)() = ^{
     x(s2.ui.o1);
     x(u2.o1);
