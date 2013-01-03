@@ -1,5 +1,5 @@
-// RUN: %clang_cc1 -triple i386-apple-darwin9 -analyze -analyzer-checker=core,experimental.deadcode.IdempotentOperations,experimental.core.CastToStruct,experimental.security.ReturnPtrRange,experimental.security.ArrayBound -analyzer-store=region -verify -fblocks -analyzer-opt-analyze-nested-blocks -Wno-objc-root-class %s
-// RUN: %clang_cc1 -triple x86_64-apple-darwin9 -DTEST_64 -analyze -analyzer-checker=core,experimental.deadcode.IdempotentOperations,experimental.core.CastToStruct,experimental.security.ReturnPtrRange,experimental.security.ArrayBound -analyzer-store=region -verify -fblocks   -analyzer-opt-analyze-nested-blocks -Wno-objc-root-class %s
+// RUN: %clang_cc1 -triple i386-apple-darwin9 -analyze -analyzer-checker=core,alpha.deadcode.IdempotentOperations,alpha.core.CastToStruct,alpha.security.ReturnPtrRange,alpha.security.ArrayBound -analyzer-store=region -verify -fblocks -analyzer-opt-analyze-nested-blocks -Wno-objc-root-class %s
+// RUN: %clang_cc1 -triple x86_64-apple-darwin9 -DTEST_64 -analyze -analyzer-checker=core,alpha.deadcode.IdempotentOperations,alpha.core.CastToStruct,alpha.security.ReturnPtrRange,alpha.security.ArrayBound -analyzer-store=region -verify -fblocks   -analyzer-opt-analyze-nested-blocks -Wno-objc-root-class %s
 
 typedef long unsigned int size_t;
 void *memcpy(void *, const void *, size_t);
@@ -299,7 +299,7 @@ void test_handle_array_wrapper_helper();
 int test_handle_array_wrapper() {
   struct ArrayWrapper x;
   test_handle_array_wrapper_helper(&x);
-  struct WrappedStruct *p = (struct WrappedStruct*) x.y; // expected-warning{{Casting a non-structure type to a structure type and accessing a field can lead to memory access errors or data corruption.}}
+  struct WrappedStruct *p = (struct WrappedStruct*) x.y; // expected-warning{{Casting a non-structure type to a structure type and accessing a field can lead to memory access errors or data corruption}}
   return p->z;  // no-warning
 }
 
@@ -673,7 +673,7 @@ typedef void (^RDar_7462324_Callback)(id obj);
   builder = ^(id object) {
     id x;
     if (object) {
-      builder(x); // expected-warning{{Function call argument is an uninitialized value}}
+      builder(x); // expected-warning{{Block call argument is an uninitialized value}}
     }
   };
   builder(target);
@@ -1086,6 +1086,9 @@ pr8052(u_int boot_addr)
     u_char         *src = (u_char *) ((u_long) bootMP);
     u_char         *dst = (u_char *) boot_addr + ((vm_offset_t) ((((((((1 <<
 12) / (sizeof(pd_entry_t))) - 1) - 1) - (260 - 2))) << 22) | ((0) << 12)));
+#ifdef TEST_64
+// expected-warning@-3 {{cast to 'u_char *' (aka 'unsigned char *') from smaller integer type 'u_int' (aka 'unsigned int')}}
+#endif
     for (x = 0;
          x < size;
          ++x)
@@ -1341,3 +1344,23 @@ static unsigned rdar_11127008(void) {
     return values[index].value;
 }
 
+// Test handling invalidating arrays passed to a block via captured
+// pointer value (not a __block variable).
+typedef void (^radar11125868_cb)(int *, unsigned);
+
+void rdar11125868_aux(radar11125868_cb cb);
+
+int rdar11125868() {
+  int integersStackArray[1];
+  int *integers = integersStackArray;
+  rdar11125868_aux(^(int *integerValue, unsigned index) {
+      integers[index] = integerValue[index];
+    });
+  return integers[0] == 0; // no-warning
+}
+
+int rdar11125868_positive() {
+  int integersStackArray[1];
+  int *integers = integersStackArray;
+  return integers[0] == 0; // expected-warning {{he left operand of '==' is a}}
+}

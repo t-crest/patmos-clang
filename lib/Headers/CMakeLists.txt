@@ -1,12 +1,15 @@
 set(files
   altivec.h
+  ammintrin.h
   avxintrin.h
   avx2intrin.h
   bmiintrin.h
   bmi2intrin.h
   emmintrin.h
+  f16cintrin.h
   float.h
   fma4intrin.h
+  fmaintrin.h
   immintrin.h
   iso646.h
   limits.h
@@ -17,6 +20,7 @@ set(files
   nmmintrin.h
   pmmintrin.h
   popcntintrin.h
+  rtmintrin.h
   smmintrin.h
   stdalign.h
   stdarg.h
@@ -27,8 +31,11 @@ set(files
   tmmintrin.h
   varargs.h
   wmmintrin.h
+  __wmmintrin_aes.h
+  __wmmintrin_pclmul.h
   x86intrin.h
   xmmintrin.h
+  xopintrin.h
   cpuid.h
   unwind.h
   module.map

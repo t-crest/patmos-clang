@@ -24,7 +24,8 @@ using namespace clang;
 static const LangAS::Map DefaultAddrSpaceMap = { 0 };
 
 // TargetInfo Constructor.
-TargetInfo::TargetInfo(const std::string &T) : Triple(T) {
+TargetInfo::TargetInfo(const std::string &T) : TargetOpts(), Triple(T)
+{
   // Set defaults.  Defaults are set for a 32-bit RISC platform, like PPC or
   // SPARC.  These should be overridden by concrete targets as needed.
   BigEndian = true;
@@ -48,6 +49,7 @@ TargetInfo::TargetInfo(const std::string &T) : Triple(T) {
   LargeArrayMinWidth = 0;
   LargeArrayAlign = 0;
   MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 0;
+  MaxVectorAlign = 0;
   SizeType = UnsignedLong;
   PtrDiffType = SignedLong;
   IntMaxType = SignedLongLong;
@@ -59,6 +61,7 @@ TargetInfo::TargetInfo(const std::string &T) : Triple(T) {
   Char32Type = UnsignedInt;
   Int64Type = SignedLongLong;
   SigAtomicType = SignedInt;
+  ProcessIDType = SignedInt;
   UseSignedCharForObjCBool = true;
   UseBitFieldTypeAlignment = true;
   UseZeroLengthBitfieldAlignment = false;
@@ -363,6 +366,8 @@ bool TargetInfo::validateOutputConstraint(ConstraintInfo &Info) const {
       break;
     case '?': // Disparage slightly code.
     case '!': // Disparage severely.
+    case '#': // Ignore as constraint.
+    case '*': // Ignore for choosing register preferences.
       break;  // Pass them.
     }
 
@@ -482,6 +487,8 @@ bool TargetInfo::validateInputConstraint(ConstraintInfo *OutputConstraints,
       break;
     case '?': // Disparage slightly code.
     case '!': // Disparage severely.
+    case '#': // Ignore as constraint.
+    case '*': // Ignore for choosing register preferences.
       break;  // Pass them.
     }
 
