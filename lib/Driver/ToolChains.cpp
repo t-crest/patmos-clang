@@ -1519,10 +1519,21 @@ PatmosToolChain::PatmosToolChain(const Driver &D, const llvm::Triple& Triple)
   if (llvm::sys::fs::exists(Path + "/../lib/"))
     getProgramPaths().push_back(Path + "/../lib/");
 
+  // TODO merge with ComputeLLVMTriple below somehow?
+  std::string TripleString = Triple.getTriple();
+  if (TripleString == "patmos")
+    TripleString = "patmos-unknown-unknown-elf";
+
   // newlib libraries and includes?
-  if (llvm::sys::fs::exists(Path + "/patmos-unknown-elf/"))
+  // checking patmos-unknown-elf for backward-compatibility reasons
+  if (llvm::sys::fs::exists(Path + "/" + TripleString + "/"))
+    getFilePaths().push_back(Path + "/" + TripleString + "/");
+  else if (llvm::sys::fs::exists(Path + "/patmos-unknown-elf/"))
     getFilePaths().push_back(Path + "/patmos-unknown-elf/");
-  if (llvm::sys::fs::exists(Path + "/../patmos-unknown-elf/"))
+
+  if (llvm::sys::fs::exists(Path + "/../" + TripleString + "/"))
+    getFilePaths().push_back(Path + "/../" + TripleString + "/");
+  else if (llvm::sys::fs::exists(Path + "/../patmos-unknown-elf/"))
     getFilePaths().push_back(Path + "/../patmos-unknown-elf/");
 }
 
@@ -1546,7 +1557,7 @@ std::string PatmosToolChain::ComputeLLVMTriple(const ArgList &Args,
   // program call). To avoid target-name mismatches, we normalize that to
   // the full default triple.
   if (Triple == "patmos") {
-    return "patmos-unknown-elf";
+    return "patmos-unknown-unknown-elf";
   }
 
   return Triple;
