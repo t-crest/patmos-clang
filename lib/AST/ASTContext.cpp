@@ -1606,12 +1606,18 @@ unsigned ASTContext::getPreferredTypeAlign(const Type *T) const {
   unsigned ABIAlign = getTypeAlign(T);
 
   // Double and long long should be naturally aligned if possible.
-  if (const ComplexType* CT = T->getAs<ComplexType>())
-    T = CT->getElementType().getTypePtr();
-  if (T->isSpecificBuiltinType(BuiltinType::Double) ||
-      T->isSpecificBuiltinType(BuiltinType::LongLong) ||
-      T->isSpecificBuiltinType(BuiltinType::ULongLong))
-    return std::max(ABIAlign, (unsigned)getTypeSize(T));
+  if (Target->doPreferWidthAligned()) {
+    if (const ComplexType* CT = T->getAs<ComplexType>())
+      T = CT->getElementType().getTypePtr();
+    if (T->isSpecificBuiltinType(BuiltinType::Double)) {
+      return std::max(ABIAlign, Target->getDoubleWidth());
+    }
+    else if (T->isSpecificBuiltinType(BuiltinType::LongLong) ||
+             T->isSpecificBuiltinType(BuiltinType::ULongLong))
+    {
+      return std::max(ABIAlign, Target->getLongLongWidth());
+    }
+  }
 
   return ABIAlign;
 }
