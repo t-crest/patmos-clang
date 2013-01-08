@@ -3776,6 +3776,9 @@ void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
   //----------------------------------------------------------------------------
   // append -O and -m options
 
+  // We enable printing labels for all blocks by default in Patmos
+  LLCArgs.push_back("-force-block-labels");
+
   Args.AddAllArgs(LLCArgs, options::OPT_O_Group);
 
   // floating point arguments are different for LLC
