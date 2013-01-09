@@ -3307,7 +3307,7 @@ void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
   // append -O and -m options
 
   // We enable printing labels for all blocks by default in Patmos
-  LLCArgs.push_back("-force-block-labels");
+  LLCArgs.push_back("-mforce-block-labels");
 
   Args.AddAllArgs(LLCArgs, options::OPT_O_Group);
 
