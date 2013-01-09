@@ -4228,9 +4228,6 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
                          "_shadow_stack_base", Args, "0x4000000", LDArgs);
 
-    render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
-                         "_shadow_stack_base", Args, "0x4000000", LDArgs);
-
     render_patmos_symbol(options::OPT_mpatmos_stack_base,
                          "_stack_cache_base", Args, "0x3000000", LDArgs);
 
