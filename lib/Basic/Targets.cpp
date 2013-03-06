@@ -4553,7 +4553,12 @@ static TargetInfo *AllocateTarget(const std::string &T) {
     return NULL;
 
   case llvm::Triple::patmos:
-    return new PatmosTargetInfo(T);
+    switch (os) {
+    case llvm::Triple::RTEMS:
+      return new RTEMSTargetInfo<PatmosTargetInfo>(T);
+    default:
+      return new PatmosTargetInfo(T);
+    }
 
   case llvm::Triple::hexagon:
     return new HexagonTargetInfo(T);
