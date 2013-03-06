@@ -3669,6 +3669,8 @@ public:
 
   virtual void getTargetDefines(const LangOptions &Opts,
                                 MacroBuilder &Builder) const {
+    // Target identification.
+    Builder.defineMacro("__patmos__");
     Builder.defineMacro("__PATMOS__");
 
     if (SoftFloat)
