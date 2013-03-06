@@ -3740,10 +3740,9 @@ void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
                                     AddLibSyms, IsGoldPass, CntLinkerInput);
   }
 
-  // TODO check for AddStdLibs instead?
-  if (AddRuntimeLibs)
+  // Add support library for newlib libc
+  if (AddStdLibs)
     CmdArgs.push_back("-lpatmos");
-
 
   // link by default with compiler-rt
   if (AddRuntimeLibs) {
@@ -3968,7 +3967,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // - run gold on result, link in:
   //    - all ELF input files
   //    - all -l<library> if -flto is used
-  //    - all standard libs if -flto or -fpatmos-lto-
+  //    - all standard libs if -flto or -fpatmos-lto-defaultlibs
 
   //----------------------------------------------------------------------------
   // read out various command line options
@@ -3981,10 +3980,9 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   bool AddLibSyms = !C.getArgs().hasArg(options::OPT_nolibsyms);
   // add crt0
   bool AddStartFiles = !C.getArgs().hasArg(options::OPT_nostartfiles);
-  // add libpatmos, librt, librtsf
-  // TODO maybe move libpatmos to AddStdLibs
+  // add librt, librtsf
   bool AddRuntimeLibs = !C.getArgs().hasArg(options::OPT_noruntimelibs);
-  // add libc, ..
+  // add libpatmos, libc, ..
   bool AddStdLibs = !C.getArgs().hasArg(options::OPT_nostdlib);
   // add libc
   bool AddLibC = !C.getArgs().hasArg(options::OPT_nolibc) && AddStdLibs;
