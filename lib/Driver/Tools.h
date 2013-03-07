@@ -128,7 +128,7 @@ namespace patmos {
 
     /// Add arguments to link with libc, librt, librtsf, libpatmos
     void AddStandardLibs(const ArgList &Args, ArgStringList &CmdArgs,
-                         bool AddDefaultLibs, bool AddStdLibs, bool AddLibC,
+                         bool AddRuntimeLibs, bool AddLibGloss, bool AddLibC,
                          bool AddLibSyms, StringRef FloatABI,
                          bool IsGoldPass,
                          int &CntLinkerInput) const;

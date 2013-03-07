@@ -3724,7 +3724,7 @@ void patmos::PatmosBaseTool::AddSystemLibrary(const ArgList &Args,
 
 void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
                    ArgStringList &CmdArgs,
-                   bool AddRuntimeLibs, bool AddStdLibs, bool AddLibC,
+                   bool AddRuntimeLibs, bool AddLibGloss, bool AddLibC,
                    bool AddLibSyms, StringRef FloatABI,
                    bool IsGoldPass,
                    int &CntLinkerInput) const
@@ -3741,7 +3741,7 @@ void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
   }
 
   // Add support library for newlib libc
-  if (AddStdLibs)
+  if (AddLibGloss)
     CmdArgs.push_back("-lpatmos");
 
   // link by default with compiler-rt
@@ -3972,6 +3972,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   //----------------------------------------------------------------------------
   // read out various command line options
 
+  bool LinkRTEMS = (TC.getTriple().getOS() == llvm::Triple::RTEMS);
+
   bool ChangedFloatABI;
   StringRef FloatABI = getPatmosFloatABI(TC.getDriver(), C.getArgs(),
                                          TC.getTriple(), ChangedFloatABI);
@@ -3986,6 +3988,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   bool AddStdLibs = !C.getArgs().hasArg(options::OPT_nostdlib);
   // add libc
   bool AddLibC = !C.getArgs().hasArg(options::OPT_nolibc) && AddStdLibs;
+  // add support library for newlib libc
+  bool AddLibGloss = AddStdLibs && !LinkRTEMS;
   // add any default libs at all?
   bool AddDefaultLibs = !C.getArgs().hasArg(options::OPT_nodefaultlibs);
 
@@ -4009,6 +4013,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     AddRuntimeLibs = false;
     AddStdLibs = false;
     AddLibC = false;
+    AddLibGloss = false;
   }
   if (LinkAsObject) {
     AddStartFiles = false;
@@ -4016,6 +4021,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     AddRuntimeLibs = false;
     AddStdLibs = false;
     AddLibC = false;
+    AddLibGloss = false;
   }
   if (UseLTORuntime) {
     // The libsyms stuff does not work either way when using LTO,
@@ -4137,7 +4143,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   if (!LinkAsObject && !UseLTORuntime) {
     // Do not link in standard libraries if we link as object (or should we??)
-    AddStandardLibs(Args, CmdArgs, AddRuntimeLibs, AddStdLibs, AddLibC,
+    AddStandardLibs(Args, CmdArgs, AddRuntimeLibs, AddLibGloss, AddLibC,
                                    AddLibSyms, FloatABI,
                                    false, CntLinkerInput);
   }
@@ -4146,7 +4152,11 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // some linker-specific options
 
   // the _start label has to be preserved
-  CmdArgs.push_back("-internalize-public-api-list=_start,main");
+  if (LinkRTEMS) {
+    CmdArgs.push_back("-internalize-public-api-list=boot_card");
+  } else {
+    CmdArgs.push_back("-internalize-public-api-list=_start,main");
+  }
 
   // suppress the emission of a linker script
   CmdArgs.push_back("-no-script");
@@ -4223,17 +4233,19 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     render_patmos_symbol(options::OPT_mpatmos_uart_data_base,
                          "_uart_data_base", Args, "0xF0000004", LDArgs);
 
-    render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
-                         "_shadow_stack_base", Args, "0x4000000", LDArgs);
-
-    render_patmos_symbol(options::OPT_mpatmos_stack_base,
-                         "_stack_cache_base", Args, "0x3000000", LDArgs);
+    LDArgs.push_back("--defsym");
+    LDArgs.push_back("__heap_start=end");
 
     render_patmos_symbol(options::OPT_mpatmos_heap_end,
                          "__heap_end", Args, "0x2000000", LDArgs);
 
-    LDArgs.push_back("--defsym");
-    LDArgs.push_back("__heap_start=end");
+    if (!LinkRTEMS) {
+      render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
+                           "_shadow_stack_base", Args, "0x4000000", LDArgs);
+
+      render_patmos_symbol(options::OPT_mpatmos_stack_base,
+                           "_stack_cache_base", Args, "0x3000000", LDArgs);
+    }
   }
 
   if (Args.hasArg(options::OPT_v))
@@ -4273,7 +4285,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
                 UseLTO, UseLTORuntime, CntLinkerInput);
 
   if (UseLTORuntime) {
-    AddStandardLibs(Args, LDArgs, AddRuntimeLibs, AddStdLibs, AddLibC,
+    AddStandardLibs(Args, LDArgs, AddRuntimeLibs, AddLibGloss, AddLibC,
                     AddLibSyms, FloatABI, true, CntLinkerInput);
   }
 
