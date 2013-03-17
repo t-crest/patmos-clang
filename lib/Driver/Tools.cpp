@@ -765,7 +765,7 @@ void Clang::AddPatmosTargetArgs(const ArgList &Args,
     // Do not use floats at all
     // TODO anything else to add?
     CmdArgs.push_back("-mfloat-abi");
-    CmdArgs.push_back("none");
+    CmdArgs.push_back("hard");
   }
   else {
     // Floating point operations and argument passing are hard.
@@ -3398,6 +3398,8 @@ void ClangAs::ConstructJob(Compilation &C, const JobAction &JA,
   C.addCommand(new Command(JA, *this, Exec, CmdArgs));
 }
 
+
+
 static std::string get_patmos_gold(const ToolChain &TC)
 {
   char *gold_envvar = getenv("PATMOS_GOLD");
@@ -3409,8 +3411,9 @@ static std::string get_patmos_gold(const ToolChain &TC)
                                "environment variable not found.");
   }
 
-  std::string tmp( TC.GetProgramPath("patmos-unknown-ld") );
-  if (tmp != "patmos-unknown-ld")
+  std::string longname = TC.getTriple().str() + "-ld";
+  std::string tmp( TC.GetProgramPath(longname.c_str()) );
+  if (tmp != longname)
     return tmp;
 
   tmp = TC.GetProgramPath("patmos-elf-ld");
@@ -3433,50 +3436,63 @@ static std::string get_patmos_gold(const ToolChain &TC)
   if (tmp != "ld-new")
     return tmp;
 
-  tmp = TC.GetProgramPath("ld");
-  if (tmp != "ld")
-    return tmp;
-
-  return TC.GetProgramPath((TC.getTriple().str() + "-ld").c_str());
+  return TC.GetProgramPath("ld");
 }
 
 static std::string get_patmos_ld(const ToolChain &TC)
 {
-  std::string tmp = TC.GetProgramPath("patmos-llvm-ld");
+  std::string longname = TC.getTriple().str() + "-llvm-ld";
+  std::string tmp( TC.GetProgramPath(longname.c_str()) );
+  if (tmp != longname)
+    return tmp;
+
+  tmp = TC.GetProgramPath("patmos-llvm-ld");
   if (tmp != "patmos-llvm-ld")
     return tmp;
 
-  tmp = TC.GetProgramPath("llvm-ld");
-  if (tmp != "llvm-ld")
+  return TC.GetProgramPath("llvm-ld");
+}
+
+static std::string get_patmos_opt(const ToolChain &TC)
+{
+  std::string longname = TC.getTriple().str() + "-opt";
+  std::string tmp( TC.GetProgramPath(longname.c_str()) );
+  if (tmp != longname)
     return tmp;
 
-  return TC.GetProgramPath((TC.getTriple().str() + "-llvm-ld").c_str());
+  tmp = TC.GetProgramPath("patmos-opt");
+  if (tmp != "patmos-opt")
+    return tmp;
+
+  return TC.GetProgramPath("opt");
 }
 
 static std::string get_patmos_mc(const ToolChain &TC)
 {
-  std::string tmp = TC.GetProgramPath("patmos-llvm-mc");
+  std::string longname = TC.getTriple().str() + "-llvm-mc";
+  std::string tmp( TC.GetProgramPath(longname.c_str()) );
+  if (tmp != longname)
+    return tmp;
+
+  tmp = TC.GetProgramPath("patmos-llvm-mc");
   if (tmp != "patmos-llvm-mc")
     return tmp;
 
-  tmp = TC.GetProgramPath("llvm-mc");
-  if (tmp != "llvm-mc")
-    return tmp;
-
-  return TC.GetProgramPath((TC.getTriple().str() + "-llvm-mc").c_str());
+  return TC.GetProgramPath("llvm-mc");
 }
 
 static std::string get_patmos_llc(const ToolChain &TC)
 {
-  std::string tmp = TC.GetProgramPath("patmos-llc");
+  std::string longname = TC.getTriple().str() + "-llc";
+  std::string tmp( TC.GetProgramPath(longname.c_str()) );
+  if (tmp != longname)
+    return tmp;
+
+  tmp = TC.GetProgramPath("patmos-llc");
   if (tmp != "patmos-llc")
     return tmp;
 
-  tmp = TC.GetProgramPath("llc");
-  if (tmp != "llc")
-    return tmp;
-
-  return TC.GetProgramPath((TC.getTriple().str() + "-llc").c_str());
+  return TC.GetProgramPath("llc");
 }
 
 /// render_patmos_symbol - check if a -mpatmos-<symbol> option was given, if
@@ -3562,7 +3578,7 @@ void patmos::PatmosBaseTool::AddLibraryPaths(const ArgList &Args,
 void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
                    ArgStringList &CmdArgs, const InputInfoList &Inputs,
                    bool AddLibSyms, bool IsGoldPass, bool HasGoldPass,
-                   bool UseLTO, bool UseLTORuntime, int &CntLinkerInput) const
+                   bool UseLTO, int &CntLinkerInput) const
 {
   const Driver &D = TC.getDriver();
 
@@ -3668,10 +3684,9 @@ void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
         //   - we link in -lm and syms with llvm-ld
         //   - we do nothing for gold
         if (A.getAsString(Args) == "-lm") {
-          if ((UseLTORuntime && IsGoldPass) || (!UseLTORuntime && !IsGoldPass))
+          if ((UseLTO && IsGoldPass) || (!UseLTO && !IsGoldPass))
           {
-            AddSystemLibrary(Args, CmdArgs, "lib/libmsyms.o",
-                                            "lib/libmsyms.lst", "-lm",
+            AddSystemLibrary(Args, CmdArgs, "lib/libmsyms.o", "-lm",
                                             AddLibSyms, IsGoldPass,
                                             CntLinkerInput);
           }
@@ -3694,30 +3709,19 @@ void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
 
 void patmos::PatmosBaseTool::AddSystemLibrary(const ArgList &Args,
                       ArgStringList &CmdArgs,
-                      const char *libo, const char *libsyms,
-                      const char *libflag,
+                      const char *libo, const char *libflag,
                       bool AddLibSyms, bool IsGoldPass,
                       int &CntLinkerInput) const
 {
   if (AddLibSyms) {
-    std::string symsfile = TC.GetFilePath(libsyms);
     std::string ofile = TC.GetFilePath(libo);
-
-    // We do not check if the .o file is bitcode or ELF here:
-    // If we use -flto, this is only called for gold, which can handle both
-    // If we do not use -flto, we can only link bitcode anyway
-
-    if (!IsGoldPass) {
-      std::string APIFile = "-internalize-public-api-file=" + symsfile;
-      CmdArgs.push_back(Args.MakeArgString(APIFile));
-    }
-
     CmdArgs.push_back(Args.MakeArgString(ofile));
     CntLinkerInput++;
   }
 
   if (libflag) {
     CmdArgs.push_back(libflag);
+    CntLinkerInput++;
   }
 }
 
@@ -3735,8 +3739,7 @@ void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
 
   // link by default with newlib libc and libpatmos
   if (AddLibC) {
-    AddSystemLibrary(Args, CmdArgs, "lib/libcsyms.o",
-                                    "lib/libcsyms.lst", "-lc",
+    AddSystemLibrary(Args, CmdArgs, "lib/libcsyms.o", "-lc",
                                     AddLibSyms, IsGoldPass, CntLinkerInput);
   }
 
@@ -3749,15 +3752,39 @@ void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
 
     // softfloat has dependencies to librt, link first
     if (FloatABI != "hard" && FloatABI != "none") {
-      AddSystemLibrary(Args, CmdArgs, "lib/librtsfsyms.o",
-                                      "lib/librtsfsyms.lst", "-lrtsf",
+      AddSystemLibrary(Args, CmdArgs, "lib/librtsfsyms.o", "-lrtsf",
                                       AddLibSyms, IsGoldPass, CntLinkerInput);
     }
 
-    AddSystemLibrary(Args, CmdArgs, "lib/librtsyms.o",
-                                    "lib/librtsyms.lst", "-lrt",
+    AddSystemLibrary(Args, CmdArgs, "lib/librtsyms.o", "-lrt",
                                     AddLibSyms, IsGoldPass, CntLinkerInput);
   }
+}
+
+void patmos::PatmosBaseTool::ConstructOptJob(const Tool &Creator,
+                     Compilation &C, const JobAction &JA,
+                     const char *OutputFilename,
+                     const char *InputFilename,
+                     const ArgList &Args) const
+{
+  ArgStringList OptArgs;
+
+  //----------------------------------------------------------------------------
+  // append optimization options
+
+  Args.AddAllArgs(OptArgs, options::OPT_O_Group);
+
+  //----------------------------------------------------------------------------
+  // append output and input files
+
+  assert(OutputFilename);
+  OptArgs.push_back("-o");
+  OptArgs.push_back(OutputFilename);
+
+  OptArgs.push_back(InputFilename);
+
+  const char *LLCExec = Args.MakeArgString(get_patmos_opt(TC));
+  C.addCommand(new Command(JA, Creator, LLCExec, OptArgs));
 }
 
 void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
@@ -4005,9 +4032,6 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   // link all -l and ELF .o files with gold and libLTO plugin
   bool UseLTO = C.getArgs().hasArg(options::OPT_flto);
-  // link runtime libraries, libc and libm with gold
-  bool UseLTORuntime = C.getArgs().hasArg(options::OPT_fpatmos_lto_defaultlibs)
-                       || UseLTO;
 
   if (!AddDefaultLibs) {
     AddRuntimeLibs = false;
@@ -4023,12 +4047,6 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     AddLibC = false;
     AddLibGloss = false;
   }
-  if (UseLTORuntime) {
-    // The libsyms stuff does not work either way when using LTO,
-    // This must either be fixed in gold, or newlib/compiler-rt must be compiled
-    // as binary ELF
-    AddLibSyms = false;
-  }
 
   bool StopAfterLLC = EmitAsm || EmitObject;
 
@@ -4042,10 +4060,10 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   if (EmitLLVM && (EmitObject || EmitAsm)) {
     llvm::report_fatal_error("-emit-llvm cannot be used with -fpatmos-emit-obj or -fpatmos-emit-asm");
   }
-  if ((UseLTO || UseLTORuntime) && (EmitLLVM || EmitObject || EmitAsm)) {
+  if (UseLTO && (EmitLLVM || EmitObject || EmitAsm)) {
     llvm::report_fatal_error("-emit-* cannot be used when linking with LTO support");
   }
-  if ((UseLTO || UseLTORuntime) && LinkAsObject) {
+  if (UseLTO && LinkAsObject) {
     llvm::report_fatal_error("-fpatmos-link-object and linking with LTO support is mutually exclusive.");
   }
 
@@ -4135,13 +4153,13 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // files and archives.
 
   AddInputFiles(Args, CmdArgs, Inputs, AddLibSyms,
-                false, !EmitLLVM && !StopAfterLLC, UseLTO, UseLTORuntime,
+                false, !EmitLLVM && !StopAfterLLC, UseLTO,
                 CntLinkerInput);
 
   //----------------------------------------------------------------------------
   // link with newlib libraries
 
-  if (!LinkAsObject && !UseLTORuntime) {
+  if (!LinkAsObject && !UseLTO) {
     // Do not link in standard libraries if we link as object (or should we??)
     AddStandardLibs(Args, CmdArgs, AddRuntimeLibs, AddLibGloss, AddLibC,
                                    AddLibSyms, FloatABI,
@@ -4150,13 +4168,6 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   //----------------------------------------------------------------------------
   // some linker-specific options
-
-  // the _start label has to be preserved
-  if (LinkRTEMS) {
-    CmdArgs.push_back("-internalize-public-api-list=boot_card");
-  } else {
-    CmdArgs.push_back("-internalize-public-api-list=_start,main");
-  }
 
   // suppress the emission of a linker script
   CmdArgs.push_back("-no-script");
@@ -4270,7 +4281,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   //----------------------------------------------------------------------------
   // append binaries and -l options if we are using LTO
 
-  if (UseLTO || UseLTORuntime) {
+  if (UseLTO) {
     // try to add -plugin option, this is actually required
     std::string plugin( TC.GetProgramPath("LLVMgold.so") );
     if (plugin != "LLVMgold.so") {
@@ -4282,9 +4293,9 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   AddInputFiles(Args, LDArgs, Inputs, AddLibSyms, true, true,
-                UseLTO, UseLTORuntime, CntLinkerInput);
+                UseLTO, CntLinkerInput);
 
-  if (UseLTORuntime) {
+  if (UseLTO) {
     AddStandardLibs(Args, LDArgs, AddRuntimeLibs, AddLibGloss, AddLibC,
                     AddLibSyms, FloatABI, true, CntLinkerInput);
   }

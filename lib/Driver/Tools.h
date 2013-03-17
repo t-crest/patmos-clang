@@ -117,12 +117,10 @@ namespace patmos {
                               const InputInfoList &Inputs,
                               bool AddLibSyms,
                               bool IsGoldPass, bool HasGoldPass, bool UseLTO,
-                              bool UseLTORuntime,
                               int &CntLinkerInput) const;
 
     void AddSystemLibrary(const ArgList &Args, ArgStringList &CmdArgs,
-                          const char *libo, const char *libsyms,
-                          const char *libflag,
+                          const char *libo, const char *libflag,
                           bool AddLibSyms, bool IsGoldPass,
                           int &CntLinkerInput) const;
 
@@ -132,6 +130,12 @@ namespace patmos {
                          bool AddLibSyms, StringRef FloatABI,
                          bool IsGoldPass,
                          int &CntLinkerInput) const;
+
+    // Construct an optimization job
+    void ConstructOptJob(const Tool &Creator, Compilation &C, const JobAction &JA,
+                         const char *OutputFilename,
+                         const char *InputFilename,
+                         const ArgList &TCArgs) const;
 
     void ConstructLLCJob(const Tool &Creator, Compilation &C, const JobAction &JA,
                       const char *OutputFilename,
@@ -171,7 +175,7 @@ namespace patmos {
   class LLVM_LIBRARY_VISIBILITY Link : public Tool, protected PatmosBaseTool {
   public:
     Link(const ToolChain &TC) : Tool("patmos::Link",
-                                     "link  via llvm-ld & llc", TC),
+                                     "link  via llvm-link, opt and llc", TC),
                                 PatmosBaseTool(TC) {}
 
     virtual void ConstructJob(Compilation &C, const JobAction &JA,
