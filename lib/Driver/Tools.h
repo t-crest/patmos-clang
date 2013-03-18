@@ -90,6 +90,7 @@ namespace patmos {
 
   class PatmosBaseTool {
     const ToolChain &TC;
+    std::vector<std::string> LibraryPaths;
   public:
     PatmosBaseTool(const ToolChain &TC) : TC(TC) {}
 
@@ -105,6 +106,11 @@ namespace patmos {
                                       const char * TmpPrefix,
                                       const char *Suffix,
                                       bool IsLastPass) const;
+
+    const StringRef FindLibrary(const ArgList &Args, StringRef Libname,
+                                bool LinkBinaries, bool OnlyStatic);
+
+    bool IsBitcodeArchive(std::string filename);
 
     /// Add -L arguments
     void AddLibraryPaths(const ArgList &Args, ArgStringList &CmdArgs,

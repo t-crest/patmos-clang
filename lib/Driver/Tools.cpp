@@ -3557,6 +3557,95 @@ const char * patmos::PatmosBaseTool::CreateOutputFilename(Compilation &C,
   return filename;
 }
 
+// Reimplement Linker::FindLib() to search for shared libraries first
+// unless OnlyStatic is true.
+static llvm::sys::Path FindLib(StringRef LibName,
+                         const std::vector<llvm::sys::Path> &Directories,
+                         bool OnlyStatic) {
+  llvm::sys::Path FilePath(LibName);
+  if (FilePath.canRead() &&
+      (FilePath.isArchive() || (!OnlyStatic && FilePath.isDynamicLibrary())))
+    return FilePath;
+
+  // Now iterate over the directories
+  for (std::vector<llvm::sys::Path>::const_iterator Iter = Directories.begin();
+       Iter != Directories.end(); ++Iter) {
+    llvm::sys::Path FullPath(*Iter);
+    FullPath.appendComponent(("lib" + LibName).str());
+
+    // Either we only want static libraries or we didn't find a
+    // dynamic library so try libX.a
+    FullPath.appendSuffix("a");
+    if (FullPath.isArchive())
+      return FullPath;
+
+    // libX.bca
+    FullPath.eraseSuffix();
+    FullPath.appendSuffix("bca");
+    if (FullPath.isArchive())
+      return FullPath;
+
+    if (!OnlyStatic) {
+      // Try libX.so or libX.dylib
+      FullPath.appendSuffix(llvm::sys::Path::GetDLLSuffix());
+      if (FullPath.isDynamicLibrary()) // Native shared library
+        return FullPath;
+      if (FullPath.isBitcodeFile())    // .so containing bitcode
+        return FullPath;
+    }
+  }
+
+  // No libraries were found
+  return llvm::sys::Path();
+}
+
+const StringRef patmos::PatmosBaseTool::FindLibrary(const ArgList &Args,
+                        StringRef Libname, bool LinkBinaries, bool OnlyStatic)
+{
+  // Use this little trick to prevent duplicating the library path options code
+  ArgStringList LibArgs;
+  AddLibraryPaths(Args, LibArgs, LinkBinaries);
+
+  // Just to make sure that we catch all -L options, we add -Wl -Xlinker, -Xgold
+  for (ArgList::const_iterator it = Args.begin(), ie = Args.end(); it != ie; ++it) {
+    const Arg *A = *it;
+
+    if ((!LinkBinaries && (A->getOption().matches(options::OPT_Wl_COMMA) ||
+        A->getOption().matches(options::OPT_Xlinker)) ) ||
+        (LinkBinaries && (A->getOption().matches(options::OPT_Xgold))))
+    {
+      A->renderAsInput(Args, LibArgs);
+    }
+  }
+
+  // Collect all the lookup paths
+  std::vector<llvm::sys::Path> LibPaths;
+  if (!LinkBinaries) {
+    // add same paths as Linker::addSystemPaths()
+    llvm::sys::Path::GetBitcodeLibraryPaths(LibPaths);
+    LibPaths.insert(LibPaths.begin(),llvm::sys::Path("./"));
+  }
+
+  // Parse all -L options
+  for (ArgStringList::iterator it = LibArgs.begin(), ie = LibArgs.end();
+       it != ie; ++it) {
+    std::string Arg = *it;
+    if (Arg.substr(0, 2) != "-L") continue;
+
+    llvm::sys::Path Path( Arg.substr(2) );
+    LibPaths.push_back(Path);
+  }
+
+  return FindLib(Libname, LibPaths, OnlyStatic).str();
+}
+
+bool patmos::PatmosBaseTool::IsBitcodeArchive(std::string filename) {
+
+  return true;
+}
+
+
+
 void patmos::PatmosBaseTool::AddLibraryPaths(const ArgList &Args,
                                              ArgStringList &CmdArgs,
                                              bool LinkBinaries) const
@@ -4090,6 +4179,9 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   if (C.getArgs().hasArg(options::OPT_O0)) {
     CmdArgs.push_back("-disable-opt");
   }
+
+  //----------------------------------------------------------------------------
+  // append linker specific options
 
   for (ArgList::const_iterator
          it = Args.begin(), ie = Args.end(); it != ie; ++it) {
