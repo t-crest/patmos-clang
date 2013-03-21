@@ -23,6 +23,7 @@ namespace clang {
 
 namespace driver {
   class Driver;
+  class Arg;
 
 namespace toolchains {
   class Darwin;
@@ -102,52 +103,103 @@ namespace patmos {
       return getFileType(filename) == llvm::sys::Bitcode_FileType;
     }
 
+    bool isBitcodeArchive(std::string filename) const;
+
+    bool isBitcodeOption(StringRef Option,
+                         const std::vector<llvm::sys::Path> &LibPaths) const;
+
     const char * CreateOutputFilename(Compilation &C, const InputInfo &Output,
                                       const char * TmpPrefix,
                                       const char *Suffix,
                                       bool IsLastPass) const;
 
-    const StringRef FindLibrary(const ArgList &Args, StringRef Libname,
-                                bool LinkBinaries, bool OnlyStatic);
+    llvm::sys::Path FindLib(StringRef LibName,
+                            const std::vector<llvm::sys::Path> &Directories,
+                            bool OnlyStatic) const;
 
-    bool IsBitcodeArchive(std::string filename);
+    std::vector<llvm::sys::Path> FindLibPaths(const ArgList &Args,
+                                bool LinkBinaries) const;
+
+    /// Get the last -O<Lvl> optimization level specifier. If no -O option is
+    /// given, return NULL.
+    Arg* GetOptLevel(const ArgList &Args, char &Lvl) const;
 
     /// Add -L arguments
     void AddLibraryPaths(const ArgList &Args, ArgStringList &CmdArgs,
                          bool LinkBinaries) const;
 
-    /// The UseLTO argument tells the function if .a should be handled by
-    /// gold or llvm-ld. The HasGoldPass arguments tells the function if
+    /// The HasGoldPass arguments tells the function if
     /// we will execute gold or if linking with ELFs should throw an error.
-    void AddInputFiles(const ArgList &Args, ArgStringList &CmdArgs,
-                              const InputInfoList &Inputs,
-                              bool AddLibSyms,
-                              bool IsGoldPass, bool HasGoldPass, bool UseLTO,
-                              int &CntLinkerInput) const;
+    /// Return the
+    const char * AddInputFiles(const ArgList &Args,
+                       const std::vector<llvm::sys::Path> &LibPaths,
+                       const InputInfoList &Inputs,
+                       ArgStringList &LinkInputs, ArgStringList &GoldInputs,
+                       const char *linkedBCFileName,
+                       unsigned &linkedOFileInputPos,
+                       bool AddLibSyms, bool LinkLibraries,
+                       bool HasGoldPass, bool UseLTO) const;
 
-    void AddSystemLibrary(const ArgList &Args, ArgStringList &CmdArgs,
+    /// Return true if any options have been added to LinkInputs.
+    bool AddSystemLibrary(const ArgList &Args,
+                          const std::vector<llvm::sys::Path> &LibPaths,
+                          ArgStringList &LinkInputs, ArgStringList &GoldInputs,
                           const char *libo, const char *libflag,
-                          bool AddLibSyms, bool IsGoldPass,
-                          int &CntLinkerInput) const;
+                          bool AddLibSyms, bool HasGoldPass, bool UseLTO) const;
 
     /// Add arguments to link with libc, librt, librtsf, libpatmos
-    void AddStandardLibs(const ArgList &Args, ArgStringList &CmdArgs,
+    void AddStandardLibs(const ArgList &Args,
+                         const std::vector<llvm::sys::Path> &LibPaths,
+                         ArgStringList &LinkInputs, ArgStringList &GoldInputs,
                          bool AddRuntimeLibs, bool AddLibGloss, bool AddLibC,
                          bool AddLibSyms, StringRef FloatABI,
-                         bool IsGoldPass,
-                         int &CntLinkerInput) const;
+                         bool HasGoldPass, bool UseLTO) const;
+
+
+    /// Returns linkedBCFileName if files need to be linked, or the filename of
+    /// the only bitcode input file if there is no need to link, or null if
+    /// there are no bitcode inputs.
+    /// @linkedOFileInsertPos - position in GoldInputs where to insert the
+    /// compiled bitcode file into.
+    const char * PrepareLinkerInputs(const ArgList &Args,
+                         const InputInfoList &Inputs,
+                         ArgStringList &LinkInputs, ArgStringList &GoldInputs,
+                         const char *linkedBCFileName,
+                         unsigned &linkedOFileInsertPos,
+                         bool AddStartFiles,
+                         bool AddRuntimeLibs, bool AddLibGloss, bool AddLibC,
+                         bool AddLibSyms, StringRef FloatABI,
+                         bool LinkLibraries,
+                         bool HasGoldPass, bool UseLTO) const;
+
+    void ConstructLinkJob(const Tool &Creator, Compilation &C,
+                          const JobAction &JA,
+                          const char *OutputFilename,
+                          const ArgStringList &LinkInputs,
+                          const ArgList &TCArgs) const;
 
     // Construct an optimization job
-    void ConstructOptJob(const Tool &Creator, Compilation &C, const JobAction &JA,
+    // @IsLinkPass - If true, add standard link optimizations
+    bool ConstructOptJob(const Tool &Creator, Compilation &C,
+                         const JobAction &JA,
                          const char *OutputFilename,
                          const char *InputFilename,
-                         const ArgList &TCArgs) const;
+                         const ArgList &TCArgs,
+                         bool IsLinkPass, bool IsLastPass) const;
 
-    void ConstructLLCJob(const Tool &Creator, Compilation &C, const JobAction &JA,
+    void ConstructLLCJob(const Tool &Creator, Compilation &C,
+                      const JobAction &JA,
                       const char *OutputFilename,
                       const char *InputFilename,
                       const ArgList &TCArgs,
-                      bool EmitAsm, bool IsLastPass) const;
+                      bool EmitAsm) const;
+
+    void ConstructGoldJob(const Tool &Creator, Compilation &C,
+                          const JobAction &JA,
+                          const char *OutputFilename,
+                          const ArgStringList &GoldInputs,
+                          const ArgList &TCArgs, bool UseLTO,
+                          bool LinkRelocatable, bool AddStackSymbols) const;
   };
 
   class LLVM_LIBRARY_VISIBILITY Compile : public Clang, protected PatmosBaseTool

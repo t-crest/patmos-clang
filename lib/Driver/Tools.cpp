@@ -25,6 +25,8 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/Object/Archive.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
@@ -3439,60 +3441,19 @@ static std::string get_patmos_gold(const ToolChain &TC)
   return TC.GetProgramPath("ld");
 }
 
-static std::string get_patmos_ld(const ToolChain &TC)
+static std::string get_patmos_tool(const ToolChain &TC, StringRef ToolName)
 {
-  std::string longname = TC.getTriple().str() + "-llvm-ld";
+  std::string longname = (TC.getTriple().str() + "-" + ToolName).str();
   std::string tmp( TC.GetProgramPath(longname.c_str()) );
   if (tmp != longname)
     return tmp;
 
-  tmp = TC.GetProgramPath("patmos-llvm-ld");
-  if (tmp != "patmos-llvm-ld")
+  std::string PatmosTool = ("patmos-" + ToolName).str();
+  tmp = TC.GetProgramPath(PatmosTool.c_str());
+  if (tmp != PatmosTool)
     return tmp;
 
-  return TC.GetProgramPath("llvm-ld");
-}
-
-static std::string get_patmos_opt(const ToolChain &TC)
-{
-  std::string longname = TC.getTriple().str() + "-opt";
-  std::string tmp( TC.GetProgramPath(longname.c_str()) );
-  if (tmp != longname)
-    return tmp;
-
-  tmp = TC.GetProgramPath("patmos-opt");
-  if (tmp != "patmos-opt")
-    return tmp;
-
-  return TC.GetProgramPath("opt");
-}
-
-static std::string get_patmos_mc(const ToolChain &TC)
-{
-  std::string longname = TC.getTriple().str() + "-llvm-mc";
-  std::string tmp( TC.GetProgramPath(longname.c_str()) );
-  if (tmp != longname)
-    return tmp;
-
-  tmp = TC.GetProgramPath("patmos-llvm-mc");
-  if (tmp != "patmos-llvm-mc")
-    return tmp;
-
-  return TC.GetProgramPath("llvm-mc");
-}
-
-static std::string get_patmos_llc(const ToolChain &TC)
-{
-  std::string longname = TC.getTriple().str() + "-llc";
-  std::string tmp( TC.GetProgramPath(longname.c_str()) );
-  if (tmp != longname)
-    return tmp;
-
-  tmp = TC.GetProgramPath("patmos-llc");
-  if (tmp != "patmos-llc")
-    return tmp;
-
-  return TC.GetProgramPath("llc");
+  return TC.GetProgramPath(ToolName.str().c_str());
 }
 
 /// render_patmos_symbol - check if a -mpatmos-<symbol> option was given, if
@@ -3520,6 +3481,42 @@ patmos::PatmosBaseTool::getFileType(std::string filename) const {
   std::string Magic;
   Pathname.getMagicNumber(Magic, 64);
   return llvm::sys::IdentifyFileType(Magic.c_str(), 64);
+}
+
+bool patmos::PatmosBaseTool::isBitcodeArchive(std::string filename) const {
+
+  if (getFileType(filename) != llvm::sys::Archive_FileType) {
+    return false;
+  }
+
+  // check first file in archive if it is a bitcode file
+
+  OwningPtr<llvm::object::Binary> File;
+  if (llvm::object::createBinary(filename, File)) {
+    return false;
+  }
+
+  if (llvm::object::Archive *a = dyn_cast<llvm::object::Archive>(File.get())) {
+    for (llvm::object::Archive::child_iterator i = a->begin_children(),
+                                         e = a->end_children(); i != e; ++i) {
+      OwningPtr<llvm::object::Binary> child;
+      if (i->getAsBinary(child)) {
+        // Try opening it as a bitcode file.
+        OwningPtr<llvm::MemoryBuffer> buff(i->getBuffer());
+        if (!buff) continue;
+        llvm::sys::LLVMFileType FileType =
+                 llvm::sys::IdentifyFileType(buff->getBufferStart(), 64);
+        if (FileType == llvm::sys::Bitcode_FileType) {
+          return true;
+        }
+        if (FileType != llvm::sys::Unknown_FileType) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return false;
 }
 
 const char * patmos::PatmosBaseTool::CreateOutputFilename(Compilation &C,
@@ -3559,9 +3556,9 @@ const char * patmos::PatmosBaseTool::CreateOutputFilename(Compilation &C,
 
 // Reimplement Linker::FindLib() to search for shared libraries first
 // unless OnlyStatic is true.
-static llvm::sys::Path FindLib(StringRef LibName,
+llvm::sys::Path patmos::PatmosBaseTool::FindLib(StringRef LibName,
                          const std::vector<llvm::sys::Path> &Directories,
-                         bool OnlyStatic) {
+                         bool OnlyStatic) const {
   llvm::sys::Path FilePath(LibName);
   if (FilePath.canRead() &&
       (FilePath.isArchive() || (!OnlyStatic && FilePath.isDynamicLibrary())))
@@ -3599,8 +3596,9 @@ static llvm::sys::Path FindLib(StringRef LibName,
   return llvm::sys::Path();
 }
 
-const StringRef patmos::PatmosBaseTool::FindLibrary(const ArgList &Args,
-                        StringRef Libname, bool LinkBinaries, bool OnlyStatic)
+std::vector<llvm::sys::Path>
+patmos::PatmosBaseTool::FindLibPaths(const ArgList &Args,
+                                     bool LinkBinaries) const
 {
   // Use this little trick to prevent duplicating the library path options code
   ArgStringList LibArgs;
@@ -3636,15 +3634,44 @@ const StringRef patmos::PatmosBaseTool::FindLibrary(const ArgList &Args,
     LibPaths.push_back(Path);
   }
 
-  return FindLib(Libname, LibPaths, OnlyStatic).str();
+  return LibPaths;
 }
 
-bool patmos::PatmosBaseTool::IsBitcodeArchive(std::string filename) {
+bool patmos::PatmosBaseTool::isBitcodeOption(StringRef Option,
+                     const std::vector<llvm::sys::Path> &LibPaths) const
+{
+  if (Option.str().substr(0,2) != "-l") {
+    // standard input file
+    return isBitcodeFile(Option);
+  }
 
-  return true;
+  std::string LibName = Option.substr(2);
+
+  llvm::sys::Path Filename = FindLib(LibName, LibPaths, true);
+  if (!Filename.empty()) {
+    // accept linking with bitcode files
+    if (Filename.isBitcodeFile()) {
+      return true;
+    }
+    // found it, check for bitcode archive
+    return isBitcodeArchive(Filename.str());
+  }
+  return false;
 }
 
 
+Arg* patmos::PatmosBaseTool::GetOptLevel(const ArgList &Args, char &Lvl) const {
+
+  if (Arg *A = Args.getLastArg(options::OPT_O_Group)) {
+    std::string Opt = A->getAsString(Args);
+    if (Opt.length() != 3) {
+      llvm::report_fatal_error("Unsupported optimization option: " + Opt);
+    }
+    Lvl = Opt[2];
+    return A;
+  }
+  return 0;
+}
 
 void patmos::PatmosBaseTool::AddLibraryPaths(const ArgList &Args,
                                              ArgStringList &CmdArgs,
@@ -3664,91 +3691,93 @@ void patmos::PatmosBaseTool::AddLibraryPaths(const ArgList &Args,
   }
 }
 
-void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
-                   ArgStringList &CmdArgs, const InputInfoList &Inputs,
-                   bool AddLibSyms, bool IsGoldPass, bool HasGoldPass,
-                   bool UseLTO, int &CntLinkerInput) const
+const char * patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
+                           const std::vector<llvm::sys::Path> &LibPaths,
+                           const InputInfoList &Inputs,
+                           ArgStringList &LinkInputs, ArgStringList &GoldInputs,
+                           const char *linkedBCFileName,
+                           unsigned &linkedOFileInputPos,
+                           bool AddLibSyms, bool LinkLibraries,
+                           bool HasGoldPass, bool UseLTO) const
 {
   const Driver &D = TC.getDriver();
 
-  // If we are linking bitcode and are using LTO later, do not link libraries
-  // for now but let gold handle them.
-  bool AddLibraries = (IsGoldPass && UseLTO) || (!IsGoldPass && !UseLTO);
-
-  // TODO llvm-ld has been removed in LLVM 3.2. To support llvm-link, either add
-  // archive and -l support to llvm-link, or resolve -l here (but we still need
-  // to handle archives, support for this may be removed too!), or always pass
-  // -l to gold (LTO must be used by default, throw error if !UseLTO and -l )..
+  const char *BCOutput = 0;
 
   for (InputInfoList::const_iterator
          it = Inputs.begin(), ie = Inputs.end(); it != ie; ++it) {
     const InputInfo &II = *it;
 
+    //--------------------------------------------------------------------------
+    // handle file inputs
     if (II.isFilename()) {
-      // Only operate on LLVM BC files
+
+      // Check for bitcode files
+      bool IsBitcode = false;
+
       if (II.getType() == types::TY_AST) {
         D.Diag(diag::err_drv_no_ast_support) << TC.getTripleString();
-      } else if (II.getType() == types::TY_LLVM_BC ||
-                 II.getType() == types::TY_LTO_BC)
-      {
-        // If we are linking binaries with gold, assume that .bc files have
-        // already been linked in to the main .o file
-        if (IsGoldPass) {
-          continue;
-        }
-
-      } else if (II.getType() == types::TY_Object) {
+      }
+      else if (II.getType() == types::TY_LLVM_BC ||
+                 II.getType() == types::TY_LTO_BC) {
+        IsBitcode = true;
+      }
+      else if (II.getType() == types::TY_Object) {
 
         llvm::sys::LLVMFileType FT = getFileType(II.getFilename());
 
         if (FT == llvm::sys::Archive_FileType) {
-          // We accept .a files even when linking bitcode too. We assume that they
-          // are bitcode archives, llvm-ld knows what to do in this case or throws
-          // an error if they are not bitcode archives.
-
-          // TODO check for bitcode/ELF archive
-
-          // Link .a files with gold like libraries, if we use LTO later
-          if (!AddLibraries) {
-            continue;
-          }
+          // Should we skip .a files without -l if the do not link in libs?
+          IsBitcode = isBitcodeArchive(II.getFilename());
         }
         else if (FT == llvm::sys::Bitcode_FileType) {
-          if (IsGoldPass) {
-            // Again, assume that .bc files have been handled by llvm-ld and llc
-            continue;
-          }
-        } else {
+          IsBitcode = true;
+        }
+        else {
           // Some sort of binary file.. link with gold, even if LTO is not used
-          if (!IsGoldPass) {
-            if (!HasGoldPass) {
-              // TODO use D.Diag() ?
-              llvm::report_fatal_error(Twine(II.getFilename()) +
-                                  ": Cannot link binary files when "
-                                  "generating bitcode or object file output");
-            } else {
-              // we will link this later with gold, let gold deal with this
-              continue;
-            }
+          if (!HasGoldPass) {
+            // TODO use D.Diag() ?
+            llvm::report_fatal_error(Twine(II.getFilename()) +
+                                ": Cannot link binary files when "
+                                "generating bitcode or object file output");
           }
         }
-
-      } else {
+      }
+      else {
         // Unhandled input file type
         D.Diag(diag::err_drv_no_linker_llvm_support) << TC.getTripleString();
       }
 
-      CmdArgs.push_back(II.getFilename());
-      CntLinkerInput++;
+      if (IsBitcode && !UseLTO) {
+        if (BCOutput) {
+          // We already have at least one bitcode file, use temp output file
+          BCOutput = linkedBCFileName;
+        } else {
+          // First bitcode file, link compiled file with gold
+          BCOutput = II.getFilename();
+          linkedOFileInputPos = GoldInputs.size();
+        }
+        LinkInputs.push_back(II.getFilename());
+      } else {
+        GoldInputs.push_back(II.getFilename());
+      }
 
     }
+    //--------------------------------------------------------------------------
+    // handle -l options
     else {
       const Arg &A = II.getInputArg();
 
       // Reverse translate some rewritten options.
       if (A.getOption().matches(options::OPT_Z_reserved_lib_stdcxx)) {
-        if (AddLibraries) {
-          CmdArgs.push_back("-lstdc++");
+        if (LinkLibraries) {
+          bool IsBitcode = !UseLTO && isBitcodeOption("-lstdc++", LibPaths);
+          if (IsBitcode && !BCOutput) {
+            llvm::report_fatal_error(Twine(II.getAsString()) +
+                                ": Cannot link bitcode library without a "
+                                "previous bitcode input file.");
+          }
+          (IsBitcode ? LinkInputs : GoldInputs).push_back("-lstdc++");
         }
         continue;
       }
@@ -3763,64 +3792,84 @@ void patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
 
         // -l is marked as LinkerInput, so we should always get all -l flags
         // here, in the correct order.
+        A.claim();
+
+        if (!LinkLibraries) {
+          continue;
+        }
 
         // -lm is special .. we handle this like a runtime library (should we?)
         // since we need to link in the libsyms stuff.
-        // If we have UseLTORuntime
-        //   - we do nothing for llvm-ld
-        //   - we link in -lm and the syms.o file with gold again
-        // If we do not use UseLTORuntime
-        //   - we link in -lm and syms with llvm-ld
-        //   - we do nothing for gold
         if (A.getAsString(Args) == "-lm") {
-          if ((UseLTO && IsGoldPass) || (!UseLTO && !IsGoldPass))
+
+          if (AddSystemLibrary(Args, LibPaths, LinkInputs, GoldInputs,
+                              "lib/libmsyms.o", "-lm",
+                              AddLibSyms, HasGoldPass, UseLTO))
           {
-            AddSystemLibrary(Args, CmdArgs, "lib/libmsyms.o", "-lm",
-                                            AddLibSyms, IsGoldPass,
-                                            CntLinkerInput);
+            if (!BCOutput) {
+              linkedOFileInputPos = GoldInputs.size();
+            }
+            BCOutput = linkedBCFileName;
           }
           continue;
         }
 
-        if (!AddLibraries) {
-          // -l options will be/have been handled at a different phase
-          continue;
-        }
-      }
+        bool IsBitcode = !UseLTO &&
+                         isBitcodeOption(A.getAsString(Args), LibPaths);
 
-      // Don't render as input
-      A.claim();
-      A.render(Args, CmdArgs);
+        // Don't render as input
+        A.render(Args, (IsBitcode ? GoldInputs : LinkInputs));
+
+        if (IsBitcode) {
+          if (BCOutput) {
+            // We already have at least one bitcode file, use temp output file
+            BCOutput = linkedBCFileName;
+          } else {
+            // First bitcode file is -l, this will not work
+            llvm::report_fatal_error(Twine(A.getAsString(Args)) +
+                                ": Cannot link bitcode library without a "
+                                "previous bitcode input file.");
+          }
+        }
+      } else {
+        // Uh, what kind of option can this be, and what should we do with it?
+        llvm::report_fatal_error(Twine(A.getAsString(Args)) +
+                            ": unknown linker option.");
+
+      }
     }
   }
 
+  return BCOutput;
 }
 
-void patmos::PatmosBaseTool::AddSystemLibrary(const ArgList &Args,
-                      ArgStringList &CmdArgs,
-                      const char *libo, const char *libflag,
-                      bool AddLibSyms, bool IsGoldPass,
-                      int &CntLinkerInput) const
+bool patmos::PatmosBaseTool::AddSystemLibrary(const ArgList &Args,
+                        const std::vector<llvm::sys::Path> &LibPaths,
+                        ArgStringList &LinkInputs, ArgStringList &GoldInputs,
+                        const char *libo, const char *libflag,
+                        bool AddLibSyms, bool HasGoldPass, bool UseLTO) const
 {
-  if (AddLibSyms) {
+  bool IsBitcode = isBitcodeOption(libflag, LibPaths);
+
+  if (IsBitcode && AddLibSyms && libo) {
     std::string ofile = TC.GetFilePath(libo);
-    CmdArgs.push_back(Args.MakeArgString(ofile));
-    CntLinkerInput++;
+    (UseLTO ? GoldInputs : LinkInputs).push_back(Args.MakeArgString(ofile));
   }
 
   if (libflag) {
-    CmdArgs.push_back(libflag);
-    CntLinkerInput++;
+    (UseLTO || !IsBitcode ? GoldInputs : LinkInputs).push_back(libflag);
   }
+
+  return !UseLTO && IsBitcode && ((AddLibSyms && libo) || libflag);
 }
 
 
 void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
-                   ArgStringList &CmdArgs,
-                   bool AddRuntimeLibs, bool AddLibGloss, bool AddLibC,
-                   bool AddLibSyms, StringRef FloatABI,
-                   bool IsGoldPass,
-                   int &CntLinkerInput) const
+                           const std::vector<llvm::sys::Path> &LibPaths,
+                           ArgStringList &LinkInputs, ArgStringList &GoldInputs,
+                           bool AddRuntimeLibs, bool AddLibGloss, bool AddLibC,
+                           bool AddLibSyms, StringRef FloatABI,
+                           bool HasGoldPass, bool UseLTO) const
 {
   // Note: We assume that this is called only once, either for llvm-ld or for
   // gold (if UseLTORuntime=true), never for both. Hence we do not need to check
@@ -3828,43 +3877,241 @@ void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
 
   // link by default with newlib libc and libpatmos
   if (AddLibC) {
-    AddSystemLibrary(Args, CmdArgs, "lib/libcsyms.o", "-lc",
-                                    AddLibSyms, IsGoldPass, CntLinkerInput);
+    AddSystemLibrary(Args, LibPaths, LinkInputs, GoldInputs,
+                     "lib/libcsyms.o", "-lc",
+                     AddLibSyms, HasGoldPass, UseLTO);
   }
 
   // Add support library for newlib libc
-  if (AddLibGloss)
-    CmdArgs.push_back("-lpatmos");
+  if (AddLibGloss) {
+    AddSystemLibrary(Args, LibPaths, LinkInputs, GoldInputs,
+                     0, "-lpatmos",
+                     AddLibSyms, HasGoldPass, UseLTO);
+  }
 
   // link by default with compiler-rt
   if (AddRuntimeLibs) {
 
     // softfloat has dependencies to librt, link first
     if (FloatABI != "hard" && FloatABI != "none") {
-      AddSystemLibrary(Args, CmdArgs, "lib/librtsfsyms.o", "-lrtsf",
-                                      AddLibSyms, IsGoldPass, CntLinkerInput);
+      AddSystemLibrary(Args, LibPaths, LinkInputs, GoldInputs,
+                       "lib/librtsfsyms.o", "-lrtsf",
+                       AddLibSyms, HasGoldPass, UseLTO);
     }
 
-    AddSystemLibrary(Args, CmdArgs, "lib/librtsyms.o", "-lrt",
-                                    AddLibSyms, IsGoldPass, CntLinkerInput);
+    AddSystemLibrary(Args, LibPaths, LinkInputs, GoldInputs,
+                     "lib/librtsyms.o", "-lrt",
+                     AddLibSyms, HasGoldPass, UseLTO);
   }
 }
 
-void patmos::PatmosBaseTool::ConstructOptJob(const Tool &Creator,
+const char * patmos::PatmosBaseTool::PrepareLinkerInputs(const ArgList &Args,
+                     const InputInfoList &Inputs,
+                     ArgStringList &LinkInputs, ArgStringList &GoldInputs,
+                     const char *linkedBCFileName,
+                     unsigned &linkedOFileInsertPos,
+                     bool AddStartFiles,
+                     bool AddRuntimeLibs, bool AddLibGloss, bool AddLibC,
+                     bool AddLibSyms, StringRef FloatABI, bool LinkLibraries,
+                     bool HasGoldPass, bool UseLTO) const
+{
+  const char* BCOutput = 0;
+
+  // prepare library lookups
+  std::vector<llvm::sys::Path> BCLibPaths = FindLibPaths(Args, false);
+
+  //----------------------------------------------------------------------------
+  // append library search paths (-L) to bitcode linker
+
+  if (LinkLibraries) {
+    AddLibraryPaths(Args, LinkInputs, false);
+  }
+
+
+  //----------------------------------------------------------------------------
+  // link with start-up file crt0.o
+
+  if (AddStartFiles) {
+    std::string Crt0Filename = TC.GetFilePath("lib/crt0.o");
+
+    if (isBitcodeFile(Crt0Filename)) {
+      const char * crt0 = Args.MakeArgString(Crt0Filename);
+      LinkInputs.push_back(crt0);
+      BCOutput = BCOutput ? linkedBCFileName : crt0;
+    } else {
+      GoldInputs.push_back(Args.MakeArgString(Crt0Filename));
+    }
+  }
+
+
+  //----------------------------------------------------------------------------
+  // append input files
+
+  const char * InputFile = AddInputFiles(Args, BCLibPaths,
+                Inputs, LinkInputs, GoldInputs,
+                linkedBCFileName, linkedOFileInsertPos,
+                AddLibSyms, LinkLibraries, HasGoldPass, UseLTO);
+
+  if (InputFile) {
+    BCOutput = (BCOutput ? linkedBCFileName : InputFile);
+  }
+
+
+  //----------------------------------------------------------------------------
+  // link with newlib and compiler-rt libraries
+
+  if (LinkLibraries) {
+    size_t OldSize = LinkInputs.size();
+
+    AddStandardLibs(Args, BCLibPaths, LinkInputs, GoldInputs,
+                    AddRuntimeLibs, AddLibGloss, AddLibC,
+                    AddLibSyms, FloatABI, HasGoldPass, UseLTO);
+
+    // if we added some libs, run link pass
+    if (LinkInputs.size() > OldSize && (BCOutput || AddLibSyms)) {
+     BCOutput = linkedBCFileName;
+    }
+  }
+
+
+  //----------------------------------------------------------------------------
+  // append -L options to gold, but only if we actually need it
+
+  if (LinkLibraries && !GoldInputs.empty()) {
+    ArgStringList TmpArgs;
+
+    AddLibraryPaths(Args, TmpArgs, true);
+
+    GoldInputs.insert(GoldInputs.begin(), TmpArgs.begin(), TmpArgs.end());
+    linkedOFileInsertPos += TmpArgs.size();
+  }
+
+
+  return BCOutput;
+}
+
+
+void patmos::PatmosBaseTool::ConstructLinkJob(const Tool &Creator,
+                     Compilation &C, const JobAction &JA,
+                     const char *OutputFilename,
+                     const ArgStringList &LinkInputs,
+                     const ArgList &Args) const
+{
+  ArgStringList CmdArgs;
+
+  //----------------------------------------------------------------------------
+  // append linker specific options
+
+  for (ArgList::const_iterator
+         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
+    Arg *A = *it;
+
+    if (A->getOption().matches(options::OPT_Wl_COMMA) ||
+        A->getOption().matches(options::OPT_Xlinker)) {
+      A->claim();
+      A->renderAsInput(Args, CmdArgs);
+    }
+    else if ((A->getOption().hasFlag(options::LinkerInput) &&
+              !A->getOption().matches(options::OPT_l) &&
+              !A->getOption().matches(options::OPT_Xgold)) ||
+             A->getOption().matches(options::OPT_v))
+    {
+      // It is unfortunate that we have to claim here, as this means
+      // we will basically never report anything interesting for
+      // platforms using a generic gcc, even if we are just using gcc
+      // to get to the assembler.
+      A->claim();
+      A->render(Args, CmdArgs);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  // append output file for linking
+
+  assert(OutputFilename);
+  CmdArgs.push_back("-o");
+  CmdArgs.push_back(OutputFilename);
+
+  //----------------------------------------------------------------------------
+  // append input arguments
+
+  CmdArgs.append(LinkInputs.begin(), LinkInputs.end());
+
+  //----------------------------------------------------------------------------
+  // execute the linker command
+
+  const char *Exec = Args.MakeArgString(get_patmos_tool(TC, "llvm-link"));
+  C.addCommand(new Command(JA, Creator, Exec, CmdArgs));
+}
+
+
+bool patmos::PatmosBaseTool::ConstructOptJob(const Tool &Creator,
                      Compilation &C, const JobAction &JA,
                      const char *OutputFilename,
                      const char *InputFilename,
-                     const ArgList &Args) const
+                     const ArgList &Args,
+                     bool IsLinkPass, bool IsLastPass) const
 {
   ArgStringList OptArgs;
+
+  // TODO add an option (fpatmos-custom-opt-passes=<file>) to specify a file
+  // with a list of passes to enable/disable, or something..
+
+  bool DisableDefaultOpts = Args.hasArg(options::OPT_fpatmos_no_std_link_opts);
+  bool DisableInternalize =
+                   Args.hasArg(options::OPT_fpatmos_disable_internalize);
+
+  int OptLevel = 2;
+  char Lvl;
+  if (GetOptLevel(Args, Lvl)) {
+    switch (Lvl) {
+    case '0': OptLevel = 0; break;
+    case '1': OptLevel = 1; break;
+    case '2': OptLevel = 2; break;
+    case '3': OptLevel = 3; break;
+    }
+  }
 
   //----------------------------------------------------------------------------
   // append optimization options
 
-  Args.AddAllArgs(OptArgs, options::OPT_O_Group);
+  if (IsLinkPass && !DisableDefaultOpts) {
+    if (OptLevel > 0) {
+      // TODO add this only for -O2, -O3; otherwise add only some opt passes
+      OptArgs.push_back("-std-link-opts");
+
+      // These passes clean up some mess left by the link opts. We need to
+      // remove unreachable code, otherwise function splitter will fail!
+      OptArgs.push_back("-instcombine");
+      OptArgs.push_back("-simplifycfg");
+      OptArgs.push_back("-adce");
+      OptArgs.push_back("-globaldce");
+
+      if (DisableInternalize) {
+        OptArgs.push_back("-disable-internalize");
+      }
+    }
+  }
+
+  // Note: We do not add -O* here, this is done per object by clang.
+
+  // add custom options
+  for (ArgList::const_iterator
+         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
+    Arg *A = *it;
+
+    if (A->getOption().matches(options::OPT_Xopt)) {
+      A->claim();
+      A->renderAsInput(Args, OptArgs);
+    }
+  }
 
   //----------------------------------------------------------------------------
   // append output and input files
+
+  if (!IsLastPass && OptArgs.empty()) {
+    return false;
+  }
 
   assert(OutputFilename);
   OptArgs.push_back("-o");
@@ -3872,15 +4119,20 @@ void patmos::PatmosBaseTool::ConstructOptJob(const Tool &Creator,
 
   OptArgs.push_back(InputFilename);
 
-  const char *LLCExec = Args.MakeArgString(get_patmos_opt(TC));
-  C.addCommand(new Command(JA, Creator, LLCExec, OptArgs));
+  //----------------------------------------------------------------------------
+  // execute opt command
+
+  const char *OptExec = Args.MakeArgString(get_patmos_tool(TC, "opt"));
+  C.addCommand(new Command(JA, Creator, OptExec, OptArgs));
+
+  return true;
 }
 
 void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
     Compilation &C, const JobAction &JA,
     const char *OutputFilename, const char *InputFilename,
     const ArgList &Args,
-    bool EmitAsm, bool IsLastPass) const
+    bool EmitAsm) const
 {
   ArgStringList LLCArgs;
 
@@ -3891,10 +4143,26 @@ void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
   //----------------------------------------------------------------------------
   // append -O and -m options
 
+  char OptLevel;
+  if (Arg* A = GetOptLevel(Args, OptLevel)) {
+    switch (OptLevel) {
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+      A->render(Args, LLCArgs);
+      break;
+    default:
+      // LLC does not support -Os, -Oz, ..; uses -O2 instead
+      LLCArgs.push_back("-O2");
+      break;
+    }
+  } else {
+    // If no -O level is supplied, llc uses -O2 as default
+  }
+
   // We enable printing labels for all blocks by default in Patmos
   LLCArgs.push_back("-mforce-block-labels");
-
-  Args.AddAllArgs(LLCArgs, options::OPT_O_Group);
 
   // floating point arguments are different for LLC
   for (ArgList::const_iterator
@@ -3925,13 +4193,6 @@ void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
   }
 
   //----------------------------------------------------------------------------
-  // append output file for code generation
-
-  assert(OutputFilename);
-  LLCArgs.push_back("-o");
-  LLCArgs.push_back(OutputFilename);
-
-  //----------------------------------------------------------------------------
   // generate object file
 
   // Checking for JA.getType() == types::TY_Image does not tell us if we want to
@@ -3943,13 +4204,103 @@ void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
   }
 
   //----------------------------------------------------------------------------
+  // append output file for code generation
+
+  assert(OutputFilename);
+  LLCArgs.push_back("-o");
+  LLCArgs.push_back(OutputFilename);
+
+  //----------------------------------------------------------------------------
   // append linked BC name as input
 
   LLCArgs.push_back(InputFilename);
 
-  const char *LLCExec = Args.MakeArgString(get_patmos_llc(TC));
+  const char *LLCExec = Args.MakeArgString(get_patmos_tool(TC, "llc"));
   C.addCommand(new Command(JA, Creator, LLCExec, LLCArgs));
 }
+
+void patmos::PatmosBaseTool::ConstructGoldJob(const Tool &Creator,
+    Compilation &C, const JobAction &JA,
+    const char *OutputFilename, const ArgStringList &GoldInputs,
+    const ArgList &Args, bool UseLTO,
+    bool LinkRelocatable, bool AddStackSymbols) const
+{
+  ArgStringList LDArgs;
+
+  //----------------------------------------------------------------------------
+  // linking options
+
+  if (UseLTO) {
+    // try to add -plugin option, this is actually required
+    std::string plugin( TC.GetProgramPath("LLVMgold.so") );
+    if (plugin != "LLVMgold.so") {
+      LDArgs.push_back("--plugin");
+      LDArgs.push_back(Args.MakeArgString(plugin));
+    }
+  }
+
+  for (ArgList::const_iterator
+         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
+    Arg *A = *it;
+
+    if (A->getOption().matches(options::OPT_Xgold)) {
+      A->claim();
+      A->renderAsInput(Args, LDArgs);
+    }
+  }
+
+  Args.AddAllArgs(LDArgs, options::OPT_T_Group);
+
+  Args.AddAllArgs(LDArgs, options::OPT_e);
+
+  LDArgs.push_back("-nostdlib");
+  LDArgs.push_back("-static");
+
+  if (LinkRelocatable) {
+    // Keep relocations
+    LDArgs.push_back("-r");
+  } else {
+    render_patmos_symbol(options::OPT_mpatmos_uart_status_base,
+                         "_uart_status_base", Args, "0xF0000000", LDArgs);
+
+    render_patmos_symbol(options::OPT_mpatmos_uart_data_base,
+                         "_uart_data_base", Args, "0xF0000004", LDArgs);
+
+    LDArgs.push_back("--defsym");
+    LDArgs.push_back("__heap_start=end");
+
+    render_patmos_symbol(options::OPT_mpatmos_heap_end,
+                         "__heap_end", Args, "0x2000000", LDArgs);
+
+    if (AddStackSymbols) {
+      render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
+                           "_shadow_stack_base", Args, "0x4000000", LDArgs);
+
+      render_patmos_symbol(options::OPT_mpatmos_stack_base,
+                           "_stack_cache_base", Args, "0x3000000", LDArgs);
+    }
+  }
+
+  if (Args.hasArg(options::OPT_v))
+    LDArgs.push_back("-verbose");
+
+  //----------------------------------------------------------------------------
+  // append output file for code generation
+
+  LDArgs.push_back("-o");
+  LDArgs.push_back(OutputFilename);
+
+  //----------------------------------------------------------------------------
+  // append all linker input arguments and construct the link command
+
+  LDArgs.append(GoldInputs.begin(), GoldInputs.end());
+
+
+  const char *LDExec = Args.MakeArgString(get_patmos_gold(TC));
+  C.addCommand(new Command(JA, Creator, LDExec, LDArgs));
+}
+
+
 
 void patmos::Compile::ConstructJob(Compilation &C, const JobAction &JA,
                                const InputInfo &Output,
@@ -4015,11 +4366,12 @@ void patmos::Compile::ConstructJob(Compilation &C, const JobAction &JA,
     // Run LLC on output
 
     ConstructLLCJob(*this, C, JA, Output.getFilename(), BCFilename, Args,
-                    EmitAsm, true);
+                    EmitAsm);
 
   }
 
 }
+
 
 void patmos::Assemble::ConstructJob(Compilation &C, const JobAction &JA,
                                const InputInfo &Output,
@@ -4055,9 +4407,11 @@ void patmos::Assemble::ConstructJob(Compilation &C, const JobAction &JA,
 
   CmdArgs.push_back(Input.getFilename());
 
-  const char *MCExec = Args.MakeArgString(get_patmos_mc(TC));
+  const char *MCExec = Args.MakeArgString(get_patmos_tool(TC, "mc"));
   C.addCommand(new Command(JA, *this, MCExec, CmdArgs));
 }
+
+
 
 void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
                                const InputInfo &Output,
@@ -4067,7 +4421,6 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 {
   const ToolChain &TC = getToolChain();
   const Driver &D = TC.getDriver();
-  ArgStringList CmdArgs, LDArgs;
 
   // In the link phase, we do the following:
   // - run llvm-ld, link in:
@@ -4119,6 +4472,9 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // Do not execute gold, emit assembler
   bool EmitAsm = C.getArgs().hasArg(options::OPT_fpatmos_emit_asm);
 
+  // do not run opt after bitcode linking
+  bool SkipOpt = C.getArgs().hasArg(options::OPT_fpatmos_skip_opt);
+
   // link all -l and ELF .o files with gold and libLTO plugin
   bool UseLTO = C.getArgs().hasArg(options::OPT_flto);
 
@@ -4137,8 +4493,8 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     AddLibGloss = false;
   }
 
+  bool StopAfterLink = EmitLLVM && SkipOpt;
   bool StopAfterLLC = EmitAsm || EmitObject;
-
 
   //----------------------------------------------------------------------------
   // Sanity checks and check for some unsupported options
@@ -4163,114 +4519,55 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     D.Diag(diag::err_drv_unsupported_opt) << A->getAsString(Args);
   }
 
-  //----------------------------------------------------------------------------
-  // pass some linker related command line options on to the bitcode linker
 
-  // Always throw an error when we link with an ELF file in this stage
-  CmdArgs.push_back("-emit-llvm");
+  //////////////////////////////////////////////////////////////////////////////
+  // Prepare linker arguments
 
-  if (LinkAsObject) {
-    // Do not link in -l libraries, just add them as dependencies
-    CmdArgs.push_back("-link-as-library");
+  const char *linkedBCFileName =
+           CreateOutputFilename(C, Output, "link-", "bc", StopAfterLink);
+
+  ArgStringList LinkInputs, GoldInputs;
+  unsigned linkedOFileInsertPos;
+
+  bool HasGoldPass = !StopAfterLink && !EmitLLVM && !StopAfterLLC;
+
+  const char *BCFile = PrepareLinkerInputs(Args, Inputs,
+                         LinkInputs, GoldInputs,
+                         linkedBCFileName, linkedOFileInsertPos,
+                         AddStartFiles, AddRuntimeLibs, AddLibGloss, AddLibC,
+                         AddLibSyms, FloatABI,
+                         !LinkAsObject, HasGoldPass, UseLTO);
+
+  bool RequiresLink = true;
+  if ((!BCFile || BCFile != linkedBCFileName) && !StopAfterLink) {
+    // No bitcode input, or only a single bitcode input file, skip link
+    // pass and use input directly if it is a single file.
+    RequiresLink = false;
+    linkedBCFileName = BCFile;
   }
 
-  // Disable optimizations when building with -O0
-  // TODO translate -O1, -O2, .. to proper arguments enabling specific passes
-  if (C.getArgs().hasArg(options::OPT_O0)) {
-    CmdArgs.push_back("-disable-opt");
+  //////////////////////////////////////////////////////////////////////////////
+  // build LINK command
+
+  if (RequiresLink) {
+    ConstructLinkJob(*this, C, JA, linkedBCFileName, LinkInputs, Args);
   }
 
-  //----------------------------------------------------------------------------
-  // append linker specific options
+  if (StopAfterLink) {
+    return;
+  }
 
-  for (ArgList::const_iterator
-         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
-    Arg *A = *it;
+  //////////////////////////////////////////////////////////////////////////////
+  // build OPT command
 
-    if (A->getOption().matches(options::OPT_Wl_COMMA) ||
-        A->getOption().matches(options::OPT_Xlinker)) {
-      A->claim();
-      A->renderAsInput(Args, CmdArgs);
+  if (!SkipOpt && linkedBCFileName) {
+    char const *optimizedBCFileName =
+                    CreateOutputFilename(C, Output, "opt-", "opt.bc", EmitLLVM);
+
+    if (ConstructOptJob(*this, C, JA, optimizedBCFileName, linkedBCFileName,
+                        Args, true, EmitLLVM)) {
+      linkedBCFileName = optimizedBCFileName;
     }
-    else if ((A->getOption().hasFlag(options::LinkerInput) &&
-              !A->getOption().matches(options::OPT_l) &&
-              !A->getOption().matches(options::OPT_Xgold)) ||
-             A->getOption().matches(options::OPT_v))
-    {
-      // It is unfortunate that we have to claim here, as this means
-      // we will basically never report anything interesting for
-      // platforms using a generic gcc, even if we are just using gcc
-      // to get to the assembler.
-      A->claim();
-      A->render(Args, CmdArgs);
-    }
-  }
-
-  //----------------------------------------------------------------------------
-  // append library search paths (-L)
-
-  AddLibraryPaths(Args, CmdArgs, false);
-
-  //----------------------------------------------------------------------------
-  // append output file for linking
-
-  char const *linkedBCFileName = CreateOutputFilename(C, Output, "lld-", "bc",
-                                    C.getArgs().hasArg(options::OPT_emit_llvm));
-
-  assert(linkedBCFileName);
-  CmdArgs.push_back("-b");
-  CmdArgs.push_back(linkedBCFileName);
-
-  //----------------------------------------------------------------------------
-  // link with start-up file crt0.o
-
-  int CntLinkerInput = 0;
-  bool LinkBinaryStartFiles = false;
-
-  if (AddStartFiles) {
-    std::string Crt0Filename = TC.GetFilePath("lib/crt0.o");
-
-    if (isBitcodeFile(Crt0Filename)) {
-      CmdArgs.push_back(Args.MakeArgString(Crt0Filename));
-      CntLinkerInput++;
-    } else {
-      LinkBinaryStartFiles = true;
-    }
-  }
-
-  //----------------------------------------------------------------------------
-  // append input files
-
-  // TODO to replace llvm-ld with llvm-link, resolve -l here? check for ELF
-  // files and archives.
-
-  AddInputFiles(Args, CmdArgs, Inputs, AddLibSyms,
-                false, !EmitLLVM && !StopAfterLLC, UseLTO,
-                CntLinkerInput);
-
-  //----------------------------------------------------------------------------
-  // link with newlib libraries
-
-  if (!LinkAsObject && !UseLTO) {
-    // Do not link in standard libraries if we link as object (or should we??)
-    AddStandardLibs(Args, CmdArgs, AddRuntimeLibs, AddLibGloss, AddLibC,
-                                   AddLibSyms, FloatABI,
-                                   false, CntLinkerInput);
-  }
-
-  //----------------------------------------------------------------------------
-  // some linker-specific options
-
-  // suppress the emission of a linker script
-  CmdArgs.push_back("-no-script");
-
-  //----------------------------------------------------------------------------
-  // execute the linker command
-
-  // TODO if we only have one linker input, use that one directly as llc input
-  if (CntLinkerInput > 0) {
-    const char *Exec = Args.MakeArgString(get_patmos_ld(TC));
-    C.addCommand(new Command(JA, *this, Exec, CmdArgs));
   }
 
   // If we only want to emit bitcode, we are done now.
@@ -4281,12 +4578,12 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   //////////////////////////////////////////////////////////////////////////////
   // build LLC command
 
-  char const *linkedOFileName = CreateOutputFilename(C, Output, "llc-", "bc.o",
-                                                     StopAfterLLC);
+  const char *linkedOFileName = EmitLLVM ? 0 :
+           CreateOutputFilename(C, Output, "llc-", "bc.o", StopAfterLLC);
 
-  if (CntLinkerInput > 0) {
+  if (linkedBCFileName) {
     ConstructLLCJob(*this, C, JA, linkedOFileName, linkedBCFileName, Args,
-                    EmitAsm, StopAfterLLC);
+                    EmitAsm);
   }
 
   // If we do not want to create an executable file, we are done now
@@ -4297,103 +4594,17 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   //////////////////////////////////////////////////////////////////////////////
   // build LD command
 
-  //----------------------------------------------------------------------------
-  // append output file for code generation
-
   char const *linkedELFFileName = CreateOutputFilename(C, Output, "gold-",
                                                        ".out", true);
 
-  LDArgs.push_back("-o");
-  LDArgs.push_back(linkedELFFileName);
-
-  //----------------------------------------------------------------------------
-  // linking options
-
-  for (ArgList::const_iterator
-         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
-    Arg *A = *it;
-
-    if (A->getOption().matches(options::OPT_Xgold)) {
-      A->claim();
-      A->renderAsInput(Args, LDArgs);
-    }
+  if (linkedBCFileName) {
+    // If we compiled a bitcode file, insert the compiled file into gold args
+    GoldInputs.insert(GoldInputs.begin() + linkedOFileInsertPos,
+                      linkedOFileName);
   }
 
-  Args.AddAllArgs(LDArgs, options::OPT_T_Group);
-
-  Args.AddAllArgs(LDArgs, options::OPT_e);
-
-  LDArgs.push_back("-nostdlib");
-  LDArgs.push_back("-static");
-
-  if (LinkAsObject) {
-    // Keep relocations
-    LDArgs.push_back("-r");
-  } else {
-    render_patmos_symbol(options::OPT_mpatmos_uart_status_base,
-                         "_uart_status_base", Args, "0xF0000000", LDArgs);
-
-    render_patmos_symbol(options::OPT_mpatmos_uart_data_base,
-                         "_uart_data_base", Args, "0xF0000004", LDArgs);
-
-    LDArgs.push_back("--defsym");
-    LDArgs.push_back("__heap_start=end");
-
-    render_patmos_symbol(options::OPT_mpatmos_heap_end,
-                         "__heap_end", Args, "0x2000000", LDArgs);
-
-    if (!LinkRTEMS) {
-      render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
-                           "_shadow_stack_base", Args, "0x4000000", LDArgs);
-
-      render_patmos_symbol(options::OPT_mpatmos_stack_base,
-                           "_stack_cache_base", Args, "0x3000000", LDArgs);
-    }
-  }
-
-  if (Args.hasArg(options::OPT_v))
-    LDArgs.push_back("-verbose");
-
-  //----------------------------------------------------------------------------
-  // link in crt0 if it is a binary file
-
-  if (AddStartFiles && LinkBinaryStartFiles) {
-    // No need to check for file type, has already been done
-    std::string Crt0Filename = TC.GetFilePath("lib/crt0.o");
-    LDArgs.push_back(Args.MakeArgString(Crt0Filename));
-  }
-
-  //----------------------------------------------------------------------------
-  // append linked .O name as input
-
-  if (CntLinkerInput > 0) {
-    LDArgs.push_back(linkedOFileName);
-  }
-
-  //----------------------------------------------------------------------------
-  // append binaries and -l options if we are using LTO
-
-  if (UseLTO) {
-    // try to add -plugin option, this is actually required
-    std::string plugin( TC.GetProgramPath("LLVMgold.so") );
-    if (plugin != "LLVMgold.so") {
-      LDArgs.push_back("--plugin");
-      LDArgs.push_back(Args.MakeArgString(plugin));
-    }
-
-    AddLibraryPaths(Args, LDArgs, true);
-  }
-
-  AddInputFiles(Args, LDArgs, Inputs, AddLibSyms, true, true,
-                UseLTO, CntLinkerInput);
-
-  if (UseLTO) {
-    AddStandardLibs(Args, LDArgs, AddRuntimeLibs, AddLibGloss, AddLibC,
-                    AddLibSyms, FloatABI, true, CntLinkerInput);
-  }
-
-  const char *LDExec = Args.MakeArgString(get_patmos_gold(TC));
-  C.addCommand(new Command(JA, *this, LDExec, LDArgs));
+  ConstructGoldJob(*this, C, JA, linkedELFFileName, GoldInputs, Args,
+                   UseLTO, LinkAsObject, !LinkRTEMS);
 }
 
 

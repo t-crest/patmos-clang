@@ -227,6 +227,9 @@ def Xclang : Separate<["-"], "Xclang">,
   Flags<[NoForward]>;
 def Xlinker : Separate<["-"], "Xlinker">, Flags<[LinkerInput, RenderAsInput]>,
   HelpText<"Pass <arg> to the linker">, MetaVarName<"<arg>">;
+def Xopt : Separate<["-"], "Xopt">, Flags<[RenderAsInput]>,
+  HelpText<"Pass <arg> to the bitcode optimizer (Patmos only)">, 
+  MetaVarName<"<arg>">;
 def Xllc : Separate<["-"], "Xllc">, Flags<[RenderAsInput]>,
   HelpText<"Pass <arg> to the bitcode compiler llc (Patmos only)">, 
   MetaVarName<"<arg>">;
@@ -618,6 +621,12 @@ def fpatmos_emit_asm : Flag<["-"], "fpatmos-emit-asm">,
   HelpText<"Generate native assembler code">;
 def fpatmos_link_object: Flag<["-"], "fpatmos-link-object">, 
   HelpText<"Link as object, i.e., do not link in libraries or startup code">;
+def fpatmos_disable_internalize: Flag<["-"], "fpatmos-disable-internalize">, 
+  HelpText<"Disable internalize pass after bitcode linking">;
+def fpatmos_no_std_link_opts: Flag<["-"], "fpatmos-no-std-link-opts">,
+  HelpText<"Disable default opt passes after bitcode linking">;
+def fpatmos_skip_opt: Flag<["-"], "fpatmos-skip-opt">, 
+  HelpText<"Skip opt phase after bitcode linker">;
 
 def fpch_preprocess : Flag<["-"], "fpch-preprocess">, Group<f_Group>;
 def fpic : Flag<["-"], "fpic">, Group<f_Group>;
