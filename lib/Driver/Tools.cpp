@@ -752,6 +752,11 @@ void Clang::AddPatmosTargetArgs(const ArgList &Args,
     CmdArgs.push_back("-fadd-runtime-deps");
   }
 
+  // Let the clang frontend default to -O2 if no -O options are given
+  if (!Args.hasArgNoClaim(options::OPT_O_Group)) {
+    CmdArgs.push_back("-O2");
+  }
+
   // Set correct floating-point flags
   bool Changed;
   StringRef FloatABI = getPatmosFloatABI(getToolChain().getDriver(), Args,
