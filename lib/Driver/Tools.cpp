@@ -3871,10 +3871,6 @@ void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
                            bool AddLibSyms, StringRef FloatABI,
                            bool HasGoldPass, bool UseLTO) const
 {
-  // Note: We assume that this is called only once, either for llvm-ld or for
-  // gold (if UseLTORuntime=true), never for both. Hence we do not need to check
-  // if we should add the libsyms stuff or not, just add it whenever we add -l
-
   // link by default with newlib libc and libpatmos
   if (AddLibC) {
     AddSystemLibrary(Args, LibPaths, LinkInputs, GoldInputs,
@@ -4423,20 +4419,16 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   const Driver &D = TC.getDriver();
 
   // In the link phase, we do the following:
-  // - run llvm-ld, link in:
+  // - run llvm-link, link in bitcode files:
   //    - startup files if not -nostartfiles
   //    - all bitcode input files
-  //    - all -l<library>, except when -flto is used
-  //    - all standard libraries, except when disabled or -flto
-  //      or -fpatmos-lto-defaultlibs is used
-  //    - all runtime libs, except when disabled or -flto
-  //      or -fpatmos-lto-defaultlibs is used
+  //    - all -l<library>, except when linking as object file
+  //    - all standard libraries, except when disabled
+  //    - all runtime libs, except when disabled
   //    - all required libsyms.o files for linked in libs, except when disabled
   // - run llc on result, perform optimization on linked bitcode
   // - run gold on result, link in:
-  //    - all ELF input files
-  //    - all -l<library> if -flto is used
-  //    - all standard libs if -flto or -fpatmos-lto-defaultlibs
+  //    - all ELF input files, same order as llvm-link
 
   //----------------------------------------------------------------------------
   // read out various command line options
@@ -4447,7 +4439,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   StringRef FloatABI = getPatmosFloatABI(TC.getDriver(), C.getArgs(),
                                          TC.getTriple(), ChangedFloatABI);
 
-  // add lib*syms.o and --internalize options to llvm-ld
+  // add lib*syms.o options to llvm-link
   bool AddLibSyms = !C.getArgs().hasArg(options::OPT_nolibsyms);
   // add crt0
   bool AddStartFiles = !C.getArgs().hasArg(options::OPT_nostartfiles);
