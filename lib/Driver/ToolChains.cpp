@@ -1498,13 +1498,21 @@ Tool &TCEToolChain::SelectTool(const Compilation &C,
 }
 
 
+static llvm::Triple getPatmosTriple(const llvm::Triple& Triple) {
+  if (Triple.getTriple() == "patmos") {
+    return llvm::Triple("patmos-unknown-unknown-elf");
+  }
+  return Triple;
+}
+
 /// PatmosToolChain - A tool chain using the llvm bitcode tools to perform
 /// all sub-commands.
 
 PatmosToolChain::PatmosToolChain(const Driver &D, const llvm::Triple& Triple)
-  : ToolChain(D, Triple) {
+  : ToolChain(D, getPatmosTriple(Triple)) {
   // Get install path to find tools and libraries
   std::string Path(D.getInstalledDir());
+
 
   // tools?
   getProgramPaths().push_back(Path);
@@ -1519,10 +1527,7 @@ PatmosToolChain::PatmosToolChain(const Driver &D, const llvm::Triple& Triple)
   if (llvm::sys::fs::exists(Path + "/../lib/"))
     getProgramPaths().push_back(Path + "/../lib/");
 
-  // TODO merge with ComputeLLVMTriple below somehow?
   std::string TripleString = Triple.getTriple();
-  if (TripleString == "patmos")
-    TripleString = "patmos-unknown-unknown-elf";
 
   // newlib libraries and includes?
   // checking patmos-unknown-elf for backward-compatibility reasons
@@ -1541,26 +1546,6 @@ PatmosToolChain::~PatmosToolChain() {
   for (llvm::DenseMap<unsigned, Tool*>::iterator
            it = Tools.begin(), ie = Tools.end(); it != ie; ++it)
       delete it->second;
-}
-
-std::string PatmosToolChain::ComputeLLVMTriple(const ArgList &Args,
-                               types::ID InputType) const
-{
-  if (getTriple().getArch() != llvm::Triple::patmos) {
-    llvm_unreachable("Invalid architecture for Patmos tool chain");
-  }
-
-  std::string Triple = getTripleString();
-
-  // This is a bit of a workaround: when we call patmos-clang without
-  // -target, then clang uses 'patmos' as default target (the prefix of the
-  // program call). To avoid target-name mismatches, we normalize that to
-  // the full default triple.
-  if (Triple == "patmos") {
-    return "patmos-unknown-unknown-elf";
-  }
-
-  return Triple;
 }
 
 
