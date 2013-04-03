@@ -3603,7 +3603,8 @@ llvm::sys::Path patmos::PatmosBaseTool::FindLib(StringRef LibName,
 
 std::vector<llvm::sys::Path>
 patmos::PatmosBaseTool::FindLibPaths(const ArgList &Args,
-                                     bool LinkBinaries) const
+                                     bool LinkBinaries,
+                                     bool LookupSysPaths) const
 {
   // Use this little trick to prevent duplicating the library path options code
   ArgStringList LibArgs;
@@ -3621,15 +3622,8 @@ patmos::PatmosBaseTool::FindLibPaths(const ArgList &Args,
     }
   }
 
-  // Collect all the lookup paths
-  std::vector<llvm::sys::Path> LibPaths;
-  if (!LinkBinaries) {
-    // add same paths as Linker::addSystemPaths()
-    llvm::sys::Path::GetBitcodeLibraryPaths(LibPaths);
-    LibPaths.insert(LibPaths.begin(),llvm::sys::Path("./"));
-  }
-
   // Parse all -L options
+  std::vector<llvm::sys::Path> LibPaths;
   for (ArgStringList::iterator it = LibArgs.begin(), ie = LibArgs.end();
        it != ie; ++it) {
     std::string Arg = *it;
@@ -3637,6 +3631,13 @@ patmos::PatmosBaseTool::FindLibPaths(const ArgList &Args,
 
     llvm::sys::Path Path( Arg.substr(2) );
     LibPaths.push_back(Path);
+  }
+
+  // Collect all the lookup paths
+  if (!LinkBinaries && LookupSysPaths) {
+    // add same paths as Linker::addSystemPaths()
+    llvm::sys::Path::GetBitcodeLibraryPaths(LibPaths);
+    LibPaths.insert(LibPaths.begin(),llvm::sys::Path("./"));
   }
 
   return LibPaths;
@@ -3919,7 +3920,7 @@ const char * patmos::PatmosBaseTool::PrepareLinkerInputs(const ArgList &Args,
   const char* BCOutput = 0;
 
   // prepare library lookups
-  std::vector<llvm::sys::Path> BCLibPaths = FindLibPaths(Args, false);
+  std::vector<llvm::sys::Path> BCLibPaths = FindLibPaths(Args, false, false);
 
   //----------------------------------------------------------------------------
   // append library search paths (-L) to bitcode linker
@@ -4002,6 +4003,8 @@ void patmos::PatmosBaseTool::ConstructLinkJob(const Tool &Creator,
 
   //----------------------------------------------------------------------------
   // append linker specific options
+
+  CmdArgs.push_back("-nostdlib");
 
   for (ArgList::const_iterator
          it = Args.begin(), ie = Args.end(); it != ie; ++it) {

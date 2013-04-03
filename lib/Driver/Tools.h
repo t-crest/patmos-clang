@@ -118,7 +118,7 @@ namespace patmos {
                             bool OnlyStatic) const;
 
     std::vector<llvm::sys::Path> FindLibPaths(const ArgList &Args,
-                                bool LinkBinaries) const;
+                                bool LinkBinaries, bool LookupSysPaths) const;
 
     /// Get the last -O<Lvl> optimization level specifier. If no -O option is
     /// given, return NULL.
