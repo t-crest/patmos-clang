@@ -4265,10 +4265,10 @@ void patmos::PatmosBaseTool::ConstructGoldJob(const Tool &Creator,
     LDArgs.push_back("-r");
   } else {
     render_patmos_symbol(options::OPT_mpatmos_uart_status_base,
-                         "_uart_status_base", Args, "0xF0000000", LDArgs);
+                         "_uart_status_base", Args, "0xF0000100", LDArgs);
 
     render_patmos_symbol(options::OPT_mpatmos_uart_data_base,
-                         "_uart_data_base", Args, "0xF0000004", LDArgs);
+                         "_uart_data_base", Args, "0xF0000104", LDArgs);
 
     LDArgs.push_back("--defsym");
     LDArgs.push_back("__heap_start=end");
