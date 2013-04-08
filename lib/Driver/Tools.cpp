@@ -4411,7 +4411,7 @@ void patmos::Assemble::ConstructJob(Compilation &C, const JobAction &JA,
 
   CmdArgs.push_back(Input.getFilename());
 
-  const char *MCExec = Args.MakeArgString(get_patmos_tool(TC, "mc"));
+  const char *MCExec = Args.MakeArgString(get_patmos_tool(TC, "llvm-mc"));
   C.addCommand(new Command(JA, *this, MCExec, CmdArgs));
 }
 
