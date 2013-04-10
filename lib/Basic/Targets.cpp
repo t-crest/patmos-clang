@@ -3702,14 +3702,16 @@ public:
     static const char * const GCCRegNames[] = {
       // CPU register names
       // Must match second column of GCCRegAliases
+      // The names here must match the register enum names in the .td file,
+      // not the register name string value (case insensitive).
       "$r0",   "$r1",   "$r2",   "$r3",   "$r4",   "$r5",   "$r6",   "$r7",
       "$r8",   "$r9",   "$r10",  "$r11",  "$r12",  "$r13",  "$r14",  "$r15",
       "$r16",  "$r17",  "$r18",  "$r19",  "$r20",  "$r21",  "$r22",  "$r23",
-      "$r24",  "$r25",  "$r26",  "$r27",  "$r28",  "$r29",  "$r30",  "$r31",
+      "$r24",  "$r25",  "$r26",  "$rtr",  "$rfp",  "$rsp",  "$rfb",  "$rfo",
       // Predicates
       "$p0",  "$p1",  "$p2",  "$p3",  "$p4",  "$p5",  "$p6",  "$p7",
       // Special registers
-      "$sz",  "$sm",  "$sl",  "$sh",  "$sb",  "$so",  "$st",  "$s7",
+      "$s0",  "$sm",  "$sl",  "$sh",  "$s4",  "$ss",  "$st",  "$s7",
       "$s8",  "$s9",  "$s10", "$s11", "$s12", "$s13", "$s14", "$s15"
     };
     Names = GCCRegNames;
@@ -3718,8 +3720,20 @@ public:
 
   virtual void getGCCRegAliases(const GCCRegAlias *&Aliases,
                                 unsigned &NumAliases) const {
-    Aliases = NULL;
-    NumAliases = 0;
+    static const GCCRegAlias GCCRegAliases[] = {
+        { { "$r27" }, "$rtr" },
+        { { "$r28" }, "$rfp" },
+        { { "$r29" }, "$rsp" },
+        { { "$r30" }, "$rfb" },
+        { { "$r31" }, "$rfo" },
+        { { "$s1"  }, "$sm"  },
+        { { "$s2"  }, "$sl"  },
+        { { "$s3"  }, "$sh"  },
+        { { "$s5"  }, "$ss"  },
+        { { "$s6"  }, "$st"  }
+    };
+    Aliases = GCCRegAliases;
+    NumAliases = llvm::array_lengthof(GCCRegAliases);
   }
 
   virtual bool validateAsmConstraint(const char *&Name,
@@ -3743,11 +3757,15 @@ public:
       return true;
     case '{':
       Name++;
+      if (!*Name || *Name != '$')
+        return false;
+      Name++;
       while (*Name) {
         if (*Name == '}') {
           return true;
         }
-        if (*Name != 'r' && *Name != 's' && *Name != 'p' && (*Name < '0' || *Name > '9')) {
+        if (*Name != 'r' && *Name != 's' && *Name != 'p' &&
+            (*Name < '0' || *Name > '9')) {
           return false;
         }
         Name++;
