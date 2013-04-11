@@ -4264,6 +4264,9 @@ void patmos::PatmosBaseTool::ConstructGoldJob(const Tool &Creator,
     // Keep relocations
     LDArgs.push_back("-r");
   } else {
+    render_patmos_symbol(options::OPT_mpatmos_iomap_base,
+                         "_iomap_base", Args, "0xF0000000", LDArgs);
+
     render_patmos_symbol(options::OPT_mpatmos_uart_status_base,
                          "_uart_status_base", Args, "0xF0000100", LDArgs);
 

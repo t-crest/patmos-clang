@@ -914,6 +914,7 @@ def multi__module : Flag<["-"], "multi_module">;
 def multiply__defined__unused : Separate<["-"], "multiply_defined_unused">;
 def multiply__defined : Separate<["-"], "multiply_defined">;
 def mwarn_nonportable_cfstrings : Flag<["-"], "mwarn-nonportable-cfstrings">, Group<m_Group>;
+def mpatmos_iomap_base : Joined<["-"], "mpatmos-iomap-base=">, Group<m_Patmos_Group>;
 def mpatmos_stack_base : Joined<["-"], "mpatmos-stack-base=">, Group<m_Patmos_Group>;
 def mpatmos_shadow_stack_base : Joined<["-"], "mpatmos-shadow-stack-base=">, Group<m_Patmos_Group>;
 def mpatmos_heap_end : Joined<["-"], "mpatmos-heap-end=">, Group<m_Patmos_Group>;
