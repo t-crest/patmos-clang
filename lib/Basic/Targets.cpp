@@ -3637,6 +3637,8 @@ public:
     LongDoubleAlign = 32;
     SuitableAlign = 32;
     PreferWidthAligned = false;
+    // Keep {|} as they are in inline asm
+    NoAsmVariants = true;
   }
 
   virtual bool setFeatureEnabled(llvm::StringMap<bool> &Features,
