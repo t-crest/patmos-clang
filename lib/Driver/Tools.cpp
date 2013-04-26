@@ -3918,6 +3918,7 @@ const char * patmos::PatmosBaseTool::PrepareLinkerInputs(const ArgList &Args,
                      bool HasGoldPass, bool UseLTO) const
 {
   const char* BCOutput = 0;
+  linkedOFileInsertPos = 0;
 
   // prepare library lookups
   std::vector<llvm::sys::Path> BCLibPaths = FindLibPaths(Args, false, false);
@@ -3942,6 +3943,7 @@ const char * patmos::PatmosBaseTool::PrepareLinkerInputs(const ArgList &Args,
       BCOutput = BCOutput ? linkedBCFileName : crt0;
     } else {
       GoldInputs.push_back(Args.MakeArgString(Crt0Filename));
+      linkedOFileInsertPos++;
     }
   }
 
