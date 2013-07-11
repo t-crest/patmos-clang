@@ -7,16 +7,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "Index_Internal.h"
 #include "CXCursor.h"
-
-#include "clang/AST/DeclObjC.h"
+#include "Index_Internal.h"
 #include "clang/AST/DeclGroup.h"
+#include "clang/AST/DeclObjC.h"
 #include "llvm/ADT/DenseSet.h"
 #include <deque>
 
 namespace clang {
   class FileEntry;
+  class MSPropertyDecl;
   class ObjCPropertyDecl;
   class ClassTemplateDecl;
   class FunctionTemplateDecl;
@@ -89,6 +89,7 @@ struct DeclInfo : public CXIdxDeclInfo {
     attributes = 0;
     numAttributes = 0;
     declAsContainer = semanticContainer = lexicalContainer = 0;
+    flags = 0;
   }
   DeclInfo(DInfoKind K,
            bool isRedeclaration, bool isDefinition, bool isContainer)
@@ -99,6 +100,7 @@ struct DeclInfo : public CXIdxDeclInfo {
     attributes = 0;
     numAttributes = 0;
     declAsContainer = semanticContainer = lexicalContainer = 0;
+    flags = 0;
   }
 };
 
@@ -403,6 +405,8 @@ public:
 
   bool handleField(const FieldDecl *D);
 
+  bool handleMSProperty(const MSPropertyDecl *D);
+
   bool handleEnumerator(const EnumConstantDecl *D);
 
   bool handleTagDecl(const TagDecl *D);
@@ -493,7 +497,7 @@ private:
   void getContainerInfo(const DeclContext *DC, ContainerInfo &ContInfo);
 
   CXCursor getCursor(const Decl *D) {
-    return cxcursor::MakeCXCursor(const_cast<Decl*>(D), CXTU);
+    return cxcursor::MakeCXCursor(D, CXTU);
   }
 
   CXCursor getRefCursor(const NamedDecl *D, SourceLocation Loc);

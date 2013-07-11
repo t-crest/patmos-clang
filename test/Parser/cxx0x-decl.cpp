@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -verify -fsyntax-only -std=c++11 -pedantic-errors %s
+// RUN: %clang_cc1 -verify -fsyntax-only -std=c++11 -pedantic-errors -triple x86_64-linux-gnu %s
 
 // Make sure we know these are legitimate commas and not typos for ';'.
 namespace Commas {
@@ -34,3 +34,42 @@ struct MultiCV {
 };
 
 static_assert(something, ""); // expected-error {{undeclared identifier}}
+
+// PR9903
+struct SS {
+  typedef void d() = default; // expected-error {{function definition declared 'typedef'}} expected-error {{only special member functions may be defaulted}}
+};
+
+using PR14855 = int S::; // expected-error {{expected ';' after alias declaration}}
+
+// Ensure that 'this' has a const-qualified type in a trailing return type for
+// a constexpr function.
+struct ConstexprTrailingReturn {
+  int n;
+  constexpr auto f() const -> decltype((n));
+};
+constexpr const int &ConstexprTrailingReturn::f() const { return n; }
+
+namespace TestIsValidAfterTypeSpecifier {
+struct s {} v;
+
+struct s
+thread_local tl;
+
+struct s
+&r0 = v;
+
+struct s
+&&r1 = s();
+
+struct s
+bitand r2 = v;
+
+struct s
+and r3 = s();
+
+enum E {};
+enum E
+[[]] e;
+
+}

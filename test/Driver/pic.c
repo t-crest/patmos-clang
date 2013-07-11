@@ -34,6 +34,10 @@
 //
 // CHECK-NON-DARWIN-DYNAMIC-NO-PIC: error: unsupported option '-mdynamic-no-pic' for target 'i386-unknown-unknown'
 //
+// CHECK-NO-PIE-NOT: "-pie"
+//
+// CHECK-NO-UNUSED-ARG-NOT: argument unused during compilation
+//
 // RUN: %clang -c %s -target i386-unknown-unknown -### 2>&1 \
 // RUN:   | FileCheck %s --check-prefix=CHECK-NO-PIC
 // RUN: %clang -c %s -target i386-unknown-unknown -fpic -### 2>&1 \
@@ -127,6 +131,10 @@
 // RUN: %clang -c %s -target i386-unknown-unknown -static -fPIC -### 2>&1 \
 // RUN:   | FileCheck %s --check-prefix=CHECK-NO-PIC
 //
+// On Linux, disregard -pie if we have -shared.
+// RUN: %clang %s -target i386-unknown-linux -shared -pie -### 2>&1 \
+// RUN:   | FileCheck %s --check-prefix=CHECK-NO-PIE
+//
 // Darwin is a beautiful and unique snowflake when it comes to these flags.
 // When targetting a 32-bit darwin system, the -fno-* flag variants work and
 // disable PIC, but any other flag enables PIC (*not* PIE) even if the flag
@@ -158,6 +166,8 @@
 // RUN:   | FileCheck %s --check-prefix=CHECK-PIC2
 // RUN: %clang -c %s -target x86_64-apple-darwin -fPIE -### 2>&1 \
 // RUN:   | FileCheck %s --check-prefix=CHECK-PIC2
+// RUN: %clang -c %s -target x86_64-apple-darwin -fPIC -### 2>&1 \
+// RUN:   | FileCheck %s --check-prefix=CHECK-NO-UNUSED-ARG
 //
 // Darwin gets even more special with '-mdynamic-no-pic'. This flag is only
 // valid on Darwin, and it's behavior is very strange but needs to remain

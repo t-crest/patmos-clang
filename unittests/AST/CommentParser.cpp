@@ -7,20 +7,20 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "clang/Basic/SourceManager.h"
-#include "clang/Basic/FileManager.h"
+#include "clang/AST/CommentParser.h"
+#include "clang/AST/Comment.h"
+#include "clang/AST/CommentCommandTraits.h"
+#include "clang/AST/CommentLexer.h"
+#include "clang/AST/CommentSema.h"
+#include "clang/Basic/CommentOptions.h"
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/DiagnosticOptions.h"
-#include "clang/AST/Comment.h"
-#include "clang/AST/CommentLexer.h"
-#include "clang/AST/CommentParser.h"
-#include "clang/AST/CommentSema.h"
-#include "clang/AST/CommentCommandTraits.h"
+#include "clang/Basic/FileManager.h"
+#include "clang/Basic/SourceManager.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Allocator.h"
-#include <vector>
-
 #include "gtest/gtest.h"
+#include <vector>
 
 using namespace llvm;
 using namespace clang;
@@ -39,7 +39,7 @@ protected:
       DiagID(new DiagnosticIDs()),
       Diags(DiagID, new DiagnosticOptions, new IgnoringDiagConsumer()),
       SourceMgr(Diags, FileMgr),
-      Traits(Allocator) {
+      Traits(Allocator, CommentOptions()) {
   }
 
   FileSystemOptions FileMgrOpts;
@@ -58,7 +58,7 @@ FullComment *CommentParserTest::parseString(const char *Source) {
   FileID File = SourceMgr.createFileIDForMemBuffer(Buf);
   SourceLocation Begin = SourceMgr.getLocForStartOfFile(File);
 
-  Lexer L(Allocator, Traits, Begin, Source, Source + strlen(Source));
+  Lexer L(Allocator, Diags, Traits, Begin, Source, Source + strlen(Source));
 
   Sema S(Allocator, SourceMgr, Diags, Traits, /*PP=*/ NULL);
   Parser P(L, S, Allocator, SourceMgr, Diags, Traits);
