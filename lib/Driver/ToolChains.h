@@ -606,6 +606,10 @@ public:
   }
   virtual bool IsUsingLTODefault() const { return true; }
 
+  virtual bool UseFramePointerDefault() const;
+  virtual bool UseLeafFramePointerDefault() const {
+    return UseFramePointerDefault();
+  }
 
   virtual bool isPICDefault() const { return false; }
   virtual bool isPIEDefault() const { return false; }

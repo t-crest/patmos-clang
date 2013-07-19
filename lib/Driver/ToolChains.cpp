@@ -1818,6 +1818,13 @@ const char *PatmosToolChain::GetForcedPicModel() const {
   return 0;
 }
 
+bool PatmosToolChain::UseFramePointerDefault() const {
+  if (Arg *A = getArgs().getLastArg(options::OPT_O_Group))
+    if (A->getOption().matches(options::OPT_O0))
+      return true;
+  return false;
+}
+
 void PatmosToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
                                                 ArgStringList &CC1Args) const
 {
