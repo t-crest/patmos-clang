@@ -70,6 +70,8 @@ private:
 protected:
   ToolChain(const Driver &D, const llvm::Triple &T, const ArgList &Args);
 
+  const ArgList &getArgs() const { return Args; }
+
   virtual Tool *buildAssembler() const;
   virtual Tool *buildLinker() const;
   virtual Tool *getTool(Action::ActionClass AC) const;
@@ -201,6 +203,14 @@ public:
   /// IsUnwindTablesDefault - Does this tool chain use -funwind-tables
   /// by default.
   virtual bool IsUnwindTablesDefault() const;
+
+  // UseFramePointerDefault - Does this tool chain use -fno-omit-frame-pointer
+  // by default.
+  virtual bool UseFramePointerDefault() const { return true; }
+
+  // UseLeafFramePointerDefault - Does this tool chain use
+  // -mno-omit-leaf-frame-pointer by default.
+  virtual bool UseLeafFramePointerDefault() const { return true; }
 
   /// \brief Test whether this toolchain defaults to PIC.
   virtual bool isPICDefault() const = 0;

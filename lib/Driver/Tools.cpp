@@ -1830,13 +1830,13 @@ static void addUbsanRTLinux(const ToolChain &TC, const ArgList &Args,
     addSanitizerRTLinkFlagsLinux(TC, Args, CmdArgs, "ubsan_cxx", false);
 }
 
-static bool shouldUseFramePointer(const ArgList &Args,
-                                  const llvm::Triple &Triple) {
+static bool shouldUseFramePointer(const ToolChain &TC, const ArgList &Args) {
   if (Arg *A = Args.getLastArg(options::OPT_fno_omit_frame_pointer,
                                options::OPT_fomit_frame_pointer))
     return A->getOption().matches(options::OPT_fno_omit_frame_pointer);
 
   // Don't use a frame pointer on linux x86 and x86_64 if optimizing.
+  const llvm::Triple &Triple = TC.getTriple();
   if ((Triple.getArch() == llvm::Triple::x86_64 ||
        Triple.getArch() == llvm::Triple::x86) &&
       Triple.getOS() == llvm::Triple::Linux) {
@@ -1845,16 +1845,17 @@ static bool shouldUseFramePointer(const ArgList &Args,
         return false;
   }
 
-  return true;
+  return TC.UseFramePointerDefault();
 }
 
-static bool shouldUseLeafFramePointer(const ArgList &Args,
-                                      const llvm::Triple &Triple) {
+static bool shouldUseLeafFramePointer(const ToolChain &TC,
+                                      const ArgList &Args) {
   if (Arg *A = Args.getLastArg(options::OPT_mno_omit_leaf_frame_pointer,
                                options::OPT_momit_leaf_frame_pointer))
     return A->getOption().matches(options::OPT_mno_omit_leaf_frame_pointer);
 
   // Don't use a leaf frame pointer on linux x86 and x86_64 if optimizing.
+  const llvm::Triple &Triple = TC.getTriple();
   if ((Triple.getArch() == llvm::Triple::x86_64 ||
        Triple.getArch() == llvm::Triple::x86) &&
       Triple.getOS() == llvm::Triple::Linux) {
@@ -1863,7 +1864,7 @@ static bool shouldUseLeafFramePointer(const ArgList &Args,
         return false;
   }
 
-  return true;
+  return TC.UseLeafFramePointerDefault();
 }
 
 /// If the PWD environment variable is set, add a CC1 option to specify the
@@ -2225,7 +2226,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   if (Args.hasFlag(options::OPT_mrtd, options::OPT_mno_rtd, false))
     CmdArgs.push_back("-mrtd");
 
-  if (shouldUseFramePointer(Args, getToolChain().getTriple()))
+  if (shouldUseFramePointer(getToolChain(), Args))
     CmdArgs.push_back("-mdisable-fp-elim");
   if (!Args.hasFlag(options::OPT_fzero_initialized_in_bss,
                     options::OPT_fno_zero_initialized_in_bss))
@@ -2489,7 +2490,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back(A->getValue());
   }
 
-  if (!shouldUseLeafFramePointer(Args, getToolChain().getTriple()))
+  if (!shouldUseLeafFramePointer(getToolChain(), Args))
     CmdArgs.push_back("-momit-leaf-frame-pointer");
 
   // Explicitly error on some things we know we don't support and can't just
