@@ -183,11 +183,3 @@ namespace test4 {
   };
   extern template void foo::bar(const void *);
 }
-
-namespace test5 {
-  template <class T>
-  class valarray {
-    void bar();
-  };
-  extern template void valarray<int>::bar();
-}
