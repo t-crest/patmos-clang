@@ -851,22 +851,27 @@ def NoSanitizeMemory : InheritableAttr {
 
 def GuardedVar : InheritableAttr {
   let Spellings = [GNU<"guarded_var">];
+  let Subjects = [Field, Var];
 }
 
 def PtGuardedVar : InheritableAttr {
   let Spellings = [GNU<"pt_guarded_var">];
+  let Subjects = [Field, Var];
 }
 
 def Lockable : InheritableAttr {
   let Spellings = [GNU<"lockable">];
+  let Subjects = [Record];
 }
 
 def ScopedLockable : InheritableAttr {
   let Spellings = [GNU<"scoped_lockable">];
+  let Subjects = [Record];
 }
 
 def NoThreadSafetyAnalysis : InheritableAttr {
   let Spellings = [GNU<"no_thread_safety_analysis">];
+  let Subjects = [Function, FunctionTemplate];
 }
 
 def GuardedBy : InheritableAttr {
@@ -874,6 +879,7 @@ def GuardedBy : InheritableAttr {
   let Args = [ExprArgument<"Arg">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Field, Var];
 }
 
 def PtGuardedBy : InheritableAttr {
@@ -881,6 +887,7 @@ def PtGuardedBy : InheritableAttr {
   let Args = [ExprArgument<"Arg">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Field, Var];
 }
 
 def AcquiredAfter : InheritableAttr {
@@ -888,6 +895,7 @@ def AcquiredAfter : InheritableAttr {
   let Args = [VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Field, Var];
 }
 
 def AcquiredBefore : InheritableAttr {
@@ -895,6 +903,7 @@ def AcquiredBefore : InheritableAttr {
   let Args = [VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Field, Var];
 }
 
 def ExclusiveLockFunction : InheritableAttr {
@@ -902,6 +911,7 @@ def ExclusiveLockFunction : InheritableAttr {
   let Args = [VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Function, FunctionTemplate];
 }
 
 def SharedLockFunction : InheritableAttr {
@@ -909,6 +919,7 @@ def SharedLockFunction : InheritableAttr {
   let Args = [VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Function, FunctionTemplate];
 }
 
 def AssertExclusiveLock : InheritableAttr {
@@ -916,6 +927,7 @@ def AssertExclusiveLock : InheritableAttr {
   let Args = [VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Function, FunctionTemplate];
 }
 
 def AssertSharedLock : InheritableAttr {
@@ -923,6 +935,7 @@ def AssertSharedLock : InheritableAttr {
   let Args = [VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Function, FunctionTemplate];
 }
 
 // The first argument is an integer or boolean value specifying the return value
@@ -932,6 +945,7 @@ def ExclusiveTrylockFunction : InheritableAttr {
   let Args = [ExprArgument<"SuccessValue">, VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Function, FunctionTemplate];
 }
 
 // The first argument is an integer or boolean value specifying the return value
@@ -941,6 +955,7 @@ def SharedTrylockFunction : InheritableAttr {
   let Args = [ExprArgument<"SuccessValue">, VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Function, FunctionTemplate];
 }
 
 def UnlockFunction : InheritableAttr {
@@ -948,6 +963,7 @@ def UnlockFunction : InheritableAttr {
   let Args = [VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Function, FunctionTemplate];
 }
 
 def LockReturned : InheritableAttr {
@@ -955,6 +971,7 @@ def LockReturned : InheritableAttr {
   let Args = [ExprArgument<"Arg">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Function, FunctionTemplate];
 }
 
 def LocksExcluded : InheritableAttr {
@@ -962,6 +979,7 @@ def LocksExcluded : InheritableAttr {
   let Args = [VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Function, FunctionTemplate];
 }
 
 def ExclusiveLocksRequired : InheritableAttr {
@@ -969,6 +987,7 @@ def ExclusiveLocksRequired : InheritableAttr {
   let Args = [VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Function, FunctionTemplate];
 }
 
 def SharedLocksRequired : InheritableAttr {
@@ -976,6 +995,7 @@ def SharedLocksRequired : InheritableAttr {
   let Args = [VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
+  let Subjects = [Function, FunctionTemplate];
 }
 
 // C/C++ consumed attributes.
