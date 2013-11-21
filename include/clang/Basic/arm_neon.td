@@ -133,8 +133,6 @@ def OP_SCALAR_QDMULH_LN : Op;
 def OP_SCALAR_QDMULH_LNQ : Op;
 def OP_SCALAR_QRDMULH_LN : Op;
 def OP_SCALAR_QRDMULH_LNQ : Op;
-def OP_SCALAR_GET_LN : Op;
-def OP_SCALAR_SET_LN : Op;
 
 class Inst <string n, string p, string t, Op o> {
   string Name = n;
@@ -1330,9 +1328,4 @@ def SCALAR_SQDMULH_LANEQ : SOpInst<"vqdmulh_laneq", "ssji", "SsSi", OP_SCALAR_QD
 def SCALAR_SQRDMULH_LANE : SOpInst<"vqrdmulh_lane", "ssdi", "SsSi", OP_SCALAR_QRDMULH_LN>;
 def SCALAR_SQRDMULH_LANEQ : SOpInst<"vqrdmulh_laneq", "ssji", "SsSi", OP_SCALAR_QRDMULH_LNQ>;
 
-def SCALAR_VDUP_LANE : IInst<"vdup_lane", "sdi", "ScSsSiSlSfSdSUcSUsSUiSUlSPcSPs">;
-def SCALAR_VDUP_LANEQ : IInst<"vdup_laneq", "sji", "ScSsSiSlSfSdSUcSUsSUiSUlSPcSPs">;
-
-def SCALAR_GET_LANE : IOpInst<"vget_lane", "sdi", "hQh", OP_SCALAR_GET_LN>;
-def SCALAR_SET_LANE : IOpInst<"vset_lane", "dsdi", "hQh", OP_SCALAR_SET_LN>;
 }
