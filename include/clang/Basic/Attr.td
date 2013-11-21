@@ -325,7 +325,7 @@ def Const : InheritableAttr {
 
 def Constructor : InheritableAttr {
   let Spellings = [GNU<"constructor">, CXX11<"gnu", "constructor">];
-  let Args = [IntArgument<"Priority", 1>];
+  let Args = [DefaultIntArgument<"Priority", 65535>];
 }
 
 def CUDAConstant : InheritableAttr {
@@ -381,7 +381,7 @@ def Deprecated : InheritableAttr {
 
 def Destructor : InheritableAttr {
   let Spellings = [GNU<"destructor">, CXX11<"gnu", "destructor">];
-  let Args = [IntArgument<"Priority", 1>];
+  let Args = [DefaultIntArgument<"Priority", 65535>];
 }
 
 def ExtVectorType : Attr {
