@@ -4383,52 +4383,9 @@ bool patmos::PatmosBaseTool::isBitcodeArchive(std::string filename) const {
   return false;
 }
 
-const char * patmos::PatmosBaseTool::CreateOutputFilename(Compilation &C,
-    const InputInfo &Output, const char * TmpPrefix, const char *Suffix,
-    bool IsLastPass) const
-{
-  const char * filename = NULL;
-
-  const ArgList &Args = C.getArgs();
-  const Driver &D = TC.getDriver();
-
-  if (IsLastPass) {
-    if (Output.isFilename()) {
-      filename = Args.MakeArgString(Output.getFilename());
-    }
-    else {
-      // write to standard-out if nothing is given?!?
-      filename = "-";
-    }
-  } else {
-    if (Args.hasArg(options::OPT_save_temps) && Output.isFilename()) {
-      // take the output's name and append a suffix
-      std::string name(Output.getFilename());
-      filename = Args.MakeArgString((name + "." + Suffix).c_str());
-    }
-    else {
-      StringRef Name = Output.isFilename() ?
-                    llvm::sys::path::filename(Output.getFilename()) : TmpPrefix;
-      std::pair<StringRef, StringRef> Split = Name.split('.');
-      std::string TmpName = D.GetTemporaryPath(Split.first, Suffix);
-      filename = Args.MakeArgString(TmpName.c_str());
-      C.addTempFile(filename);
-    }
-  }
-  return filename;
-}
-
-std::string patmos::PatmosBaseTool::getArgOption(const std::string &Option) const
-{
-  // TODO Check for --<name>=value options??
-
-  if (Option.size() > 2 && Option[2] == '=') {
-    return Option.substr(3);
-  }
-  else if (Option.size() > 2) {
-    return Option.substr(2);
-  }
-  return "";
+void gcc::Link::RenderExtraToolArgs(const JobAction &JA,
+                                    ArgStringList &CmdArgs) const {
+  // The types are (hopefully) good enough.
 }
 
 // Reimplement Linker::FindLib() to search for shared libraries first
