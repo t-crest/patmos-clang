@@ -4335,19 +4335,9 @@ patmos::PatmosBaseTool::getBufFileType(const char *buf) const {
   return llvm::sys::fs::identify_magic(magic);
 }
 
-bool patmos::PatmosBaseTool::isDynamicLibrary(std::string filename) const {
-  llvm::sys::fs::file_magic type = getFileType(filename);
-  switch (type) {
-    default: return false;
-    case llvm::sys::fs::file_magic::macho_fixed_virtual_memory_shared_lib:
-    case llvm::sys::fs::file_magic::macho_dynamically_linked_shared_lib:
-    case llvm::sys::fs::file_magic::macho_dynamically_linked_shared_lib_stub:
-    case llvm::sys::fs::file_magic::elf_shared_object:
-    case llvm::sys::fs::file_magic::pecoff_executable:  return true;
-  }
-}
-
-bool patmos::PatmosBaseTool::isBitcodeArchive(std::string filename) const {
+void gcc::Compile::RenderExtraToolArgs(const JobAction &JA,
+                                       ArgStringList &CmdArgs) const {
+  const Driver &D = getToolChain().getDriver();
 
   if (getFileType(filename) != llvm::sys::fs::file_magic::archive) {
     return false;
