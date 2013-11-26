@@ -1782,7 +1782,6 @@ static Value *EmitAArch64ScalarBuiltinExpr(CodeGenFunction &CGF,
   bool ExtendEle = false;
   bool OverloadInt = false;
   bool OverloadCmpInt = false;
-  bool IsFpCmpZInt = false;
   bool OverloadCvtInt = false;
   bool OverloadWideInt = false;
   bool OverloadNarrowInt = false;
@@ -2632,6 +2631,18 @@ static Value *EmitAArch64ScalarBuiltinExpr(CodeGenFunction &CGF,
     Tys.push_back(VTy);
     if(IsFpCmpZInt)
       VTy = llvm::VectorType::get(CGF.FloatTy, 1);
+    Tys.push_back(VTy);
+
+    F = CGF.CGM.getIntrinsic(Int, Tys);
+  } else if (OverloadCvtInt) {
+    // Determine the types of this overloaded AArch64 intrinsic
+    SmallVector<llvm::Type *, 2> Tys;
+    const Expr *Arg = E->getArg(E->getNumArgs()-1);
+    llvm::Type *Ty = CGF.ConvertType(E->getCallReturnType());
+    llvm::VectorType *VTy = llvm::VectorType::get(Ty, 1);
+    Tys.push_back(VTy);
+    Ty = CGF.ConvertType(Arg->getType());
+    VTy = llvm::VectorType::get(Ty, 1);
     Tys.push_back(VTy);
 
     F = CGF.CGM.getIntrinsic(Int, Tys);
