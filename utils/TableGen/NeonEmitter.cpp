@@ -1194,7 +1194,6 @@ static void GenerateRegisterCheckPattern(const std::string &Name,
   RegisterSuffix = "";
 
   const StringRef NameRef(Name);
-  const StringRef ProtoRef(Proto);
 
   if ((NameRef.count("vdup") || NameRef.count("vmov")) && HasNPostfix) {
     return;
@@ -2960,7 +2959,6 @@ NeonEmitter::genOverloadTypeCheckCode(raw_ostream &OS,
                                       StringMap<ClassKind> &A64IntrinsicMap,
                                       bool isA64TypeCheck) {
   std::vector<Record *> RV = Records.getAllDerivedDefinitions("Inst");
-  StringMap<OpKind> EmittedMap;
 
   // Generate the overloaded type checking code for SemaChecking.cpp
   if (isA64TypeCheck)

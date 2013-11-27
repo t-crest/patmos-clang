@@ -5560,7 +5560,6 @@ void Parser::ParseBracketDeclarator(Declarator &D) {
     MaybeParseCXX11Attributes(attrs);
 
     // Remember that we parsed the empty array type.
-    ExprResult NumElements;
     D.AddTypeInfo(DeclaratorChunk::getArray(0, false, false, 0,
                                             T.getOpenLocation(),
                                             T.getCloseLocation()),
