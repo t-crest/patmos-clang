@@ -6431,8 +6431,6 @@ public:
     }
 
     ~SavePendingLocalImplicitInstantiationsRAII() {
-      assert(S.PendingLocalImplicitInstantiations.empty() &&
-             "there shouldn't be any pending local implicit instantiations");
       SavedPendingLocalImplicitInstantiations.swap(
           S.PendingLocalImplicitInstantiations);
     }
