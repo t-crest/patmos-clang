@@ -469,6 +469,7 @@ public:
   bool hasCustomParsing() const;
   unsigned getMinArgs() const;
   unsigned getMaxArgs() const;
+  bool diagnoseAppertainsTo(class Sema &S, const Decl *D) const;
 };
 
 /// A factory, from which one makes pools, from which one creates
@@ -831,6 +832,35 @@ enum AttributeArgumentNType {
   AANT_ArgumentIntegerConstant,
   AANT_ArgumentString,
   AANT_ArgumentIdentifier
+};
+
+/// These constants match the enumerated choices of
+/// warn_attribute_wrong_decl_type and err_attribute_wrong_decl_type.
+enum AttributeDeclKind {
+  ExpectedFunction,
+  ExpectedUnion,
+  ExpectedVariableOrFunction,
+  ExpectedFunctionOrMethod,
+  ExpectedParameter,
+  ExpectedFunctionMethodOrBlock,
+  ExpectedFunctionMethodOrClass,
+  ExpectedFunctionMethodOrParameter,
+  ExpectedClass,
+  ExpectedVariable,
+  ExpectedMethod,
+  ExpectedVariableFunctionOrLabel,
+  ExpectedFieldOrGlobalVar,
+  ExpectedStruct,
+  ExpectedVariableFunctionOrTag,
+  ExpectedTLSVar,
+  ExpectedVariableOrField,
+  ExpectedVariableFieldOrTag,
+  ExpectedTypeOrNamespace,
+  ExpectedObjectiveCInterface,
+  ExpectedMethodOrProperty,
+  ExpectedStructOrUnion,
+  ExpectedStructOrUnionOrClass,
+  ExpectedType
 };
 
 }  // end namespace clang
