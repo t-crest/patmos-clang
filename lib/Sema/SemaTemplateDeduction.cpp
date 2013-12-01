@@ -3560,23 +3560,8 @@ Sema::DeduceTemplateArguments(FunctionTemplateDecl *FunctionTemplate,
   TemplateParameterList *TemplateParams
     = FunctionTemplate->getTemplateParameters();
   QualType FunctionType = Function->getType();
-  if (!InOverloadResolution && !ArgFunctionType.isNull()) {
-    const FunctionProtoType *FunctionTypeP =
-        FunctionType->castAs<FunctionProtoType>();
-    CallingConv CC = FunctionTypeP->getCallConv();
-    bool NoReturn = FunctionTypeP->getNoReturnAttr();
-    const FunctionProtoType *ArgFunctionTypeP =
-        ArgFunctionType->getAs<FunctionProtoType>();
-    if (ArgFunctionTypeP->getCallConv() != CC ||
-        ArgFunctionTypeP->getNoReturnAttr() != NoReturn) {
-      FunctionType::ExtInfo EI =
-          ArgFunctionTypeP->getExtInfo().withCallingConv(CC);
-      EI = EI.withNoReturn(NoReturn);
-      ArgFunctionTypeP = cast<FunctionProtoType>(
-          Context.adjustFunctionType(ArgFunctionTypeP, EI));
-      ArgFunctionType = QualType(ArgFunctionTypeP, 0);
-    }
-  }
+  if (!InOverloadResolution)
+    ArgFunctionType = adjustCCAndNoReturn(ArgFunctionType, FunctionType);
 
   // Substitute any explicit template arguments.
   LocalInstantiationScope InstScope(*this);
