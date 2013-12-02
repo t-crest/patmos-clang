@@ -879,7 +879,7 @@ def WarnUnusedResult : InheritableAttr {
 
 def Weak : InheritableAttr {
   let Spellings = [GNU<"weak">, CXX11<"gnu", "weak">];
-//  let Subjects = SubjectList<[Var, Function, CXXRecord]>;
+  let Subjects = SubjectList<[Var, Function, CXXRecord]>;
 }
 
 def WeakImport : InheritableAttr {
