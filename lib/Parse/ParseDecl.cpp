@@ -4487,10 +4487,9 @@ void Parser::ParseTypeQualifierListOpt(DeclSpec &DS,
       // GNU libc headers in C mode use '__uptr' as an identifer which conflicts
       // with the MS modifier keyword.
       if (VendorAttributesAllowed && !getLangOpts().CPlusPlus &&
-          IdentifierRequired && DS.isEmpty() && NextToken().is(tok::semi) &&
-          PP.getSourceManager().isInSystemHeader(Loc)) {
-        Tok.setKind(tok::identifier);
-        continue;
+          IdentifierRequired && DS.isEmpty() && NextToken().is(tok::semi)) {
+        if (TryKeywordIdentFallback(false))
+          continue;
       }
     case tok::kw___sptr:
     case tok::kw___w64:
