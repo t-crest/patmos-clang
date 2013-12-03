@@ -641,12 +641,6 @@ def FMLA_N : SOpInst<"vfma_n", "ddds", "fQf", OP_FMLA_N>;
 def FMLS_N : SOpInst<"vfms_n", "ddds", "fQf", OP_FMLS_N>;
 
 ////////////////////////////////////////////////////////////////////////////////
-// MUL, FMA, FMS definitions with scalar argument
-def VMUL_N_A64 : IOpInst<"vmul_n", "dds", "Qd", OP_MUL_N>;
-def FMLA_N : SOpInst<"vfma_n", "ddds", "fQf", OP_FMLA_N>;
-def FMLS_N : SOpInst<"vfms_n", "ddds", "fQf", OP_FMLS_N>;
-
-////////////////////////////////////////////////////////////////////////////////
 // Logical operations
 // With additional Qd, Ql, QPl type.
 def BSL : SInst<"vbsl", "dudd",
@@ -660,9 +654,9 @@ def ABD  : SInst<"vabd", "ddd",  "csiUcUsUifdQcQsQiQUcQUsQUiQfQd">;
 ////////////////////////////////////////////////////////////////////////////////
 // saturating absolute/negate
 // With additional Qd/Ql type.
-def ABS    : SInst<"vabs", "dd", "csilfQcQsQiQfQlQd">;
+def ABS    : SInst<"vabs", "dd", "csilfdQcQsQiQfQlQd">;
 def QABS   : SInst<"vqabs", "dd", "csilQcQsQiQl">;
-def NEG    : SOpInst<"vneg", "dd", "csilfQcQsQiQfQdQl", OP_NEG>;
+def NEG    : SOpInst<"vneg", "dd", "csilfdQcQsQiQfQdQl", OP_NEG>;
 def QNEG   : SInst<"vqneg", "dd", "csilQcQsQiQl">;
 
 ////////////////////////////////////////////////////////////////////////////////
