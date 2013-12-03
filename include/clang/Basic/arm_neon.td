@@ -661,9 +661,9 @@ def ABD  : SInst<"vabd", "ddd",  "csiUcUsUifdQcQsQiQUcQUsQUiQfQd">;
 ////////////////////////////////////////////////////////////////////////////////
 // saturating absolute/negate
 // With additional Qd/Ql type.
-def ABS    : SInst<"vabs", "dd", "csilfdQcQsQiQfQlQd">;
+def ABS    : SInst<"vabs", "dd", "csilfQcQsQiQfQlQd">;
 def QABS   : SInst<"vqabs", "dd", "csilQcQsQiQl">;
-def NEG    : SOpInst<"vneg", "dd", "csilfdQcQsQiQfQdQl", OP_NEG>;
+def NEG    : SOpInst<"vneg", "dd", "csilfQcQsQiQfQdQl", OP_NEG>;
 def QNEG   : SInst<"vqneg", "dd", "csilQcQsQiQl">;
 
 ////////////////////////////////////////////////////////////////////////////////
