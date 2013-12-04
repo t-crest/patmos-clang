@@ -196,6 +196,10 @@ class Parser : public CodeCompletionHandler {
       ++Depth;
       ++AddedLevels;
     }
+    void addDepth(unsigned D) {
+      Depth += D;
+      AddedLevels += D;
+    }
     unsigned getDepth() const { return Depth; }
   };
 
