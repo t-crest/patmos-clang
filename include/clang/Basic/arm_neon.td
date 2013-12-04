@@ -741,11 +741,15 @@ def CMTST  : WInst<"vtst", "udd",
                    "csiUcUsUiPcPsQcQsQiQUcQUsQUiQPcQPslUlQlQUlPlQPl">;
 // With additional l, Ul,d, Qd, Ql, QUl, Qd types.
 def CFMEQ  : SOpInst<"vceq", "udd",
-                     "csifUcUsUiPcQcQsQiQlQfQUcQUsQUiQUlQPcQd", OP_EQ>;
-def CFMGE  : SOpInst<"vcge", "udd", "csifUcUsUiQcQsQiQlQfQUcQUsQUiQUlQd", OP_GE>;
-def CFMLE  : SOpInst<"vcle", "udd", "csifUcUsUiQcQsQiQlQfQUcQUsQUiQUlQd", OP_LE>;
-def CFMGT  : SOpInst<"vcgt", "udd", "csifUcUsUiQcQsQiQlQfQUcQUsQUiQUlQd", OP_GT>;
-def CFMLT  : SOpInst<"vclt", "udd", "csifUcUsUiQcQsQiQlQfQUcQUsQUiQUlQd", OP_LT>;
+                     "csilfUcUsUiUlPcQcdQdQsQiQfQUcQUsQUiQUlQlQPcPlQPl", OP_EQ>;
+def CFMGE  : SOpInst<"vcge", "udd",
+                     "csilfUcUsUiUlQcQsQiQlQfQUcQUsQUiQUldQd", OP_GE>;
+def CFMLE  : SOpInst<"vcle", "udd",
+                     "csilfUcUsUiUlQcQsQiQlQfQUcQUsQUiQUldQd", OP_LE>;
+def CFMGT  : SOpInst<"vcgt", "udd",
+                     "csilfUcUsUiUlQcQsQiQlQfQUcQUsQUiQUldQd", OP_GT>;
+def CFMLT  : SOpInst<"vclt", "udd",
+                     "csilfUcUsUiUlQcQsQiQlQfQUcQUsQUiQUldQd", OP_LT>;
 
 def CMEQ  : SInst<"vceqz", "ud",
                   "csilfUcUsUiUlPcPsPlQcQsQiQlQfQUcQUsQUiQUlQPcQPsdQdQPl">;
