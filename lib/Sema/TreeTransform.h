@@ -8309,6 +8309,7 @@ TreeTransform<Derived>::TransformLambdaExpr(LambdaExpr *E) {
             OldVD->getType()->isReferenceType(), OldVD->getIdentifier(), 
             NewExprInit);
     NewExprInitResult = NewExprInit;
+    VarDecl *NewVD = 0;
     InitCaptureExprsAndTypes[C - E->capture_begin()] =
         std::make_pair(NewExprInitResult, NewInitCaptureType);
 
