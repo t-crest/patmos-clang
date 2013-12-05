@@ -875,6 +875,10 @@ DEF_TRAVERSE_TYPE(MemberPointerType, {
     TRY_TO(TraverseType(T->getPointeeType()));
   })
 
+DEF_TRAVERSE_TYPE(AdjustedType, {
+    TRY_TO(TraverseType(T->getOriginalType()));
+  })
+
 DEF_TRAVERSE_TYPE(DecayedType, {
     TRY_TO(TraverseType(T->getOriginalType()));
   })
@@ -1083,6 +1087,10 @@ DEF_TRAVERSE_TYPELOC(RValueReferenceType, {
 DEF_TRAVERSE_TYPELOC(MemberPointerType, {
     TRY_TO(TraverseType(QualType(TL.getTypePtr()->getClass(), 0)));
     TRY_TO(TraverseTypeLoc(TL.getPointeeLoc()));
+  })
+
+DEF_TRAVERSE_TYPELOC(AdjustedType, {
+    TRY_TO(TraverseTypeLoc(TL.getOriginalLoc()));
   })
 
 DEF_TRAVERSE_TYPELOC(DecayedType, {
