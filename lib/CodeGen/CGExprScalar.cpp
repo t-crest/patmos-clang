@@ -1496,7 +1496,7 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
   }
 
   case CK_ZeroToOCLEvent: {
-    assert(DestTy->isEventT() && "CK_ZeroToOCLEvent cast on non event type");
+    assert(DestTy->isEventT() && "CK_ZeroToOCLEvent cast on non-event type");
     return llvm::Constant::getNullValue(ConvertType(DestTy));
   }
 
