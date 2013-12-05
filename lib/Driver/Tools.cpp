@@ -1701,7 +1701,7 @@ shouldUseExceptionTablesForObjCExceptions(const ObjCRuntime &runtime,
   if (runtime.isNonFragile())
     return true;
 
-  if (!Triple.isOSDarwin())
+  if (!Triple.isMacOSX())
     return false;
 
   return (!Triple.isMacOSXVersionLT(10,5) &&
