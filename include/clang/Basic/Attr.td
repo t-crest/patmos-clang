@@ -1214,7 +1214,7 @@ def SelectAny : InheritableAttr {
   let LangOpts = [MicrosoftExt];
 }
 
-def Win64 : InheritableAttr {
+def Win64 : IgnoredAttr {
   let Spellings = [Keyword<"__w64">];
   let LangOpts = [MicrosoftExt];
 }
