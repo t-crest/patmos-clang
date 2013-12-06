@@ -1051,7 +1051,7 @@ void StmtPrinter::VisitCompoundLiteralExpr(CompoundLiteralExpr *Node) {
   PrintExpr(Node->getInitializer());
 }
 void StmtPrinter::VisitImplicitCastExpr(ImplicitCastExpr *Node) {
-  // No need to print anything, simply forward to the sub expression.
+  // No need to print anything, simply forward to the subexpression.
   PrintExpr(Node->getSubExpr());
 }
 void StmtPrinter::VisitBinaryOperator(BinaryOperator *Node) {
@@ -1635,7 +1635,7 @@ void StmtPrinter::VisitCXXStdInitializerListExpr(CXXStdInitializerListExpr *E) {
 }
 
 void StmtPrinter::VisitExprWithCleanups(ExprWithCleanups *E) {
-  // Just forward to the sub expression.
+  // Just forward to the subexpression.
   PrintExpr(E->getSubExpr());
 }
 
