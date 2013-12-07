@@ -911,6 +911,7 @@ enum AttributeDeclKind {
   ExpectedStructOrUnionOrClass,
   ExpectedType,
   ExpectedObjCInstanceMethod,
+  ExpectedObjCInterfaceDeclInitMethod,
   ExpectedFunctionVariableOrClass
 };
 
