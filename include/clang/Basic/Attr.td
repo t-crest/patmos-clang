@@ -775,6 +775,7 @@ def ReqdWorkGroupSize : InheritableAttr {
   let Spellings = [GNU<"reqd_work_group_size">];
   let Args = [UnsignedArgument<"XDim">, UnsignedArgument<"YDim">,
               UnsignedArgument<"ZDim">];
+  let Subjects = SubjectList<[Function], ErrorDiag>;
 }
 
 def WorkGroupSizeHint :  InheritableAttr {
@@ -782,6 +783,7 @@ def WorkGroupSizeHint :  InheritableAttr {
   let Args = [UnsignedArgument<"XDim">, 
               UnsignedArgument<"YDim">,
               UnsignedArgument<"ZDim">];
+  let Subjects = SubjectList<[Function], ErrorDiag>;
 }
 
 def InitPriority : InheritableAttr {
@@ -886,6 +888,7 @@ def VectorSize : TypeAttr {
 def VecTypeHint : InheritableAttr {
   let Spellings = [GNU<"vec_type_hint">];
   let Args = [TypeArgument<"TypeHint">];
+  let Subjects = SubjectList<[Function], ErrorDiag>;
 }
 
 def Visibility : InheritableAttr {
