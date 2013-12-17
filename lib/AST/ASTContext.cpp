@@ -857,17 +857,16 @@ void ASTContext::PrintStats() const {
   BumpAlloc.PrintStats();
 }
 
-/// CreateRecordDecl - Utility to build implicit CXXRecordDecl or RecordDecl
-/// instances.
-static RecordDecl *CreateRecordDecl(const ASTContext &Ctx,
-                                    RecordDecl::TagKind TK, DeclContext *DC,
-                                    IdentifierInfo *Id) {
+RecordDecl *ASTContext::buildImplicitRecord(StringRef Name,
+                                            RecordDecl::TagKind TK) const {
   SourceLocation Loc;
   RecordDecl *NewDecl;
-  if (Ctx.getLangOpts().CPlusPlus)
-    NewDecl = CXXRecordDecl::Create(Ctx, TK, DC, Loc, Loc, Id);
+  if (getLangOpts().CPlusPlus)
+    NewDecl = CXXRecordDecl::Create(*this, TK, getTranslationUnitDecl(), Loc,
+                                    Loc, &Idents.get(Name));
   else
-    NewDecl = RecordDecl::Create(Ctx, TK, DC, Loc, Loc, Id);
+    NewDecl = RecordDecl::Create(*this, TK, getTranslationUnitDecl(), Loc, Loc,
+                                 &Idents.get(Name));
   NewDecl->setImplicit();
   return NewDecl;
 }
@@ -897,8 +896,7 @@ TypedefDecl *ASTContext::getUInt128Decl() const {
 TypeDecl *ASTContext::getFloat128StubType() const {
   assert(LangOpts.CPlusPlus && "should only be called for c++");
   if (!Float128StubDecl)
-    Float128StubDecl = CreateRecordDecl(
-        *this, TTK_Struct, getTranslationUnitDecl(), &Idents.get("__float128"));
+    Float128StubDecl = buildImplicitRecord("__float128");
 
   return Float128StubDecl;
 }
@@ -4570,9 +4568,7 @@ int ASTContext::getIntegerTypeOrder(QualType LHS, QualType RHS) const {
 // getCFConstantStringType - Return the type used for constant CFStrings.
 QualType ASTContext::getCFConstantStringType() const {
   if (!CFConstantStringTypeDecl) {
-    CFConstantStringTypeDecl =
-      CreateRecordDecl(*this, TTK_Struct, TUDecl,
-                       &Idents.get("NSConstantString"));
+    CFConstantStringTypeDecl = buildImplicitRecord("NSConstantString");
     CFConstantStringTypeDecl->startDefinition();
 
     QualType FieldTypes[4];
@@ -4607,8 +4603,7 @@ QualType ASTContext::getCFConstantStringType() const {
 
 QualType ASTContext::getObjCSuperType() const {
   if (ObjCSuperType.isNull()) {
-    RecordDecl *ObjCSuperTypeDecl  =
-      CreateRecordDecl(*this, TTK_Struct, TUDecl, &Idents.get("objc_super"));
+    RecordDecl *ObjCSuperTypeDecl = buildImplicitRecord("objc_super");
     TUDecl->addDecl(ObjCSuperTypeDecl);
     ObjCSuperType = getTagDeclType(ObjCSuperTypeDecl);
   }
@@ -4625,12 +4620,11 @@ QualType ASTContext::getBlockDescriptorType() const {
   if (BlockDescriptorType)
     return getTagDeclType(BlockDescriptorType);
 
-  RecordDecl *T;
+  RecordDecl *RD;
   // FIXME: Needs the FlagAppleBlock bit.
-  T = CreateRecordDecl(*this, TTK_Struct, TUDecl,
-                       &Idents.get("__block_descriptor"));
-  T->startDefinition();
-  
+  RD = buildImplicitRecord("__block_descriptor");
+  RD->startDefinition();
+
   QualType FieldTypes[] = {
     UnsignedLongTy,
     UnsignedLongTy,
@@ -4642,20 +4636,17 @@ QualType ASTContext::getBlockDescriptorType() const {
   };
 
   for (size_t i = 0; i < 2; ++i) {
-    FieldDecl *Field = FieldDecl::Create(*this, T, SourceLocation(),
-                                         SourceLocation(),
-                                         &Idents.get(FieldNames[i]),
-                                         FieldTypes[i], /*TInfo=*/0,
-                                         /*BitWidth=*/0,
-                                         /*Mutable=*/false,
-                                         ICIS_NoInit);
+    FieldDecl *Field = FieldDecl::Create(
+        *this, RD, SourceLocation(), SourceLocation(),
+        &Idents.get(FieldNames[i]), FieldTypes[i], /*TInfo=*/0,
+        /*BitWidth=*/0, /*Mutable=*/false, ICIS_NoInit);
     Field->setAccess(AS_public);
-    T->addDecl(Field);
+    RD->addDecl(Field);
   }
 
-  T->completeDefinition();
+  RD->completeDefinition();
 
-  BlockDescriptorType = T;
+  BlockDescriptorType = RD;
 
   return getTagDeclType(BlockDescriptorType);
 }
@@ -4664,12 +4655,11 @@ QualType ASTContext::getBlockDescriptorExtendedType() const {
   if (BlockDescriptorExtendedType)
     return getTagDeclType(BlockDescriptorExtendedType);
 
-  RecordDecl *T;
+  RecordDecl *RD;
   // FIXME: Needs the FlagAppleBlock bit.
-  T = CreateRecordDecl(*this, TTK_Struct, TUDecl,
-                       &Idents.get("__block_descriptor_withcopydispose"));
-  T->startDefinition();
-  
+  RD = buildImplicitRecord("__block_descriptor_withcopydispose");
+  RD->startDefinition();
+
   QualType FieldTypes[] = {
     UnsignedLongTy,
     UnsignedLongTy,
@@ -4685,21 +4675,18 @@ QualType ASTContext::getBlockDescriptorExtendedType() const {
   };
 
   for (size_t i = 0; i < 4; ++i) {
-    FieldDecl *Field = FieldDecl::Create(*this, T, SourceLocation(),
-                                         SourceLocation(),
-                                         &Idents.get(FieldNames[i]),
-                                         FieldTypes[i], /*TInfo=*/0,
-                                         /*BitWidth=*/0,
-                                         /*Mutable=*/false,
-                                         ICIS_NoInit);
+    FieldDecl *Field = FieldDecl::Create(
+        *this, RD, SourceLocation(), SourceLocation(),
+        &Idents.get(FieldNames[i]), FieldTypes[i], /*TInfo=*/0,
+        /*BitWidth=*/0,
+        /*Mutable=*/false, ICIS_NoInit);
     Field->setAccess(AS_public);
-    T->addDecl(Field);
+    RD->addDecl(Field);
   }
 
-  T->completeDefinition();
+  RD->completeDefinition();
 
-  BlockDescriptorExtendedType = T;
-
+  BlockDescriptorExtendedType = RD;
   return getTagDeclType(BlockDescriptorExtendedType);
 }
 
@@ -5810,9 +5797,7 @@ static TypedefDecl *CreateVoidPtrBuiltinVaListDecl(const ASTContext *Context) {
 static TypedefDecl *
 CreateAArch64ABIBuiltinVaListDecl(const ASTContext *Context) {
   // struct __va_list
-  RecordDecl *VaListTagDecl =
-      CreateRecordDecl(*Context, TTK_Struct, Context->getTranslationUnitDecl(),
-                       &Context->Idents.get("__va_list"));
+  RecordDecl *VaListTagDecl = Context->buildImplicitRecord("__va_list");
   if (Context->getLangOpts().CPlusPlus) {
     // namespace std { struct __va_list {
     NamespaceDecl *NS;
@@ -5877,9 +5862,7 @@ static TypedefDecl *CreatePowerABIBuiltinVaListDecl(const ASTContext *Context) {
   // typedef struct __va_list_tag {
   RecordDecl *VaListTagDecl;
 
-  VaListTagDecl = CreateRecordDecl(*Context, TTK_Struct,
-                                   Context->getTranslationUnitDecl(),
-                                   &Context->Idents.get("__va_list_tag"));
+  VaListTagDecl = Context->buildImplicitRecord("__va_list_tag");
   VaListTagDecl->startDefinition();
 
   const size_t NumFields = 5;
@@ -5942,9 +5925,7 @@ static TypedefDecl *
 CreateX86_64ABIBuiltinVaListDecl(const ASTContext *Context) {
   // typedef struct __va_list_tag {
   RecordDecl *VaListTagDecl;
-  VaListTagDecl = CreateRecordDecl(*Context, TTK_Struct,
-                                   Context->getTranslationUnitDecl(),
-                                   &Context->Idents.get("__va_list_tag"));
+  VaListTagDecl = Context->buildImplicitRecord("__va_list_tag");
   VaListTagDecl->startDefinition();
 
   const size_t NumFields = 4;
@@ -6012,9 +5993,7 @@ static TypedefDecl *CreatePNaClABIBuiltinVaListDecl(const ASTContext *Context) {
 static TypedefDecl *
 CreateAAPCSABIBuiltinVaListDecl(const ASTContext *Context) {
   // struct __va_list
-  RecordDecl *VaListDecl =
-      CreateRecordDecl(*Context, TTK_Struct, Context->getTranslationUnitDecl(),
-                       &Context->Idents.get("__va_list"));
+  RecordDecl *VaListDecl = Context->buildImplicitRecord("__va_list");
   if (Context->getLangOpts().CPlusPlus) {
     // namespace std { struct __va_list {
     NamespaceDecl *NS;
@@ -6055,9 +6034,7 @@ static TypedefDecl *
 CreateSystemZBuiltinVaListDecl(const ASTContext *Context) {
   // typedef struct __va_list_tag {
   RecordDecl *VaListTagDecl;
-  VaListTagDecl = CreateRecordDecl(*Context, TTK_Struct,
-                                   Context->getTranslationUnitDecl(),
-                                   &Context->Idents.get("__va_list_tag"));
+  VaListTagDecl = Context->buildImplicitRecord("__va_list_tag");
   VaListTagDecl->startDefinition();
 
   const size_t NumFields = 4;
