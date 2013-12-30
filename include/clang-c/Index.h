@@ -2399,7 +2399,7 @@ clang_disposeCXPlatformAvailability(CXPlatformAvailability *availability);
 /**
  * \brief Describe the "language" of the entity referred to by a cursor.
  */
-CINDEX_LINKAGE enum CXLanguageKind {
+enum CXLanguageKind {
   CXLanguage_Invalid = 0,
   CXLanguage_C,
   CXLanguage_ObjC,
