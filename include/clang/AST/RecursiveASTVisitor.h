@@ -643,7 +643,9 @@ bool RecursiveASTVisitor<Derived>::TraverseTypeLoc(TypeLoc TL) {
 
 
 // Define the Traverse*Attr(Attr* A) methods
+#define VISITORCLASS RecursiveASTVisitor
 #include "clang/AST/AttrVisitor.inc"
+#undef VISITORCLASS
 
 
 template<typename Derived>

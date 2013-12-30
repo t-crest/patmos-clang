@@ -14,6 +14,7 @@
 #ifndef LLVM_CLANG_AST_DATARECURSIVEASTVISITOR_H
 #define LLVM_CLANG_AST_DATARECURSIVEASTVISITOR_H
 
+#include "clang/AST/Attr.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclFriend.h"
@@ -175,6 +176,13 @@ public:
   /// otherwise (including when the argument is a Null type location).
   bool TraverseTypeLoc(TypeLoc TL);
 
+  /// \brief Recursively visit an attribute, by dispatching to
+  /// Traverse*Attr() based on the argument's dynamic type.
+  ///
+  /// \returns false if the visitation was terminated early, true
+  /// otherwise (including when the argument is a Null type location).
+  bool TraverseAttr(Attr *At);
+
   /// \brief Recursively visit a declaration, by dispatching to
   /// Traverse*Decl() based on the argument's dynamic type.
   ///
@@ -238,7 +246,17 @@ public:
   ///
   /// \returns false if the visitation was terminated early, true otherwise.
   bool TraverseLambdaCapture(LambdaExpr::Capture C);
-  
+
+  // ---- Methods on Attrs ----
+
+  // \brief Visit an attribute.
+  bool VisitAttr(Attr *A) { return true; }
+
+  // Declare Traverse* and empty Visit* for all Attr classes.
+#define ATTR_VISITOR_DECLS_ONLY
+#include "clang/AST/AttrVisitor.inc"
+#undef ATTR_VISITOR_DECLS_ONLY
+
   // ---- Methods on Stmts ----
 
   // Declare Traverse*() for all concrete Stmt classes.
@@ -553,6 +571,11 @@ bool DataRecursiveASTVisitor<Derived>::TraverseTypeLoc(TypeLoc TL) {
 }
 
 
+// Define the Traverse*Attr(Attr* A) methods
+#define VISITORCLASS DataRecursiveASTVisitor
+#include "clang/AST/AttrVisitor.inc"
+#undef VISITORCLASS
+
 template<typename Derived>
 bool DataRecursiveASTVisitor<Derived>::TraverseDecl(Decl *D) {
   if (!D)
@@ -567,10 +590,18 @@ bool DataRecursiveASTVisitor<Derived>::TraverseDecl(Decl *D) {
   switch (D->getKind()) {
 #define ABSTRACT_DECL(DECL)
 #define DECL(CLASS, BASE) \
-  case Decl::CLASS: DISPATCH(CLASS##Decl, CLASS##Decl, D);
+  case Decl::CLASS: \
+    if (!getDerived().Traverse##CLASS##Decl(static_cast<CLASS##Decl*>(D))) \
+      return false; \
+    break;
 #include "clang/AST/DeclNodes.inc"
- }
+  }
 
+  // Visit any attributes attached to this declaration.
+  for (Decl::attr_iterator I=D->attr_begin(), E=D->attr_end(); I != E; ++I) {
+    if (!getDerived().TraverseAttr(*I))
+      return false;
+  }
   return true;
 }
 
