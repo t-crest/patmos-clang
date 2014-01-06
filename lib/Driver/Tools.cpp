@@ -221,6 +221,7 @@ static void addProfileRT(const ToolChain &TC, const ArgList &Args,
                          llvm::Triple Triple) {
   if (!(Args.hasArg(options::OPT_fprofile_arcs) ||
         Args.hasArg(options::OPT_fprofile_generate) ||
+        Args.hasArg(options::OPT_fprofile_instr_generate) ||
         Args.hasArg(options::OPT_fcreate_profile) ||
         Args.hasArg(options::OPT_coverage)))
     return;
@@ -1817,6 +1818,7 @@ static void addProfileRTLinux(
     const ToolChain &TC, const ArgList &Args, ArgStringList &CmdArgs) {
   if (!(Args.hasArg(options::OPT_fprofile_arcs) ||
         Args.hasArg(options::OPT_fprofile_generate) ||
+        Args.hasArg(options::OPT_fprofile_instr_generate) ||
         Args.hasArg(options::OPT_fcreate_profile) ||
         Args.hasArg(options::OPT_coverage)))
     return;
@@ -2711,6 +2713,19 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   Args.AddAllArgs(CmdArgs, options::OPT_fdata_sections);
 
   Args.AddAllArgs(CmdArgs, options::OPT_finstrument_functions);
+
+  if (Args.hasArg(options::OPT_fprofile_instr_generate) &&
+      (Args.hasArg(options::OPT_fprofile_instr_use) ||
+       Args.hasArg(options::OPT_fprofile_instr_use_EQ)))
+    D.Diag(diag::err_drv_argument_not_allowed_with)
+      << "-fprofile-instr-generate" << "-fprofile-instr-use";
+
+  Args.AddAllArgs(CmdArgs, options::OPT_fprofile_instr_generate);
+
+  if (Arg *A = Args.getLastArg(options::OPT_fprofile_instr_use_EQ))
+    A->render(Args, CmdArgs);
+  else if (Args.hasArg(options::OPT_fprofile_instr_use))
+    CmdArgs.push_back("-fprofile-instr-use=pgo-data");
 
   if (Args.hasArg(options::OPT_ftest_coverage) ||
       Args.hasArg(options::OPT_coverage))
