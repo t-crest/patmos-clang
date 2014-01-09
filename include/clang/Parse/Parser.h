@@ -2068,10 +2068,6 @@ private:
                                        SourceLocation *endLoc);
 
   bool IsThreadSafetyAttribute(StringRef AttrName);
-  void ParseThreadSafetyAttribute(IdentifierInfo &AttrName,
-                                  SourceLocation AttrNameLoc,
-                                  ParsedAttributes &Attrs,
-                                  SourceLocation *EndLoc);
 
   void ParseTypeTagForDatatypeAttribute(IdentifierInfo &AttrName,
                                         SourceLocation AttrNameLoc,
