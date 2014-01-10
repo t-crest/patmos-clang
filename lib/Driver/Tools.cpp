@@ -7790,7 +7790,8 @@ static StringRef getLinuxDynamicLinker(const ArgList &Args,
                                        const toolchains::Linux &ToolChain) {
   if (ToolChain.getTriple().getEnvironment() == llvm::Triple::Android)
     return "/system/bin/linker";
-  else if (ToolChain.getArch() == llvm::Triple::x86)
+  else if (ToolChain.getArch() == llvm::Triple::x86 ||
+           ToolChain.getArch() == llvm::Triple::sparc)
     return "/lib/ld-linux.so.2";
   else if (ToolChain.getArch() == llvm::Triple::aarch64)
     return "/lib/ld-linux-aarch64.so.1";
@@ -7815,6 +7816,8 @@ static StringRef getLinuxDynamicLinker(const ArgList &Args,
            ToolChain.getArch() == llvm::Triple::ppc64le ||
            ToolChain.getArch() == llvm::Triple::systemz)
     return "/lib64/ld64.so.1";
+  else if (ToolChain.getArch() == llvm::Triple::sparcv9)
+    return "/lib64/ld-linux.so.2";
   else
     return "/lib64/ld-linux-x86-64.so.2";
 }
