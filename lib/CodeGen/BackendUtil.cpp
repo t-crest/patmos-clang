@@ -576,7 +576,7 @@ void EmitAssemblyHelper::EmitAssembly(BackendAction Action, raw_ostream *OS) {
 
   case Backend_EmitLL:
     FormattedOS.setStream(*OS, formatted_raw_ostream::PRESERVE_STREAM);
-    getPerModulePasses()->add(createPrintModulePass(&FormattedOS));
+    getPerModulePasses()->add(createPrintModulePass(FormattedOS));
     break;
 
   default:
