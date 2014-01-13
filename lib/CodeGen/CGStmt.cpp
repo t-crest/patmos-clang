@@ -499,7 +499,7 @@ void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
     RunCleanupsScope ThenScope(*this);
     EmitStmt(S.getThen());
   }
-  Cnt.adjustFallThroughCount();
+  Cnt.adjustForControlFlow();
   EmitBranch(ContBlock);
 
   // Emit the 'else' code if present.
@@ -513,7 +513,7 @@ void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
       RunCleanupsScope ElseScope(*this);
       EmitStmt(Else);
     }
-    Cnt.adjustFallThroughCount();
+    Cnt.adjustForControlFlow();
     // There is no need to emit line number for unconditional branch.
     if (getDebugInfo())
       Builder.SetCurrentDebugLocation(llvm::DebugLoc());
@@ -591,7 +591,7 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S) {
     Cnt.beginRegion(Builder);
     EmitStmt(S.getBody());
   }
-  Cnt.adjustFallThroughCount();
+  Cnt.adjustForControlFlow();
 
   // Insert loopbound instrinsic
   EmitHeaderBounds(LoopHeader.getBlock(), Attrs);
@@ -639,7 +639,7 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S,
     RunCleanupsScope BodyScope(*this);
     EmitStmt(S.getBody());
   }
-  Cnt.adjustFallThroughCount();
+  Cnt.adjustForControlFlow();
 
   // Insert loopbound instrinsic
   EmitHeaderBounds(LoopBody, Attrs);
@@ -763,7 +763,7 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S) {
     EmitBlock(Continue.getBlock());
     EmitStmt(S.getInc());
   }
-  Cnt.adjustFallThroughCount();
+  Cnt.adjustForControlFlow();
 
   BreakContinueStack.pop_back();
 
@@ -850,7 +850,7 @@ void CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S) {
   // If there is an increment, emit it next.
   EmitBlock(Continue.getBlock());
   EmitStmt(S.getInc());
-  Cnt.adjustFallThroughCount();
+  Cnt.adjustForControlFlow();
 
   BreakContinueStack.pop_back();
 
