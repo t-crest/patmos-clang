@@ -462,7 +462,7 @@ def OpenCLImageAccess : Attr {
 }
 
 def Deprecated : InheritableAttr {
-  let Spellings = [GNU<"deprecated">,
+  let Spellings = [GNU<"deprecated">, Declspec<"deprecated">,
                    CXX11<"gnu", "deprecated">, CXX11<"","deprecated">];
   let Args = [StringArgument<"Message", 1>];
 }
@@ -592,7 +592,7 @@ def Mode : Attr {
 }
 
 def Naked : InheritableAttr {
-  let Spellings = [GNU<"naked">, CXX11<"gnu", "naked">];
+  let Spellings = [GNU<"naked">, CXX11<"gnu", "naked">, Declspec<"naked">];
   let Subjects = SubjectList<[Function]>;
 }
 
@@ -621,7 +621,8 @@ def NoDebug : InheritableAttr {
 }
 
 def NoInline : InheritableAttr {
-  let Spellings = [GNU<"noinline">, CXX11<"gnu", "noinline">];
+  let Spellings = [GNU<"noinline">, CXX11<"gnu", "noinline">,
+                   Declspec<"noinline">];
   let Subjects = SubjectList<[Function]>;
 }
 
@@ -644,7 +645,8 @@ def NonNull : InheritableAttr {
 }
 
 def NoReturn : InheritableAttr {
-  let Spellings = [GNU<"noreturn">, CXX11<"gnu", "noreturn">];
+  let Spellings = [GNU<"noreturn">, CXX11<"gnu", "noreturn">,
+                   Declspec<"noreturn">];
   // FIXME: Does GCC allow this on the function instead?
 }
 
@@ -655,7 +657,8 @@ def NoInstrumentFunction : InheritableAttr {
 }
 
 def NoThrow : InheritableAttr {
-  let Spellings = [GNU<"nothrow">, CXX11<"gnu", "nothrow">];
+  let Spellings = [GNU<"nothrow">, CXX11<"gnu", "nothrow">,
+                   Declspec<"nothrow">];
 }
 
 def ObjCBridge : InheritableAttr {
@@ -917,7 +920,7 @@ def Used : InheritableAttr {
 }
 
 def Uuid : InheritableAttr {
-  let Spellings = [GNU<"uuid">];
+  let Spellings = [Declspec<"uuid">];
   let Args = [StringArgument<"Guid">];
 //  let Subjects = SubjectList<[CXXRecord]>;
   let LangOpts = [MicrosoftExt, Borland];
@@ -1267,12 +1270,14 @@ def MsStruct : InheritableAttr {
 }
 
 def DLLExport : InheritableAttr, TargetSpecificAttr<TargetX86Win> {
-  let Spellings = [Declspec<"dllexport">];
+  let Spellings = [Declspec<"dllexport">, GNU<"dllexport">,
+                   CXX11<"gnu", "dllexport">];
   let Subjects = SubjectList<[Function, Var]>;
 }
 
 def DLLImport : InheritableAttr, TargetSpecificAttr<TargetX86Win> {
-  let Spellings = [Declspec<"dllimport">];
+  let Spellings = [Declspec<"dllimport">, GNU<"dllimport">,
+                   CXX11<"gnu", "dllimport">];
   // Technically, the subjects for DllImport are Function and Var, but there is
   // custom semantic handling required when MicrosoftExt is true.
 }
