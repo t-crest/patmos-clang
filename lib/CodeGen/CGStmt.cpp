@@ -423,14 +423,14 @@ void CodeGenFunction::EmitGotoStmt(const GotoStmt &S) {
     EmitStopPoint(&S);
 
   EmitBranchThroughCleanup(getJumpDestForLabel(S.getLabel()));
-  PGO.setCurrentRegionCount(0);
+  PGO.setCurrentRegionUnreachable();
 }
 
 
 void CodeGenFunction::EmitIndirectGotoStmt(const IndirectGotoStmt &S) {
   if (const LabelDecl *Target = S.getConstantTarget()) {
     EmitBranchThroughCleanup(getJumpDestForLabel(Target));
-    PGO.setCurrentRegionCount(0);
+    PGO.setCurrentRegionUnreachable();
     return;
   }
 
@@ -447,7 +447,7 @@ void CodeGenFunction::EmitIndirectGotoStmt(const IndirectGotoStmt &S) {
   cast<llvm::PHINode>(IndGotoBB->begin())->addIncoming(V, CurBB);
 
   EmitBranch(IndGotoBB);
-  PGO.setCurrentRegionCount(0);
+  PGO.setCurrentRegionUnreachable();
 }
 
 void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
@@ -885,7 +885,7 @@ void CodeGenFunction::EmitReturnOfRValue(RValue RV, QualType Ty) {
                        /*init*/ true);
   }
   EmitBranchThroughCleanup(ReturnBlock);
-  PGO.setCurrentRegionCount(0);
+  PGO.setCurrentRegionUnreachable();
 }
 
 /// EmitReturnStmt - Note that due to GCC extensions, this can have an operand
@@ -958,7 +958,7 @@ void CodeGenFunction::EmitReturnStmt(const ReturnStmt &S) {
 
   cleanupScope.ForceCleanup();
   EmitBranchThroughCleanup(ReturnBlock);
-  PGO.setCurrentRegionCount(0);
+  PGO.setCurrentRegionUnreachable();
 }
 
 void CodeGenFunction::EmitDeclStmt(const DeclStmt &S) {
@@ -988,7 +988,7 @@ void CodeGenFunction::EmitBreakStmt(const BreakStmt &S) {
   if (BC.CountBreak)
     BC.LoopCnt->getBreakCounter().beginRegion(Builder);
   EmitBranchThroughCleanup(BC.BreakBlock);
-  PGO.setCurrentRegionCount(0);
+  PGO.setCurrentRegionUnreachable();
 }
 
 void CodeGenFunction::EmitContinueStmt(const ContinueStmt &S) {
@@ -1005,7 +1005,7 @@ void CodeGenFunction::EmitContinueStmt(const ContinueStmt &S) {
   // non-local exits in PGO instrumentation.
   BC.LoopCnt->getContinueCounter().beginRegion(Builder);
   EmitBranchThroughCleanup(BC.ContinueBlock);
-  PGO.setCurrentRegionCount(0);
+  PGO.setCurrentRegionUnreachable();
 }
 
 /// EmitCaseStmtRange - If case statement range is not too big then
@@ -1476,7 +1476,7 @@ void CodeGenFunction::EmitSwitchStmt(const SwitchStmt &S) {
 
   // Clear the insertion point to indicate we are in unreachable code.
   Builder.ClearInsertionPoint();
-  PGO.setCurrentRegionCount(0);
+  PGO.setCurrentRegionUnreachable();
 
   // All break statements jump to NextBlock. If BreakContinueStack is non-empty
   // then reuse last ContinueBlock and that block's counter.
