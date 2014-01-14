@@ -2052,7 +2052,7 @@ private:
   void ParseMicrosoftInheritanceClassAttributes(ParsedAttributes &attrs);
   void ParseBorlandTypeAttributes(ParsedAttributes &attrs);
   void ParseOpenCLAttributes(ParsedAttributes &attrs);
-  void ParseOpenCLQualifiers(DeclSpec &DS);
+  void ParseOpenCLQualifiers(ParsedAttributes &Attrs);
 
   VersionTuple ParseVersionTuple(SourceRange &Range);
   void ParseAvailabilityAttribute(IdentifierInfo &Availability,
