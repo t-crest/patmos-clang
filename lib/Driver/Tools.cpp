@@ -4390,6 +4390,7 @@ void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
                      "lib/librtsyms.o", "-lrt",
                      AddLibSyms, HasGoldPass, UseLTO);
   }
+
 }
 
 const char * patmos::PatmosBaseTool::PrepareLinkerInputs(const ArgList &Args,
@@ -4417,18 +4418,22 @@ const char * patmos::PatmosBaseTool::PrepareLinkerInputs(const ArgList &Args,
 
 
   //----------------------------------------------------------------------------
-  // link with start-up file crt0.o
+  // link with start-up files crt0.o and crtbegin.o
 
   if (AddStartFiles) {
     std::string Crt0Filename = TC.GetFilePath("lib/crt0.o");
+    std::string CrtBeginFilename = TC.GetFilePath("lib/crtbegin.o");
 
     if (isBitcodeFile(Crt0Filename)) {
       const char * crt0 = Args.MakeArgString(Crt0Filename);
       LinkInputs.push_back(crt0);
+      const char * crtbegin = Args.MakeArgString(CrtBeginFilename);
+      LinkInputs.push_back(crtbegin);
       BCOutput = BCOutput ? linkedBCFileName : crt0;
     } else {
       GoldInputs.push_back(Args.MakeArgString(Crt0Filename));
-      linkedOFileInsertPos++;
+      GoldInputs.push_back(Args.MakeArgString(CrtBeginFilename));
+      linkedOFileInsertPos += 2;
     }
   }
 
@@ -4459,6 +4464,21 @@ const char * patmos::PatmosBaseTool::PrepareLinkerInputs(const ArgList &Args,
     // if we added some libs, run link pass
     if (LinkInputs.size() > OldSize && (BCOutput || AddLibSyms)) {
      BCOutput = linkedBCFileName;
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  // link with start-up file crtend.o
+
+  if (AddStartFiles) {
+    std::string CrtEndFilename = TC.GetFilePath("lib/crtend.o");
+
+    if (isBitcodeFile(CrtEndFilename)) {
+      const char * crtend = Args.MakeArgString(CrtEndFilename);
+      LinkInputs.push_back(crtend);
+    } else {
+      GoldInputs.push_back(Args.MakeArgString(CrtEndFilename));
+      linkedOFileInsertPos++;
     }
   }
 
