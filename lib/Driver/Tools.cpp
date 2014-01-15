@@ -4309,7 +4309,7 @@ const char * patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
                          isBitcodeOption(A.getAsString(Args), LibPaths);
 
         // Don't render as input
-        A.render(Args, (IsBitcode ? GoldInputs : LinkInputs));
+        A.render(Args, (IsBitcode ? LinkInputs : GoldInputs));
 
         if (IsBitcode) {
           if (BCOutput) {
