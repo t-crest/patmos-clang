@@ -4420,6 +4420,9 @@ const char * patmos::PatmosBaseTool::PrepareLinkerInputs(const ArgList &Args,
   //----------------------------------------------------------------------------
   // link with start-up files crt0.o and crtbegin.o
 
+  bool AddCrtBeginEnd = AddStartFiles &&
+                        (TC.getTriple().getOS() != llvm::Triple::RTEMS);
+
   if (AddStartFiles) {
     std::string Crt0Filename = TC.GetFilePath("lib/crt0.o");
     std::string CrtBeginFilename = TC.GetFilePath("lib/crtbegin.o");
@@ -4427,13 +4430,21 @@ const char * patmos::PatmosBaseTool::PrepareLinkerInputs(const ArgList &Args,
     if (isBitcodeFile(Crt0Filename)) {
       const char * crt0 = Args.MakeArgString(Crt0Filename);
       LinkInputs.push_back(crt0);
-      const char * crtbegin = Args.MakeArgString(CrtBeginFilename);
-      LinkInputs.push_back(crtbegin);
+
+      if (AddCrtBeginEnd) {
+        const char * crtbegin = Args.MakeArgString(CrtBeginFilename);
+        LinkInputs.push_back(crtbegin);
+      }
+
       BCOutput = BCOutput ? linkedBCFileName : crt0;
     } else {
       GoldInputs.push_back(Args.MakeArgString(Crt0Filename));
-      GoldInputs.push_back(Args.MakeArgString(CrtBeginFilename));
-      linkedOFileInsertPos += 2;
+      linkedOFileInsertPos++;
+
+      if (AddCrtBeginEnd) {
+        GoldInputs.push_back(Args.MakeArgString(CrtBeginFilename));
+        linkedOFileInsertPos++;
+      }
     }
   }
 
@@ -4470,7 +4481,7 @@ const char * patmos::PatmosBaseTool::PrepareLinkerInputs(const ArgList &Args,
   //----------------------------------------------------------------------------
   // link with start-up file crtend.o
 
-  if (AddStartFiles) {
+  if (AddCrtBeginEnd) {
     std::string CrtEndFilename = TC.GetFilePath("lib/crtend.o");
 
     if (isBitcodeFile(CrtEndFilename)) {
