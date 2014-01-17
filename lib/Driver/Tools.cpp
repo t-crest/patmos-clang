@@ -28,6 +28,7 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/Config/config.h"
 #include "llvm/Object/Archive.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -3949,8 +3950,8 @@ static void render_patmos_symbol(OptSpecifier Opt, const char* Symbol,
 /// its value as offset from iomap_base. Otherwise, render a --defsym
 /// using the default value os offset.
 static void render_patmos_iodev_symbol(OptSpecifier Opt, const char* Symbol,
-									   const ArgList &Args, const char *Default,
-									   ArgStringList &Out)
+                                       const ArgList &Args, const char *Default,
+                                       ArgStringList &Out)
 {
   Out.push_back("--defsym");
   std::string tmp(Symbol);
@@ -3964,18 +3965,38 @@ static void render_patmos_iodev_symbol(OptSpecifier Opt, const char* Symbol,
   Out.push_back(Args.MakeArgString(tmp));
 }
 
-llvm::sys::LLVMFileType
+llvm::sys::fs::file_magic
 patmos::PatmosBaseTool::getFileType(std::string filename) const {
-  llvm::sys::Path Pathname( filename );
+  llvm::sys::fs::file_magic magic;
+  if (llvm::sys::fs::identify_magic(filename, magic) !=
+      llvm::error_code::success()) {
+    return llvm::sys::fs::file_magic::unknown;
+  }
 
-  std::string Magic;
-  Pathname.getMagicNumber(Magic, 64);
-  return llvm::sys::IdentifyFileType(Magic.c_str(), 64);
+  return magic;
+}
+
+llvm::sys::fs::file_magic
+patmos::PatmosBaseTool::getBufFileType(const char *buf) const {
+  std::string magic(buf, 4);
+  return llvm::sys::fs::identify_magic(magic);
+}
+
+bool patmos::PatmosBaseTool::isDynamicLibrary(std::string filename) const {
+  llvm::sys::fs::file_magic type = getFileType(filename);
+  switch (type) {
+    default: return false;
+    case llvm::sys::fs::file_magic::macho_fixed_virtual_memory_shared_lib:
+    case llvm::sys::fs::file_magic::macho_dynamically_linked_shared_lib:
+    case llvm::sys::fs::file_magic::macho_dynamically_linked_shared_lib_stub:
+    case llvm::sys::fs::file_magic::elf_shared_object:
+    case llvm::sys::fs::file_magic::pecoff_executable:  return true;
+  }
 }
 
 bool patmos::PatmosBaseTool::isBitcodeArchive(std::string filename) const {
 
-  if (getFileType(filename) != llvm::sys::Archive_FileType) {
+  if (getFileType(filename) != llvm::sys::fs::file_magic::archive) {
     return false;
   }
 
@@ -3994,12 +4015,12 @@ bool patmos::PatmosBaseTool::isBitcodeArchive(std::string filename) const {
         // Try opening it as a bitcode file.
         OwningPtr<llvm::MemoryBuffer> buff;
         if (i->getMemoryBuffer(buff) != llvm::error_code::success()) continue;
-        llvm::sys::LLVMFileType FileType =
-                 llvm::sys::IdentifyFileType(buff->getBufferStart(), 64);
-        if (FileType == llvm::sys::Bitcode_FileType) {
+        llvm::sys::fs::file_magic FileType =
+                 getBufFileType(buff->getBufferStart());
+        if (FileType == llvm::sys::fs::file_magic::bitcode) {
           return true;
         }
-        if (FileType != llvm::sys::Unknown_FileType) {
+        if (FileType != llvm::sys::fs::file_magic::unknown) {
           return false;
         }
       }
@@ -4044,108 +4065,125 @@ const char * patmos::PatmosBaseTool::CreateOutputFilename(Compilation &C,
   return filename;
 }
 
+std::string patmos::PatmosBaseTool::getArgOption(const std::string &Option) const
+{
+  // TODO Check for --<name>=value options??
+
+  if (Option.size() > 2 && Option[2] == '=') {
+    return Option.substr(3);
+  }
+  else if (Option.size() > 2) {
+    return Option.substr(2);
+  }
+  return "";
+}
+
 // Reimplement Linker::FindLib() to search for shared libraries first
 // unless OnlyStatic is true.
-llvm::sys::Path patmos::PatmosBaseTool::FindLib(StringRef LibName,
-                         const std::vector<llvm::sys::Path> &Directories,
-                         bool OnlyStatic) const {
-  llvm::sys::Path FilePath(LibName);
-  if (FilePath.canRead() &&
-      (FilePath.isArchive() || (!OnlyStatic && FilePath.isDynamicLibrary())))
+std::string patmos::PatmosBaseTool::FindLib(StringRef LibName,
+                         const std::vector<std::string> &Directories,
+                         bool OnlyStatic) const
+{
+  std::string FilePath(LibName);
+
+  if (llvm::sys::fs::exists(FilePath) &&
+      (isArchive(FilePath) || (!OnlyStatic && isDynamicLibrary(FilePath))))
     return FilePath;
 
   // Now iterate over the directories
-  for (std::vector<llvm::sys::Path>::const_iterator Iter = Directories.begin();
+  for (std::vector<std::string>::const_iterator Iter = Directories.begin();
        Iter != Directories.end(); ++Iter) {
-    llvm::sys::Path FullPath(*Iter);
-    FullPath.appendComponent(("lib" + LibName).str());
+    SmallString<128> FullPath(*Iter);
+
+    llvm::sys::path::append(FullPath, ("lib" + LibName).str());
+
+    // adding a dummy extension so that replace_extension does the right thing
+    FullPath += ".dummy";
 
     // Either we only want static libraries or we didn't find a
     // dynamic library so try libX.a
-    FullPath.appendSuffix("a");
-    if (FullPath.isArchive())
-      return FullPath;
+    llvm::sys::path::replace_extension(FullPath, "a");
+    if (isArchive(FullPath.str()))
+      return FullPath.str();
 
     // libX.bca
-    FullPath.eraseSuffix();
-    FullPath.appendSuffix("bca");
-    if (FullPath.isArchive())
-      return FullPath;
+    llvm::sys::path::replace_extension(FullPath, "bca");
+    if (isArchive(FullPath.str()))
+      return FullPath.str();
 
     if (!OnlyStatic) {
       // Try libX.so or libX.dylib
-      FullPath.appendSuffix(llvm::sys::Path::GetDLLSuffix());
-      if (FullPath.isDynamicLibrary()) // Native shared library
-        return FullPath;
-      if (FullPath.isBitcodeFile())    // .so containing bitcode
-        return FullPath;
+      // TODO is there a better way to get the shared-lib file extension?
+      llvm::sys::path::replace_extension(FullPath, LTDL_SHLIB_EXT);
+      if (isDynamicLibrary(FullPath.str())) // Native shared library
+        return FullPath.str();
+      if (isBitcodeFile(FullPath.str()))    // .so containing bitcode
+        return FullPath.str();
     }
   }
 
   // No libraries were found
-  return llvm::sys::Path();
+  return "";
 }
 
-std::vector<llvm::sys::Path>
-patmos::PatmosBaseTool::FindLibPaths(const ArgList &Args,
-                                     bool LinkBinaries,
-                                     bool LookupSysPaths) const
+std::vector<std::string>
+patmos::PatmosBaseTool::FindBitcodeLibPaths(const ArgList &Args,
+                                            bool LookupSysPaths) const
 {
-  // Use this little trick to prevent duplicating the library path options code
   ArgStringList LibArgs;
-  AddLibraryPaths(Args, LibArgs, LinkBinaries);
 
-  // Just to make sure that we catch all -L options, we add -Wl -Xlinker, -Xgold
-  for (ArgList::const_iterator it = Args.begin(), ie = Args.end(); it != ie; ++it) {
+  // Use this little trick to prevent duplicating the library path options code
+  AddLibraryPaths(Args, LibArgs, false);
+
+  // To make sure that we catch all -L options of llvm-link, we add -Wl and
+  // -Xlinker.
+  for (ArgList::const_iterator it = Args.begin(), ie = Args.end(); it != ie;
+      ++it)
+  {
     const Arg *A = *it;
 
-    if ((!LinkBinaries && (A->getOption().matches(options::OPT_Wl_COMMA) ||
-        A->getOption().matches(options::OPT_Xlinker)) ) ||
-        (LinkBinaries && (A->getOption().matches(options::OPT_Xgold))))
+    if (A->getOption().matches(options::OPT_Wl_COMMA) ||
+        A->getOption().matches(options::OPT_Xlinker))
     {
       A->renderAsInput(Args, LibArgs);
     }
   }
 
   // Parse all -L options
-  std::vector<llvm::sys::Path> LibPaths;
+  std::vector<std::string> LibPaths;
   for (ArgStringList::iterator it = LibArgs.begin(), ie = LibArgs.end();
        it != ie; ++it) {
     std::string Arg = *it;
     if (Arg.substr(0, 2) != "-L") continue;
 
-    llvm::sys::Path Path( Arg.substr(2) );
-    LibPaths.push_back(Path);
+    LibPaths.push_back(getArgOption(Arg));
   }
 
   // Collect all the lookup paths
-  if (!LinkBinaries && LookupSysPaths) {
-    // add same paths as Linker::addSystemPaths()
-    llvm::sys::Path::GetBitcodeLibraryPaths(LibPaths);
-    LibPaths.insert(LibPaths.begin(),llvm::sys::Path("./"));
+  if (LookupSysPaths) {
+    // Add same paths as Linker::addSystemPaths().
+    // No use in checking gold linker system paths, if not found we link
+    // using gold in any case.
+    LibPaths.insert(LibPaths.begin(), std::string("./"));
   }
 
   return LibPaths;
 }
 
 bool patmos::PatmosBaseTool::isBitcodeOption(StringRef Option,
-                     const std::vector<llvm::sys::Path> &LibPaths) const
+                     const std::vector<std::string> &LibPaths) const
 {
   if (Option.str().substr(0,2) != "-l") {
     // standard input file
     return isBitcodeFile(Option);
   }
 
-  std::string LibName = Option.substr(2);
+  std::string LibName = getArgOption(Option);
 
-  llvm::sys::Path Filename = FindLib(LibName, LibPaths, true);
+  std::string Filename = FindLib(LibName, LibPaths, false);
   if (!Filename.empty()) {
     // accept linking with bitcode files
-    if (Filename.isBitcodeFile()) {
-      return true;
-    }
-    // found it, check for bitcode archive
-    return isBitcodeArchive(Filename.str());
+    return isBitcodeFile(Filename) || isBitcodeArchive(Filename);
   }
   return false;
 }
@@ -4183,7 +4221,7 @@ void patmos::PatmosBaseTool::AddLibraryPaths(const ArgList &Args,
 }
 
 const char * patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
-                           const std::vector<llvm::sys::Path> &LibPaths,
+                           const std::vector<std::string> &LibPaths,
                            const InputInfoList &Inputs,
                            ArgStringList &LinkInputs, ArgStringList &GoldInputs,
                            const char *linkedBCFileName,
@@ -4215,13 +4253,13 @@ const char * patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
       }
       else if (II.getType() == types::TY_Object) {
 
-        llvm::sys::LLVMFileType FT = getFileType(II.getFilename());
+        llvm::sys::fs::file_magic FT = getFileType(II.getFilename());
 
-        if (FT == llvm::sys::Archive_FileType) {
+        if (FT == llvm::sys::fs::file_magic::archive) {
           // Should we skip .a files without -l if the do not link in libs?
           IsBitcode = isBitcodeArchive(II.getFilename());
         }
-        else if (FT == llvm::sys::Bitcode_FileType) {
+        else if (FT == llvm::sys::fs::file_magic::bitcode) {
           IsBitcode = true;
         }
         else {
@@ -4291,7 +4329,7 @@ const char * patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
 
         // -lm is special .. we handle this like a runtime library (should we?)
         // since we need to link in the libsyms stuff.
-        if (A.getAsString(Args) == "-lm") {
+        if (getArgOption(A.getAsString(Args)) == "m") {
 
           if (AddSystemLibrary(Args, LibPaths, LinkInputs, GoldInputs,
                               "lib/libmsyms.o", "-lm",
@@ -4335,7 +4373,7 @@ const char * patmos::PatmosBaseTool::AddInputFiles(const ArgList &Args,
 }
 
 bool patmos::PatmosBaseTool::AddSystemLibrary(const ArgList &Args,
-                        const std::vector<llvm::sys::Path> &LibPaths,
+                        const std::vector<std::string> &LibPaths,
                         ArgStringList &LinkInputs, ArgStringList &GoldInputs,
                         const char *libo, const char *libflag,
                         bool AddLibSyms, bool HasGoldPass, bool UseLTO) const
@@ -4356,7 +4394,7 @@ bool patmos::PatmosBaseTool::AddSystemLibrary(const ArgList &Args,
 
 
 void patmos::PatmosBaseTool::AddStandardLibs(const ArgList &Args,
-                           const std::vector<llvm::sys::Path> &LibPaths,
+                           const std::vector<std::string> &LibPaths,
                            ArgStringList &LinkInputs, ArgStringList &GoldInputs,
                            bool AddRuntimeLibs, bool AddLibGloss, bool AddLibC,
                            bool AddLibSyms, StringRef FloatABI,
@@ -4407,7 +4445,8 @@ const char * patmos::PatmosBaseTool::PrepareLinkerInputs(const ArgList &Args,
   linkedOFileInsertPos = 0;
 
   // prepare library lookups
-  std::vector<llvm::sys::Path> BCLibPaths = FindLibPaths(Args, false, false);
+  // do not add system paths as we call the linker with -nostdlib.
+  std::vector<std::string> BCLibPaths = FindBitcodeLibPaths(Args, false);
 
   //----------------------------------------------------------------------------
   // append library search paths (-L) to bitcode linker
@@ -4522,6 +4561,7 @@ void patmos::PatmosBaseTool::ConstructLinkJob(const Tool &Creator,
   //----------------------------------------------------------------------------
   // append linker specific options
 
+  // This must match the argument for FindBitcodeLibPaths in PrepareLinkerInputs
   CmdArgs.push_back("-nostdlib");
 
   for (ArgList::const_iterator

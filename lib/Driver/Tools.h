@@ -15,6 +15,7 @@
 #include "clang/Driver/Util.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/Support/Compiler.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 
 namespace clang {
@@ -108,28 +109,39 @@ namespace patmos {
 
   protected:
     // Some helper methods to construct arguments in ConstructJob
-    llvm::sys::LLVMFileType getFileType(std::string filename) const;
+    llvm::sys::fs::file_magic getFileType(std::string filename) const;
+
+    llvm::sys::fs::file_magic getBufFileType(const char *buf) const;
 
     bool isBitcodeFile(std::string filename) const {
-      return getFileType(filename) == llvm::sys::Bitcode_FileType;
+      return getFileType(filename) == llvm::sys::fs::file_magic::bitcode;
     }
+
+    bool isArchive(std::string filename) const {
+      return getFileType(filename) == llvm::sys::fs::file_magic::archive;
+    }
+
+    bool isDynamicLibrary(std::string filename) const;
 
     bool isBitcodeArchive(std::string filename) const;
 
     bool isBitcodeOption(StringRef Option,
-                         const std::vector<llvm::sys::Path> &LibPaths) const;
+                         const std::vector<std::string> &LibPaths) const;
 
     const char * CreateOutputFilename(Compilation &C, const InputInfo &Output,
                                       const char * TmpPrefix,
                                       const char *Suffix,
                                       bool IsLastPass) const;
 
-    llvm::sys::Path FindLib(StringRef LibName,
-                            const std::vector<llvm::sys::Path> &Directories,
-                            bool OnlyStatic) const;
+    /// Get the option value of an argument
+    std::string getArgOption(const std::string &Arg) const;
 
-    std::vector<llvm::sys::Path> FindLibPaths(const ArgList &Args,
-                                bool LinkBinaries, bool LookupSysPaths) const;
+    std::string FindLib(StringRef LibName,
+                        const std::vector<std::string> &Directories,
+                        bool OnlyStatic) const;
+
+    std::vector<std::string> FindBitcodeLibPaths(const ArgList &Args,
+                                                 bool LookupSysPaths) const;
 
     /// Get the last -O<Lvl> optimization level specifier. If no -O option is
     /// given, return NULL.
@@ -143,7 +155,7 @@ namespace patmos {
     /// we will execute gold or if linking with ELFs should throw an error.
     /// Return the
     const char * AddInputFiles(const ArgList &Args,
-                       const std::vector<llvm::sys::Path> &LibPaths,
+                       const std::vector<std::string> &LibPaths,
                        const InputInfoList &Inputs,
                        ArgStringList &LinkInputs, ArgStringList &GoldInputs,
                        const char *linkedBCFileName,
@@ -153,14 +165,14 @@ namespace patmos {
 
     /// Return true if any options have been added to LinkInputs.
     bool AddSystemLibrary(const ArgList &Args,
-                          const std::vector<llvm::sys::Path> &LibPaths,
+                          const std::vector<std::string> &LibPaths,
                           ArgStringList &LinkInputs, ArgStringList &GoldInputs,
                           const char *libo, const char *libflag,
                           bool AddLibSyms, bool HasGoldPass, bool UseLTO) const;
 
     /// Add arguments to link with libc, librt, librtsf, libpatmos
     void AddStandardLibs(const ArgList &Args,
-                         const std::vector<llvm::sys::Path> &LibPaths,
+                         const std::vector<std::string> &LibPaths,
                          ArgStringList &LinkInputs, ArgStringList &GoldInputs,
                          bool AddRuntimeLibs, bool AddLibGloss, bool AddLibC,
                          bool AddLibSyms, StringRef FloatABI,
