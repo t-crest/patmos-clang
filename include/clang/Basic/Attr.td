@@ -65,6 +65,9 @@ def DeclBase : AttrSubject;
 def FunctionLike : SubsetSubject<DeclBase,
                                   [{S->getFunctionType(false) != NULL}]>;
 
+// HasFunctionProto is a more strict version of FunctionLike, so it should
+// never be specified in a Subjects list along with FunctionLike (due to the
+// inclusive nature of subject testing).
 def HasFunctionProto : SubsetSubject<DeclBase,
                                      [{(S->getFunctionType(true) != NULL &&
                               isa<FunctionProtoType>(S->getFunctionType())) ||
@@ -557,15 +560,15 @@ def Format : InheritableAttr {
   let Spellings = [GNU<"format">, CXX11<"gnu", "format">];
   let Args = [IdentifierArgument<"Type">, IntArgument<"FormatIdx">,
               IntArgument<"FirstArg">];
-  let Subjects = SubjectList<[ObjCMethod, Block, FunctionLike,
-                              HasFunctionProto], WarnDiag, "ExpectedFunction">;
+  let Subjects = SubjectList<[ObjCMethod, Block, HasFunctionProto], WarnDiag,
+                             "ExpectedFunction">;
 }
 
 def FormatArg : InheritableAttr {
   let Spellings = [GNU<"format_arg">, CXX11<"gnu", "format_arg">];
   let Args = [IntArgument<"FormatIdx">];
-  let Subjects = SubjectList<[ObjCMethod, FunctionLike, HasFunctionProto],
-                             WarnDiag, "ExpectedFunction">;
+  let Subjects = SubjectList<[ObjCMethod, HasFunctionProto], WarnDiag,
+                             "ExpectedFunction">;
 }
 
 def GNUInline : InheritableAttr {
@@ -682,9 +685,8 @@ def NoMips16 : InheritableAttr, TargetSpecificAttr<TargetMips> {
 
 def NonNull : InheritableAttr {
   let Spellings = [GNU<"nonnull">, CXX11<"gnu", "nonnull">];
-  let Subjects = SubjectList<[ObjCMethod, FunctionLike, HasFunctionProto,
-                              ParmVar],
-                             WarnDiag, "ExpectedFunctionMethodOrParameter">;
+  let Subjects = SubjectList<[ObjCMethod, HasFunctionProto, ParmVar], WarnDiag,
+                             "ExpectedFunctionMethodOrParameter">;
   let Args = [VariadicUnsignedArgument<"Args">];
   let AdditionalMembers =
 [{bool isNonNull(unsigned idx) const {
@@ -698,8 +700,8 @@ def NonNull : InheritableAttr {
 
 def ReturnsNonNull : InheritableAttr {
   let Spellings = [GNU<"returns_nonnull">];
-  let Subjects = SubjectList<[ObjCMethod, FunctionLike, HasFunctionProto],
-                             WarnDiag, "ExpectedFunctionOrMethod">;
+  let Subjects = SubjectList<[ObjCMethod, HasFunctionProto], WarnDiag,
+                             "ExpectedFunctionOrMethod">;
 }
 
 def NoReturn : InheritableAttr {
@@ -839,8 +841,7 @@ def Ownership : InheritableAttr {
     }
   }];
   let Args = [IdentifierArgument<"Module">, VariadicUnsignedArgument<"Args">];
-  let Subjects = SubjectList<[FunctionLike, HasFunctionProto], WarnDiag,
-                             "ExpectedFunction">;
+  let Subjects = SubjectList<[HasFunctionProto], WarnDiag, "ExpectedFunction">;
 }
 
 def Packed : InheritableAttr {
