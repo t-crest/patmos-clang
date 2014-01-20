@@ -213,6 +213,9 @@ class Attr {
   // Set to true if all of the attribute's arguments should be parsed in an
   // unevaluated context.
   bit ParseArgumentsAsUnevaluated = 0;
+  // Set to true if this attribute can be duplicated on a subject when merging
+  // attributes. By default, attributes are not merged.
+  bit DuplicatesAllowedWhileMerging = 0;
   // Lists language options, one of which is required to be true for the
   // attribute to be applicable. If empty, no language options are required.
   list<LangOpt> LangOpts = [];
@@ -343,6 +346,7 @@ def Availability : InheritableAttr {
              .Default(llvm::StringRef());
 } }];
   let HasCustomParsing = 1;
+  let DuplicatesAllowedWhileMerging = 1;
 //  let Subjects = SubjectList<[Named]>;
 }
 
@@ -1121,6 +1125,7 @@ def GuardedBy : InheritableAttr {
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
+  let DuplicatesAllowedWhileMerging = 1;
   let Subjects = SubjectList<[Field, SharedVar], WarnDiag,
                              "ExpectedFieldOrGlobalVar">;
 }
@@ -1131,6 +1136,7 @@ def PtGuardedBy : InheritableAttr {
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
+  let DuplicatesAllowedWhileMerging = 1;
   let Subjects = SubjectList<[Field, SharedVar], WarnDiag,
                              "ExpectedFieldOrGlobalVar">;
 }
@@ -1141,6 +1147,7 @@ def AcquiredAfter : InheritableAttr {
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
+  let DuplicatesAllowedWhileMerging = 1;
   let Subjects = SubjectList<[Field, SharedVar], WarnDiag,
                              "ExpectedFieldOrGlobalVar">;
 }
@@ -1151,6 +1158,7 @@ def AcquiredBefore : InheritableAttr {
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
+  let DuplicatesAllowedWhileMerging = 1;
   let Subjects = SubjectList<[Field, SharedVar], WarnDiag,
                              "ExpectedFieldOrGlobalVar">;
 }
@@ -1161,6 +1169,7 @@ def ExclusiveLockFunction : InheritableAttr {
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
+  let DuplicatesAllowedWhileMerging = 1;
   let Subjects = SubjectList<[FunctionDefinition, FunctionTemplate]>;
 }
 
@@ -1170,6 +1179,7 @@ def SharedLockFunction : InheritableAttr {
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
+  let DuplicatesAllowedWhileMerging = 1;
   let Subjects = SubjectList<[FunctionDefinition, FunctionTemplate]>;
 }
 
@@ -1199,6 +1209,7 @@ def ExclusiveTrylockFunction : InheritableAttr {
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
+  let DuplicatesAllowedWhileMerging = 1;
   let Subjects = SubjectList<[FunctionDefinition, FunctionTemplate]>;
 }
 
@@ -1210,6 +1221,7 @@ def SharedTrylockFunction : InheritableAttr {
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
+  let DuplicatesAllowedWhileMerging = 1;
   let Subjects = SubjectList<[FunctionDefinition, FunctionTemplate]>;
 }
 
@@ -1219,6 +1231,7 @@ def UnlockFunction : InheritableAttr {
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
+  let DuplicatesAllowedWhileMerging = 1;
   let Subjects = SubjectList<[FunctionDefinition, FunctionTemplate]>;
 }
 
@@ -1237,6 +1250,7 @@ def LocksExcluded : InheritableAttr {
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
+  let DuplicatesAllowedWhileMerging = 1;
   let Subjects = SubjectList<[FunctionDefinition, FunctionTemplate]>;
 }
 
@@ -1246,6 +1260,7 @@ def ExclusiveLocksRequired : InheritableAttr {
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
+  let DuplicatesAllowedWhileMerging = 1;
   let Subjects = SubjectList<[FunctionDefinition, FunctionTemplate]>;
 }
 
@@ -1255,6 +1270,7 @@ def SharedLocksRequired : InheritableAttr {
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
+  let DuplicatesAllowedWhileMerging = 1;
   let Subjects = SubjectList<[FunctionDefinition, FunctionTemplate]>;
 }
 
