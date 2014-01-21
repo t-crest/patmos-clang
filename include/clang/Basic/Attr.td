@@ -532,7 +532,7 @@ def Destructor : InheritableAttr {
 
 def EnableIf : InheritableAttr {
   let Spellings = [GNU<"enable_if">];
-  let Subjects = SubjectList<[Function]>;
+  let Subjects = SubjectList<[FunctionDefinition]>;
   let Args = [ExprArgument<"Cond">, StringArgument<"Message">];
   let TemplateDependent = 1;
 }
@@ -828,7 +828,7 @@ def ObjCDesignatedInitializer : Attr {
 
 def Overloadable : Attr {
   let Spellings = [GNU<"overloadable">];
-  let Subjects = SubjectList<[Function], ErrorDiag>;
+  let Subjects = SubjectList<[FunctionDefinition], ErrorDiag>;
 }
 
 def Override : InheritableAttr { 
