@@ -75,6 +75,7 @@ def m_Patmos_llc_Group    : OptionGroup<"<m Patmos llc group>">;
 def m_PML_Group           : OptionGroup<"<m PML group>">;
 def m_hexagon_Features_Group  : OptionGroup<"<m hexagon features group>">, Group<m_Group>;
 def m_arm_Features_Group  : OptionGroup<"<m arm features group>">, Group<m_Group>;
+def m_aarch64_Features_Group  : OptionGroup<"<m aarch64 features group>">, Group<m_Group>;
 def m_ppc_Features_Group  : OptionGroup<"<m ppc features group>">, Group<m_Group>;
 def u_Group               : OptionGroup<"<u group>">;
 
@@ -1081,6 +1082,9 @@ def mcrc : Flag<["-"], "mcrc">, Group<m_arm_Features_Group>,
   HelpText<"Allow use of CRC instructions (ARM only)">;
 def mnocrc : Flag<["-"], "mnocrc">, Group<m_arm_Features_Group>,
   HelpText<"Disallow use of CRC instructions (ARM only)">;
+
+def mgeneral_regs_only : Flag<["-"], "mgeneral_regs_only">, Group<m_aarch64_Features_Group>,
+  HelpText<"Generate code which only uses the general purpose registers (AArch64 only)">;
 
 def mvsx : Flag<["-"], "mvsx">, Group<m_ppc_Features_Group>;
 def mno_vsx : Flag<["-"], "mno-vsx">, Group<m_ppc_Features_Group>;
