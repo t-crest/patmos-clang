@@ -7910,7 +7910,8 @@ private:
   void CheckReturnValExpr(Expr *RetValExp, QualType lhsType,
                           SourceLocation ReturnLoc,
                           bool isObjCMethod = false,
-                          const AttrVec *Attrs = 0);
+                          const AttrVec *Attrs = 0,
+                          const FunctionDecl *FD = 0);
 
   void CheckFloatComparison(SourceLocation Loc, Expr* LHS, Expr* RHS);
   void CheckImplicitConversions(Expr *E, SourceLocation CC = SourceLocation());
