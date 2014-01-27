@@ -5033,8 +5033,11 @@ public:
 
   virtual void getTargetDefines(const LangOptions &Opts,
                                 MacroBuilder &Builder) const {
-    DefineStd(Builder, "mips", Opts);
+    Builder.defineMacro("__mips__");
     Builder.defineMacro("_mips");
+    if (Opts.GNUMode)
+      Builder.defineMacro("mips");
+
     Builder.defineMacro("__REGISTER_PREFIX__", "");
 
     switch (FloatABI) {
@@ -5242,6 +5245,8 @@ public:
                                 MacroBuilder &Builder) const {
     MipsTargetInfoBase::getTargetDefines(Opts, Builder);
 
+    Builder.defineMacro("__mips", "32");
+
     if (ABI == "o32") {
       Builder.defineMacro("__mips_o32");
       Builder.defineMacro("_ABIO32", "1");
@@ -5361,6 +5366,7 @@ public:
                                 MacroBuilder &Builder) const {
     MipsTargetInfoBase::getTargetDefines(Opts, Builder);
 
+    Builder.defineMacro("__mips", "64");
     Builder.defineMacro("__mips64");
     Builder.defineMacro("__mips64__");
 
