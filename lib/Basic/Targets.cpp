@@ -4700,6 +4700,7 @@ public:
     LongDoubleWidth = 128;
     LongDoubleAlign = 128;
     LongDoubleFormat = &llvm::APFloat::IEEEquad;
+    MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 64;
   }
 
   virtual void getTargetDefines(const LangOptions &Opts,
