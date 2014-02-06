@@ -7494,10 +7494,12 @@ void netbsd::Link::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("-m");
     switch (getToolChain().getTriple().getEnvironment()) {
     case llvm::Triple::EABI:
-    case llvm::Triple::EABIHF:
     case llvm::Triple::GNUEABI:
-    case llvm::Triple::GNUEABIHF:
       CmdArgs.push_back("armelf_nbsd_eabi");
+      break;
+    case llvm::Triple::EABIHF:
+    case llvm::Triple::GNUEABIHF:
+      CmdArgs.push_back("armelf_nbsd_eabihf");
       break;
     default:
       CmdArgs.push_back("armelf_nbsd");
