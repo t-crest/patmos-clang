@@ -134,16 +134,9 @@ private:
   Sema &Actions;
 };
 
-class PragmaLoopboundHandler : public PragmaHandler {
+class PragmaMSPointersToMembers : public PragmaHandler {
 public:
-  PragmaLoopboundHandler() : PragmaHandler("loopbound") {}
-  virtual void HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer,
-                            Token &FirstToken);
-};
-
-class PragmaPlatinHandler : public PragmaHandler {
-public:
-  PragmaPlatinHandler() : PragmaHandler("platin") { }
+  explicit PragmaMSPointersToMembers() : PragmaHandler("pointers_to_members") {}
   virtual void HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer,
                             Token &FirstToken);
 };
