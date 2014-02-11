@@ -2845,7 +2845,7 @@ int clang_saveTranslationUnit(CXTranslationUnit TU, const char *FileName,
     *Log << TU << ' ' << FileName;
   }
 
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return CXSaveError_InvalidTU;
   }
@@ -2921,7 +2921,7 @@ static void clang_reparseTranslationUnit_Impl(void *UserData) {
   RTUI->result = 1; // Error.
 
   CXTranslationUnit TU = RTUI->TU;
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return;
   }
@@ -2991,7 +2991,7 @@ int clang_reparseTranslationUnit(CXTranslationUnit TU,
 
 
 CXString clang_getTranslationUnitSpelling(CXTranslationUnit CTUnit) {
-  if (isNotUseableTU(CTUnit)) {
+  if (isNotUsableTU(CTUnit)) {
     LOG_BAD_TU(CTUnit);
     return cxstring::createEmpty();
   }
@@ -3001,7 +3001,7 @@ CXString clang_getTranslationUnitSpelling(CXTranslationUnit CTUnit) {
 }
 
 CXCursor clang_getTranslationUnitCursor(CXTranslationUnit TU) {
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return clang_getNullCursor();
   }
@@ -3034,7 +3034,7 @@ time_t clang_getFileTime(CXFile SFile) {
 }
 
 CXFile clang_getFile(CXTranslationUnit TU, const char *file_name) {
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return 0;
   }
@@ -3047,7 +3047,7 @@ CXFile clang_getFile(CXTranslationUnit TU, const char *file_name) {
 
 unsigned clang_isFileMultipleIncludeGuarded(CXTranslationUnit TU,
                                             CXFile file) {
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return 0;
   }
@@ -3947,7 +3947,7 @@ static enum CXChildVisitResult GetCursorVisitor(CXCursor cursor,
 }
 
 CXCursor clang_getCursor(CXTranslationUnit TU, CXSourceLocation Loc) {
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return clang_getNullCursor();
   }
@@ -4910,7 +4910,7 @@ CXString clang_getTokenSpelling(CXTranslationUnit TU, CXToken CXTok) {
     break;
   }
 
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return cxstring::createEmpty();
   }
@@ -4934,7 +4934,7 @@ CXString clang_getTokenSpelling(CXTranslationUnit TU, CXToken CXTok) {
 }
 
 CXSourceLocation clang_getTokenLocation(CXTranslationUnit TU, CXToken CXTok) {
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return clang_getNullLocation();
   }
@@ -4948,7 +4948,7 @@ CXSourceLocation clang_getTokenLocation(CXTranslationUnit TU, CXToken CXTok) {
 }
 
 CXSourceRange clang_getTokenExtent(CXTranslationUnit TU, CXToken CXTok) {
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return clang_getNullRange();
   }
@@ -5044,7 +5044,7 @@ void clang_tokenize(CXTranslationUnit TU, CXSourceRange Range,
   if (NumTokens)
     *NumTokens = 0;
 
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return;
   }
@@ -5767,7 +5767,7 @@ extern "C" {
 void clang_annotateTokens(CXTranslationUnit TU,
                           CXToken *Tokens, unsigned NumTokens,
                           CXCursor *Cursors) {
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return;
   }
@@ -6274,7 +6274,7 @@ CXString clang_Module_getFullName(CXModule CXMod) {
 
 unsigned clang_Module_getNumTopLevelHeaders(CXTranslationUnit TU,
                                             CXModule CXMod) {
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return 0;
   }
@@ -6288,7 +6288,7 @@ unsigned clang_Module_getNumTopLevelHeaders(CXTranslationUnit TU,
 
 CXFile clang_Module_getTopLevelHeader(CXTranslationUnit TU,
                                       CXModule CXMod, unsigned Index) {
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return 0;
   }
@@ -6423,7 +6423,7 @@ const char *clang_getTUResourceUsageName(CXTUResourceUsageKind kind) {
 }
 
 CXTUResourceUsage clang_getCXTUResourceUsage(CXTranslationUnit TU) {
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     CXTUResourceUsage usage = { (void*) 0, 0, 0 };
     return usage;
@@ -6525,7 +6525,7 @@ CXSourceRangeList *clang_getSkippedRanges(CXTranslationUnit TU, CXFile file) {
   skipped->count = 0;
   skipped->ranges = 0;
 
-  if (isNotUseableTU(TU)) {
+  if (isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
     return skipped;
   }
