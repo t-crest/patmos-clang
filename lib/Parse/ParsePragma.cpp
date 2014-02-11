@@ -184,8 +184,8 @@ void Parser::HandlePragmaOpenCLExtension() {
 
 void Parser::HandlePragmaMSPointersToMembers() {
   assert(Tok.is(tok::annot_pragma_ms_pointers_to_members));
-  Sema::PragmaMSPointersToMembersKind RepresentationMethod =
-      static_cast<Sema::PragmaMSPointersToMembersKind>(
+  LangOptions::PragmaMSPointersToMembersKind RepresentationMethod =
+      static_cast<LangOptions::PragmaMSPointersToMembersKind>(
           reinterpret_cast<uintptr_t>(Tok.getAnnotationValue()));
   SourceLocation PragmaLoc = ConsumeToken(); // The annotation token.
   Actions.ActOnPragmaMSPointersToMembers(RepresentationMethod, PragmaLoc);
@@ -836,9 +836,9 @@ void PragmaMSPointersToMembers::HandlePragma(Preprocessor &PP,
   }
   PP.Lex(Tok);
 
-  Sema::PragmaMSPointersToMembersKind RepresentationMethod;
+  LangOptions::PragmaMSPointersToMembersKind RepresentationMethod;
   if (Arg->isStr("best_case")) {
-    RepresentationMethod = Sema::PPTMK_BestCase;
+    RepresentationMethod = LangOptions::PPTMK_BestCase;
   } else {
     if (Arg->isStr("full_generality")) {
       if (Tok.is(tok::comma)) {
@@ -856,7 +856,7 @@ void PragmaMSPointersToMembers::HandlePragma(Preprocessor &PP,
         // #pragma pointers_to_members(full_generality) implicitly specifies
         // virtual_inheritance.
         Arg = 0;
-        RepresentationMethod = Sema::PPTMK_FullGeneralityVirtualInheritance;
+        RepresentationMethod = LangOptions::PPTMK_FullGeneralityVirtualInheritance;
       } else {
         PP.Diag(Tok.getLocation(), diag::err_expected_punc)
             << "full_generality";
@@ -866,11 +866,14 @@ void PragmaMSPointersToMembers::HandlePragma(Preprocessor &PP,
 
     if (Arg) {
       if (Arg->isStr("single_inheritance")) {
-        RepresentationMethod = Sema::PPTMK_FullGeneralitySingleInheritance;
+        RepresentationMethod =
+            LangOptions::PPTMK_FullGeneralitySingleInheritance;
       } else if (Arg->isStr("multiple_inheritance")) {
-        RepresentationMethod = Sema::PPTMK_FullGeneralityMultipleInheritance;
+        RepresentationMethod =
+            LangOptions::PPTMK_FullGeneralityMultipleInheritance;
       } else if (Arg->isStr("virtual_inheritance")) {
-        RepresentationMethod = Sema::PPTMK_FullGeneralityVirtualInheritance;
+        RepresentationMethod =
+            LangOptions::PPTMK_FullGeneralityVirtualInheritance;
       } else {
         PP.Diag(Tok.getLocation(),
                 diag::err_pragma_pointers_to_members_unknown_kind)
