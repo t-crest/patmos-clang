@@ -7914,8 +7914,6 @@ static void AddRunTimeLibs(const ToolChain &TC, const Driver &D,
   case ToolChain::RLT_Libgcc:
     AddLibgcc(TC.getTriple(), D, CmdArgs, Args);
     break;
-  default:
-    llvm_unreachable("Unknown RT-Lib type");
   }
 }
 
