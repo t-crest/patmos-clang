@@ -7125,11 +7125,15 @@ public:
                                           SourceLocation StartLoc,
                                           SourceLocation EndLoc);
 
-  StmtResult ActOnFlowfact(SourceLocation StartLoc,
-                           SourceLocation EndLoc,
-                           ArrayRef<int> Multipliers,
-                           ArrayRef<std::string> Markers,
-                           int Rhs);
+  OMPClause *ActOnOpenMPSingleExprClause(OpenMPClauseKind Kind,
+                                         Expr *Expr,
+                                         SourceLocation StartLoc,
+                                         SourceLocation LParenLoc,
+                                         SourceLocation EndLoc);
+  /// \brief Called on well-formed 'if' clause.
+  OMPClause *ActOnOpenMPIfClause(Expr *Condition, SourceLocation StartLoc,
+                                 SourceLocation LParenLoc,
+                                 SourceLocation EndLoc);
 
   OMPClause *ActOnOpenMPSimpleClause(OpenMPClauseKind Kind,
                                      unsigned Argument,

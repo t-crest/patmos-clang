@@ -2354,6 +2354,12 @@ bool DataRecursiveASTVisitor<Derived>::TraverseOMPClause(OMPClause *C) {
 }
 
 template<typename Derived>
+bool DataRecursiveASTVisitor<Derived>::VisitOMPIfClause(OMPIfClause *C) {
+  TraverseStmt(C->getCondition());
+  return true;
+}
+
+template<typename Derived>
 bool DataRecursiveASTVisitor<Derived>::VisitOMPDefaultClause(OMPDefaultClause *C) {
   return true;
 }
