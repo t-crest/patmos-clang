@@ -1635,6 +1635,7 @@ namespace {
   };
 } // end anonymous namespace.
 
+// exceptionSettings() exists to share the logic between -cc1 and linker invocations.
 static ExceptionSettings exceptionSettings(const ArgList &Args,
                                            const llvm::Triple &Triple) {
   ExceptionSettings ES;
