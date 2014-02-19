@@ -2669,6 +2669,7 @@ public:
     Function,
     Variable,
     Type,
+    Statement,
     Undocumented
   };
 
@@ -2700,6 +2701,10 @@ static void WriteCategoryHeader(DocumentationData::DocCategory Category,
     case DocumentationData::Type:
       OS << "Type Attributes\n";
       OS << "===============\n";
+      break;
+    case DocumentationData::Statement:
+      OS << "Statement Attributes\n";
+      OS << "====================\n";
       break;
   }
   OS << "\n";
@@ -2862,6 +2867,7 @@ void EmitClangAttrDocs(RecordKeeper &Records, raw_ostream &OS) {
               .Case("Functions", DocumentationData::Function)
               .Case("Variables", DocumentationData::Variable)
               .Case("Types", DocumentationData::Type)
+              .Case("Statements", DocumentationData::Statement)
               .Case("Undocumented", DocumentationData::Undocumented);
 
       // If the category is "undocumented", then there cannot be any other
