@@ -231,26 +231,6 @@ static bool isObjCRuntimeLinked(const ArgList &Args) {
   return Args.hasArg(options::OPT_fobjc_link_runtime);
 }
 
-static void addProfileRT(const ToolChain &TC, const ArgList &Args,
-                         ArgStringList &CmdArgs,
-                         llvm::Triple Triple) {
-  if (!(Args.hasArg(options::OPT_fprofile_arcs) ||
-        Args.hasArg(options::OPT_fprofile_generate) ||
-        Args.hasArg(options::OPT_fprofile_instr_generate) ||
-        Args.hasArg(options::OPT_fcreate_profile) ||
-        Args.hasArg(options::OPT_coverage)))
-    return;
-
-  // GCC links libgcov.a by adding -L<inst>/gcc/lib/gcc/<triple>/<ver> -lgcov to
-  // the link line. We cannot do the same thing because unlike gcov there is a
-  // libprofile_rt.so. We used to use the -l:libprofile_rt.a syntax, but that is
-  // not supported by old linkers.
-  std::string ProfileRT =
-    std::string(TC.getDriver().Dir) + "/../lib/libprofile_rt.a";
-
-  CmdArgs.push_back(Args.MakeArgString(ProfileRT));
-}
-
 static bool forwardToGCC(const Option &O) {
   // Don't forward inputs from the original command line.  They are added from
   // InputInfoList.
@@ -1881,6 +1861,10 @@ static StringRef getArchNameForCompilerRTLib(const ToolChain &TC) {
     return TC.getArchName();
 }
 
+static StringRef getOSNameForCompilerRTLib(const ToolChain &TC) {
+  return TC.getOS();
+}
+
 // This adds the static libclang_rt.arch.a directly to the command line
 // FIXME: Make sure we can also emit shared objects if they're requested
 // and available, check for possible errors, etc.
@@ -1899,7 +1883,7 @@ static void addClangRTLinux(
     CmdArgs.push_back("-lgcc_eh");
 }
 
-static void addProfileRTLinux(
+static void addProfileRT(
     const ToolChain &TC, const ArgList &Args, ArgStringList &CmdArgs) {
   if (!(Args.hasArg(options::OPT_fprofile_arcs) ||
         Args.hasArg(options::OPT_fprofile_generate) ||
@@ -1908,11 +1892,11 @@ static void addProfileRTLinux(
         Args.hasArg(options::OPT_coverage)))
     return;
 
-  // The profile runtime is located in the Linux library directory and has name
-  // "libclang_rt.profile-<ArchName>.a".
+  // The profile runtime is located in the OS-specific resource directory and
+  // has name "libclang_rt.profile-<ArchName>.a".
   SmallString<128> LibProfile(TC.getDriver().ResourceDir);
   llvm::sys::path::append(
-      LibProfile, "lib", "linux",
+      LibProfile, "lib", getOSNameForCompilerRTLib(TC),
       Twine("libclang_rt.profile-") + getArchNameForCompilerRTLib(TC) + ".a");
 
   CmdArgs.push_back(Args.MakeArgString(LibProfile));
@@ -6790,7 +6774,7 @@ void solaris::Link::ConstructJob(Compilation &C, const JobAction &JA,
   }
   CmdArgs.push_back(Args.MakeArgString(LibPath + "crtn.o"));
 
-  addProfileRT(getToolChain(), Args, CmdArgs, getToolChain().getTriple());
+  addProfileRT(getToolChain(), Args, CmdArgs);
 
   const char *Exec =
     Args.MakeArgString(getToolChain().GetProgramPath("ld"));
@@ -6902,7 +6886,7 @@ void auroraux::Link::ConstructJob(Compilation &C, const JobAction &JA,
                                 getToolChain().GetFilePath("crtend.o")));
   }
 
-  addProfileRT(getToolChain(), Args, CmdArgs, getToolChain().getTriple());
+  addProfileRT(getToolChain(), Args, CmdArgs);
 
   const char *Exec =
     Args.MakeArgString(getToolChain().GetProgramPath("ld"));
@@ -7479,7 +7463,7 @@ void freebsd::Link::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath("crtn.o")));
   }
 
-  addProfileRT(ToolChain, Args, CmdArgs, ToolChain.getTriple());
+  addProfileRT(ToolChain, Args, CmdArgs);
 
   const char *Exec =
     Args.MakeArgString(ToolChain.GetProgramPath("ld"));
@@ -7728,7 +7712,7 @@ void netbsd::Link::ConstructJob(Compilation &C, const JobAction &JA,
                                                                     "crtn.o")));
   }
 
-  addProfileRT(getToolChain(), Args, CmdArgs, getToolChain().getTriple());
+  addProfileRT(getToolChain(), Args, CmdArgs);
 
   const char *Exec = Args.MakeArgString(getToolChain().GetProgramPath("ld"));
   C.addCommand(new Command(JA, *this, Exec, CmdArgs));
@@ -8127,7 +8111,7 @@ void gnutools::Link::ConstructJob(Compilation &C, const JobAction &JA,
     addDfsanRTLinux(getToolChain(), Args, CmdArgs);
 
   // The profile runtime also needs access to system libraries.
-  addProfileRTLinux(getToolChain(), Args, CmdArgs);
+  addProfileRT(getToolChain(), Args, CmdArgs);
 
   if (D.CCCIsCXX() &&
       !Args.hasArg(options::OPT_nostdlib) &&
@@ -8241,7 +8225,7 @@ void minix::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   AddLinkerInputs(getToolChain(), Inputs, Args, CmdArgs);
 
-  addProfileRT(getToolChain(), Args, CmdArgs, getToolChain().getTriple());
+  addProfileRT(getToolChain(), Args, CmdArgs);
 
   if (!Args.hasArg(options::OPT_nostdlib) &&
       !Args.hasArg(options::OPT_nodefaultlibs)) {
@@ -8443,7 +8427,7 @@ void dragonfly::Link::ConstructJob(Compilation &C, const JobAction &JA,
                             getToolChain().GetFilePath("crtn.o")));
   }
 
-  addProfileRT(getToolChain(), Args, CmdArgs, getToolChain().getTriple());
+  addProfileRT(getToolChain(), Args, CmdArgs);
 
   const char *Exec =
     Args.MakeArgString(getToolChain().GetProgramPath("ld"));
