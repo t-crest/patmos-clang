@@ -1255,11 +1255,6 @@ void PragmaDetectMismatchHandler::HandlePragma(Preprocessor &PP,
     return;
   }
 
-  // If the pragma is lexically sound, notify any interested PPCallbacks.
-  if (PP.getPPCallbacks())
-    PP.getPPCallbacks()->PragmaDetectMismatch(CommentLoc, NameString,
-                                              ValueString);
-
   Actions.ActOnPragmaDetectMismatch(NameString, ValueString);
 }
 
@@ -1329,10 +1324,6 @@ void PragmaCommentHandler::HandlePragma(Preprocessor &PP,
     PP.Diag(Tok.getLocation(), diag::err_pragma_comment_malformed);
     return;
   }
-
-  // If the pragma is lexically sound, notify any interested PPCallbacks.
-  if (PP.getPPCallbacks())
-    PP.getPPCallbacks()->PragmaComment(CommentLoc, II, ArgumentString);
 
   Actions.ActOnPragmaMSComment(Kind, ArgumentString);
 }
