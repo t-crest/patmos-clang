@@ -675,7 +675,7 @@ def Format : InheritableAttr {
               IntArgument<"FirstArg">];
   let Subjects = SubjectList<[ObjCMethod, Block, HasFunctionProto], WarnDiag,
                              "ExpectedFunction">;
-  let Documentation = [Undocumented];
+  let Documentation = [FormatDocs];
 }
 
 def FormatArg : InheritableAttr {
