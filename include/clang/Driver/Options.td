@@ -1284,7 +1284,7 @@ def mserialize_roots : Joined<["-"], "mserialize-roots=">, Group<m_PML_Group>,
 def no_canonical_prefixes : Flag<["-"], "no-canonical-prefixes">, Flags<[HelpHidden]>,
   HelpText<"Use relative instead of canonical paths">;
 def no_cpp_precomp : Flag<["-"], "no-cpp-precomp">, Group<clang_ignored_f_Group>;
-def no_integrated_as : Flag<["-"], "no-integrated-as">, Flags<[DriverOption]>;
+def no_integrated_as : Flag<["-"], "no-integrated-as">, Flags<[CC1Option, DriverOption]>;
 def no_integrated_cpp : Flag<["-", "--"], "no-integrated-cpp">, Flags<[DriverOption]>;
 def no_pedantic : Flag<["-", "--"], "no-pedantic">, Group<pedantic_Group>;
 def no__dead__strip__inits__and__terms : Flag<["-"], "no_dead_strip_inits_and_terms">;
