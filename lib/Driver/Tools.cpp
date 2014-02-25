@@ -473,6 +473,7 @@ static bool isSignedCharDefault(const llvm::Triple &Triple) {
     return true;
 
   case llvm::Triple::aarch64:
+  case llvm::Triple::aarch64_be:
   case llvm::Triple::arm:
   case llvm::Triple::ppc:
   case llvm::Triple::ppc64:
@@ -1364,6 +1365,7 @@ static std::string getCPUName(const ArgList &Args, const llvm::Triple &T) {
     return "";
 
   case llvm::Triple::aarch64:
+  case llvm::Triple::aarch64_be:
     return getAArch64TargetCPU(Args, T);
 
   case llvm::Triple::arm:
@@ -1588,6 +1590,7 @@ static void getTargetFeatures(const Driver &D, const llvm::Triple &Triple,
     getSparcTargetFeatures(Args, Features);
     break;
   case llvm::Triple::aarch64:
+  case llvm::Triple::aarch64_be:
     getAArch64TargetFeatures(D, Args, Features);
     break;
   case llvm::Triple::x86:
