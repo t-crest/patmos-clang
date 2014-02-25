@@ -2562,6 +2562,14 @@ bool FreeBSD::UseSjLjExceptions() const {
   }
 }
 
+bool FreeBSD::HasNativeLLVMSupport() const {
+  return true;
+}
+
+bool FreeBSD::isPIEDefault() const {
+  return getSanitizerArgs().hasZeroBaseShadow();
+}
+
 /// NetBSD - NetBSD tool chain which can call as(1) and ld(1) directly.
 
 NetBSD::NetBSD(const Driver &D, const llvm::Triple& Triple, const ArgList &Args)
@@ -3110,10 +3118,6 @@ Linux::Linux(const Driver &D, const llvm::Triple &Triple, const ArgList &Args)
 
   addPathIfExists(SysRoot + "/lib", Paths);
   addPathIfExists(SysRoot + "/usr/lib", Paths);
-}
-
-bool FreeBSD::HasNativeLLVMSupport() const {
-  return true;
 }
 
 bool Linux::HasNativeLLVMSupport() const {
