@@ -1131,8 +1131,9 @@ OMPPrivateClause *OMPPrivateClause::Create(const ASTContext &C,
                                            SourceLocation LParenLoc,
                                            SourceLocation EndLoc,
                                            ArrayRef<Expr *> VL) {
-  void *Mem = C.Allocate(sizeof(OMPPrivateClause) + sizeof(Expr *) * VL.size(),
-                         llvm::alignOf<OMPPrivateClause>());
+  void *Mem = C.Allocate(llvm::RoundUpToAlignment(sizeof(OMPPrivateClause),
+                                                  llvm::alignOf<Expr *>()) +
+                         sizeof(Expr *) * VL.size());
   OMPPrivateClause *Clause = new (Mem) OMPPrivateClause(StartLoc, LParenLoc,
                                                         EndLoc, VL.size());
   Clause->setVarRefs(VL);
@@ -1141,8 +1142,9 @@ OMPPrivateClause *OMPPrivateClause::Create(const ASTContext &C,
 
 OMPPrivateClause *OMPPrivateClause::CreateEmpty(const ASTContext &C,
                                                 unsigned N) {
-  void *Mem = C.Allocate(sizeof(OMPPrivateClause) + sizeof(Expr *) * N,
-                         llvm::alignOf<OMPPrivateClause>());
+  void *Mem = C.Allocate(llvm::RoundUpToAlignment(sizeof(OMPPrivateClause),
+                                                  llvm::alignOf<Expr *>()) +
+                         sizeof(Expr *) * N);
   return new (Mem) OMPPrivateClause(N);
 }
 
@@ -1151,9 +1153,9 @@ OMPFirstprivateClause *OMPFirstprivateClause::Create(const ASTContext &C,
                                                      SourceLocation LParenLoc,
                                                      SourceLocation EndLoc,
                                                      ArrayRef<Expr *> VL) {
-  void *Mem = C.Allocate(sizeof(OMPFirstprivateClause) +
-                         sizeof(Expr *) * VL.size(),
-                         llvm::alignOf<OMPFirstprivateClause>());
+  void *Mem = C.Allocate(llvm::RoundUpToAlignment(sizeof(OMPFirstprivateClause),
+                                                  llvm::alignOf<Expr *>()) +
+                         sizeof(Expr *) * VL.size());
   OMPFirstprivateClause *Clause = new (Mem) OMPFirstprivateClause(StartLoc,
                                                                   LParenLoc,
                                                                   EndLoc,
@@ -1164,8 +1166,9 @@ OMPFirstprivateClause *OMPFirstprivateClause::Create(const ASTContext &C,
 
 OMPFirstprivateClause *OMPFirstprivateClause::CreateEmpty(const ASTContext &C,
                                                           unsigned N) {
-  void *Mem = C.Allocate(sizeof(OMPFirstprivateClause) + sizeof(Expr *) * N,
-                         llvm::alignOf<OMPFirstprivateClause>());
+  void *Mem = C.Allocate(llvm::RoundUpToAlignment(sizeof(OMPFirstprivateClause),
+                                                  llvm::alignOf<Expr *>()) +
+                         sizeof(Expr *) * N);
   return new (Mem) OMPFirstprivateClause(N);
 }
 
@@ -1174,8 +1177,9 @@ OMPSharedClause *OMPSharedClause::Create(const ASTContext &C,
                                          SourceLocation LParenLoc,
                                          SourceLocation EndLoc,
                                          ArrayRef<Expr *> VL) {
-  void *Mem = C.Allocate(sizeof(OMPSharedClause) + sizeof(Expr *) * VL.size(),
-                         llvm::alignOf<OMPSharedClause>());
+  void *Mem = C.Allocate(llvm::RoundUpToAlignment(sizeof(OMPSharedClause),
+                                                  llvm::alignOf<Expr *>()) +
+                         sizeof(Expr *) * VL.size());
   OMPSharedClause *Clause = new (Mem) OMPSharedClause(StartLoc, LParenLoc,
                                                       EndLoc, VL.size());
   Clause->setVarRefs(VL);
@@ -1184,8 +1188,9 @@ OMPSharedClause *OMPSharedClause::Create(const ASTContext &C,
 
 OMPSharedClause *OMPSharedClause::CreateEmpty(const ASTContext &C,
                                               unsigned N) {
-  void *Mem = C.Allocate(sizeof(OMPSharedClause) + sizeof(Expr *) * N,
-                         llvm::alignOf<OMPSharedClause>());
+  void *Mem = C.Allocate(llvm::RoundUpToAlignment(sizeof(OMPSharedClause),
+                                                  llvm::alignOf<Expr *>()) +
+                         sizeof(Expr *) * N);
   return new (Mem) OMPSharedClause(N);
 }
 
@@ -1201,9 +1206,10 @@ OMPParallelDirective *OMPParallelDirective::Create(
                                               SourceLocation EndLoc,
                                               ArrayRef<OMPClause *> Clauses,
                                               Stmt *AssociatedStmt) {
-  void *Mem = C.Allocate(sizeof(OMPParallelDirective) +
-                         sizeof(OMPClause *) * Clauses.size() + sizeof(Stmt *),
-                         llvm::alignOf<OMPParallelDirective>());
+  unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPParallelDirective),
+                                           llvm::alignOf<OMPClause *>());
+  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * Clauses.size() +
+                         sizeof(Stmt *));
   OMPParallelDirective *Dir = new (Mem) OMPParallelDirective(StartLoc, EndLoc,
                                                              Clauses.size());
   Dir->setClauses(Clauses);
@@ -1214,9 +1220,9 @@ OMPParallelDirective *OMPParallelDirective::Create(
 OMPParallelDirective *OMPParallelDirective::CreateEmpty(const ASTContext &C,
                                                         unsigned N,
                                                         EmptyShell) {
-  void *Mem = C.Allocate(sizeof(OMPParallelDirective) +
-                         sizeof(OMPClause *) * N + sizeof(Stmt *),
-                         llvm::alignOf<OMPParallelDirective>());
+  unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPParallelDirective),
+                                           llvm::alignOf<OMPClause *>());
+  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * N + sizeof(Stmt *));
   return new (Mem) OMPParallelDirective(N);
 }
 
