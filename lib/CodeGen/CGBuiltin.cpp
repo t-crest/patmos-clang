@@ -3143,11 +3143,10 @@ static Value *packTBLDVectorList(CodeGenFunction &CGF, ArrayRef<Value *> Ops,
 
   TblTy = llvm::VectorType::get(TblTy->getElementType(),
                                 2*TblTy->getNumElements());
-  llvm::Type *Tys[2] = { ResTy, TblTy };
 
   Function *TblF;
   TblOps.push_back(IndexOp);
-  TblF = CGF.CGM.getIntrinsic(IntID, Tys);
+  TblF = CGF.CGM.getIntrinsic(IntID, ResTy);
   
   return CGF.EmitNeonCall(TblF, TblOps, Name);
 }
@@ -3213,9 +3212,6 @@ static Value *EmitAArch64TblBuiltinExpr(CodeGenFunction &CGF,
   }
 
   Arg = E->getArg(TblPos);
-  llvm::Type *TblTy = CGF.ConvertType(Arg->getType());
-  llvm::VectorType *VTblTy = cast<llvm::VectorType>(TblTy);
-  llvm::Type *Tys[2] = { Ty, VTblTy };
   unsigned nElts = VTy->getNumElements();  
 
   // AArch64 scalar builtins are not overloaded, they do not have an extra
@@ -3329,7 +3325,7 @@ static Value *EmitAArch64TblBuiltinExpr(CodeGenFunction &CGF,
   if (!Int)
     return 0;
 
-  Function *F = CGF.CGM.getIntrinsic(Int, Tys);
+  Function *F = CGF.CGM.getIntrinsic(Int, Ty);
   return CGF.EmitNeonCall(F, Ops, s);
 }
 
