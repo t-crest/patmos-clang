@@ -5076,13 +5076,25 @@ void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
         A->getOption().matches(options::OPT_mhard_float) ||
         A->getOption().matches(options::OPT_mfloat_abi_EQ) ||
         A->getOption().matches(options::OPT_mno_soft_float) ||
-        A->getOption().matches(options::OPT_m_Patmos_Group)) {
-      A->claim();
+        A->getOption().matches(options::OPT_m_Patmos_Group) ||
+        A->getOption().matches(options::OPT_m_Group))
+    {
+      // Known -m options are already handled in the driver.
       continue;
     }
-    else if (A->getOption().matches(options::OPT_m_Group)) {
+    else if (A->getOption().matches(options::OPT_m_PML_Group) ||
+             A->getOption().matches(options::OPT_m_Patmos_llc_Group))
+    {
+      // PML options and known llc options are directly passed on to LLC.
       A->claim();
       A->render(Args, LLCArgs);
+    }
+    else if (A->getSpelling().startswith("-mpatmos"))
+    {
+      // Unknown -mpatmos options are not passed on, make an error out of this!
+      std::string msg = "Use -Xllc " + A->getAsString(Args) +
+                        " to pass this option to llc.";
+      llvm::report_fatal_error(msg);
     }
     else if (A->getOption().matches(options::OPT_Xllc)) {
       A->claim();
@@ -5255,6 +5267,10 @@ void patmos::Compile::ConstructJob(Compilation &C, const JobAction &JA,
     EmitAsm = false;
     IsLastPhase = true;
   }
+
+  // TODO instead of running LLC separately, we might also just add the opt/LLC
+  //      options to the clang options using -mllvm for -Xopt/-Xllc options and
+  //      let clang -cc1 do the work (but this is slightly harder to debug).
 
   // If this is not the last phase or if we emit llvm-code, we just call clang
   if (EmitLLVM || !IsLastPhase) {

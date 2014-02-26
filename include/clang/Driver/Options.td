@@ -71,6 +71,8 @@ def clang_i_Group         : OptionGroup<"<clang i group>">, Group<i_Group>;
 def m_Group               : OptionGroup<"<m group>">, Group<CompileOnly_Group>;
 def m_x86_Features_Group  : OptionGroup<"<m x86 features group>">, Group<m_Group>;
 def m_Patmos_Group        : OptionGroup<"<m Patmos group>">;
+def m_Patmos_llc_Group    : OptionGroup<"<m Patmos llc group>">;
+def m_PML_Group           : OptionGroup<"<m PML group>">;
 def m_hexagon_Features_Group  : OptionGroup<"<m hexagon features group>">, Group<m_Group>;
 def m_arm_Features_Group  : OptionGroup<"<m arm features group>">, Group<m_Group>;
 def m_ppc_Features_Group  : OptionGroup<"<m ppc features group>">, Group<m_Group>;
@@ -1182,6 +1184,7 @@ def multi__module : Flag<["-"], "multi_module">;
 def multiply__defined__unused : Separate<["-"], "multiply_defined_unused">;
 def multiply__defined : Separate<["-"], "multiply_defined">;
 def mwarn_nonportable_cfstrings : Flag<["-"], "mwarn-nonportable-cfstrings">, Group<m_Group>;
+
 def mpatmos_stack_base : Joined<["-"], "mpatmos-stack-base=">, Group<m_Patmos_Group>;
 def mpatmos_shadow_stack_base : Joined<["-"], "mpatmos-shadow-stack-base=">, Group<m_Patmos_Group>;
 def mpatmos_heap_end : Joined<["-"], "mpatmos-heap-end=">, Group<m_Patmos_Group>;
@@ -1190,6 +1193,53 @@ def mpatmos_cpuinfo_offset : Joined<["-"], "mpatmos-cpuinfo-offset=">, Group<m_P
 def mpatmos_excunit_offset : Joined<["-"], "mpatmos-excunit-offset=">, Group<m_Patmos_Group>;
 def mpatmos_timer_offset : Joined<["-"], "mpatmos-timer-offset=">, Group<m_Patmos_Group>;
 def mpatmos_uart_offset : Joined<["-"], "mpatmos-uart-offset=">, Group<m_Patmos_Group>;
+
+// Some common patmos-llc options that should be passed through. Keep in sync with patmos-llc option names and help.
+// These options might be deprecated in favor of -Xllc in the future.
+def mpatmos_disable_function_splitter : Flag<["-"], "mpatmos-disable-function-splitter">, Group<m_Patmos_llc_Group>,
+  HelpText<"Disable the Patmos function splitter">, Flags<[HelpHidden]>;
+def mpatmos_disable_ifcvt : Flag<["-"], "mpatmos-disable-ifcvt">, Group<m_Patmos_llc_Group>,
+  HelpText<"Disable if-converter for Patmos">, Flags<[HelpHidden]>;
+def mpatmos_disable_post_ra : Flag<["-"], "mpatmos-disable-post-ra">, Group<m_Patmos_llc_Group>,
+  HelpText<"Disable any post-RA scheduling">, Flags<[HelpHidden]>;
+def mpatmos_disable_stack_cache : Flag<["-"], "mpatmos-disable-stack-cache">, Group<m_Patmos_llc_Group>,
+  HelpText<"Disable the use of Patmos' stack cache">, Flags<[HelpHidden]>;
+def mpatmos_disable_vliw : Flag<["-"], "mpatmos-disable-vliw">, Group<m_Patmos_llc_Group>,
+  HelpText<"Schedule instructions only in first slot">, Flags<[HelpHidden]>;
+def mpatmos_enable_bypass_from_pml : Flag<["-"], "mpatmos-enable-bypass-from-pml">, Group<m_Patmos_llc_Group>,
+  HelpText<"Enable rewriting unanalyzable (aiT) memory accesses to bypass the cache">, Flags<[HelpHidden]>;
+def mpatmos_enable_stack_cache_analysis : Flag<["-"], "mpatmos-enable-stack-cache-analysis">, Group<m_Patmos_llc_Group>,
+  HelpText<"Enable the Patmos stack cache analysis">, Flags<[HelpHidden]>;
+def mpatmos_ilp_solver : Joined<["-"], "mpatmos-ilp-solver=">, Group<m_Patmos_llc_Group>,
+  HelpText<"Path to an ILP solver">, Flags<[HelpHidden]>;
+def mpatmos_max_subfunction_size : Joined<["-"], "mpatmos-max-subfunction-size=">, Group<m_Patmos_llc_Group>,
+  HelpText<"Maximum size of subfunctions after function splitting, defaults to the method cache size if set to 0">, Flags<[HelpHidden]>;
+def mpatmos_method_cache_size : Joined<["-"], "mpatmos-method-cache-size=">, Group<m_Patmos_llc_Group>,
+  HelpText<"Total size of the instruction cache in bytes (default 4096)">, Flags<[HelpHidden]>;
+def mpatmos_nested_branches : Flag<["-"], "mpatmos-nested-branches">, Group<m_Patmos_llc_Group>,
+  HelpText<"Enable scheduling of branch instructions inside CFL delay slots">, Flags<[HelpHidden]>;
+def mpatmos_preferred_scc_size : Joined<["-"], "mpatmos-preferred-scc-size=">, Group<m_Patmos_llc_Group>,
+  HelpText<"Preferred maximum size for SCC subfunctions, defaults to mpatmos-preferred-subfunction-size if 0">, Flags<[HelpHidden]>;
+def mpatmos_preferred_subfunction_size : Joined<["-"], "mpatmos-preferred-subfunction-size=">, Group<m_Patmos_llc_Group>,
+  HelpText<"Preferred maximum size of subfunctions, defaults to mpatmos-max-subfunction-size if 0. Larger basic blocks and inline asm are not split">, Flags<[HelpHidden]>;
+def mpatmos_sca_remove_ensures : Flag<["-"], "mpatmos-sca-remove-ensures">, Group<m_Patmos_llc_Group>,
+  HelpText<"Remove unnecessary ensure instructions during Stack Cache Analysis">, Flags<[HelpHidden]>;
+def mpatmos_sca_serialize : Joined<["-"], "mpatmos-sca-serialize=">, Group<m_Patmos_llc_Group>,
+  HelpText<"Export PML specification of generated machine code to FILE">, Flags<[HelpHidden]>;
+def mpatmos_split_call_blocks : Flag<["-"], "mpatmos-split-call-blocks">, Group<m_Patmos_llc_Group>,
+  HelpText<"Split basic blocks containing calls into own subfunctions">, Flags<[HelpHidden]>;
+def mpatmos_stack_cache_size : Joined<["-"], "mpatmos-stack-cache-size=">, Group<m_Patmos_llc_Group>,
+  HelpText<"Total size of the stack cache in bytes">, Flags<[HelpHidden]>;
+
+def mimport_pml : Joined<["-"], "mimport-pml=">, Group<m_PML_Group>, 
+  HelpText<"Read external analysis results from PML file">, Flags<[HelpHidden]>;
+def mpreemit_bitcode : Joined<["-"], "mpreemit-bitcode=">, Group<m_PML_Group>,
+  HelpText<"Write the final bitcode representation (before emit) to FILE">, Flags<[HelpHidden]>;
+def mserialize : Joined<["-"], "mserialize=">, Group<m_PML_Group>,
+  HelpText<"Export PML specification of generated machine code to FILE">, Flags<[HelpHidden]>;
+def mserialize_roots : Joined<["-"], "mserialize-roots=">, Group<m_PML_Group>,
+  HelpText<"Export only methods reachable from given functions">, Flags<[HelpHidden]>;
+
 def no_canonical_prefixes : Flag<["-"], "no-canonical-prefixes">, Flags<[HelpHidden]>,
   HelpText<"Use relative instead of canonical paths">;
 def no_cpp_precomp : Flag<["-"], "no-cpp-precomp">, Group<clang_ignored_f_Group>;
