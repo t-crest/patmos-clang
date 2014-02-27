@@ -178,5 +178,4 @@ def AsTypeExpr : DStmt<Expr>;
 // OpenMP Directives.
 def OMPExecutableDirective : Stmt<1>;
 def OMPParallelDirective : DStmt<OMPExecutableDirective>;
-
-def Flowfact : Stmt;
+def OMPSimdDirective : DStmt<OMPExecutableDirective>;

@@ -293,7 +293,7 @@ void OMPClauseProfiler::VisitOMPSharedClause(const OMPSharedClause *C) {
 }
 
 void
-StmtProfiler::VisitOMPParallelDirective(const OMPParallelDirective *S) {
+StmtProfiler::VisitOMPExecutableDirective(const OMPExecutableDirective *S) {
   VisitStmt(S);
   OMPClauseProfiler P(this);
   ArrayRef<OMPClause *> Clauses = S->clauses();
@@ -303,8 +303,12 @@ StmtProfiler::VisitOMPParallelDirective(const OMPParallelDirective *S) {
       P.Visit(*I);
 }
 
-void StmtProfiler::VisitFlowfact(const Flowfact *Node) {
-  VisitStmt(Node);
+void StmtProfiler::VisitOMPParallelDirective(const OMPParallelDirective *S) {
+  VisitOMPExecutableDirective(S);
+}
+
+void StmtProfiler::VisitOMPSimdDirective(const OMPSimdDirective *S) {
+  VisitOMPExecutableDirective(S);
 }
 
 void StmtProfiler::VisitExpr(const Expr *S) {

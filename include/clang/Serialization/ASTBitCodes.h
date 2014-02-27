@@ -1333,6 +1333,7 @@ namespace clang {
 
       // OpenMP drectives
       STMT_OMP_PARALLEL_DIRECTIVE,
+      STMT_OMP_SIMD_DIRECTIVE,
 
       STMT_PLATIN,
 

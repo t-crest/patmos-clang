@@ -1218,42 +1218,39 @@ OMPParallelDirective *OMPParallelDirective::Create(
 }
 
 OMPParallelDirective *OMPParallelDirective::CreateEmpty(const ASTContext &C,
-                                                        unsigned N,
+                                                        unsigned NumClauses,
                                                         EmptyShell) {
   unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPParallelDirective),
                                            llvm::alignOf<OMPClause *>());
-  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * N + sizeof(Stmt *));
-  return new (Mem) OMPParallelDirective(N);
+  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * NumClauses +
+                         sizeof(Stmt *));
+  return new (Mem) OMPParallelDirective(NumClauses);
 }
 
-Flowfact::Flowfact(SourceRange Range,
-                   ArrayRef<int> Multipliers,
-                   ArrayRef<std::string> Markers,
-                   int rhs)
-  : Stmt(FlowfactClass), Range(Range),
-    Multipliers(Multipliers.begin(), Multipliers.end()),
-    Markers(Markers.begin(), Markers.end()),
-    RHS(rhs) {
-    assert(Markers.size() == Multipliers.size());
+OMPSimdDirective *OMPSimdDirective::Create(const ASTContext &C,
+                                           SourceLocation StartLoc,
+                                           SourceLocation EndLoc,
+                                           ArrayRef<OMPClause *> Clauses,
+                                           Stmt *AssociatedStmt) {
+  unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPSimdDirective),
+                                           llvm::alignOf<OMPClause *>());
+  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * Clauses.size() +
+                         sizeof(Stmt *));
+  OMPSimdDirective *Dir = new (Mem) OMPSimdDirective(StartLoc, EndLoc,
+                                                     1, Clauses.size());
+  Dir->setClauses(Clauses);
+  Dir->setAssociatedStmt(AssociatedStmt);
+  return Dir;
 }
 
-Flowfact *Flowfact::Create(const ASTContext &C,
-                           SourceRange Range,
-                           ArrayRef<int> Multipliers,
-                           ArrayRef<std::string> Markers,
-                           int rhs) {
-  // XXX this is not he clang way of allocating the Flowfact statement, at least
-  // the LHS terms should be stored as sub-expressions and allocated here
-  void *Mem = C.Allocate(sizeof(Flowfact),
-                         llvm::alignOf<Flowfact>());
-  return new (Mem) Flowfact(Range, Multipliers, Markers, rhs);
+OMPSimdDirective *OMPSimdDirective::CreateEmpty(const ASTContext &C,
+                                                unsigned NumClauses,
+                                                unsigned CollapsedNum,
+                                                EmptyShell) {
+  unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPSimdDirective),
+                                           llvm::alignOf<OMPClause *>());
+  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * NumClauses +
+                         sizeof(Stmt *));
+  return new (Mem) OMPSimdDirective(CollapsedNum, NumClauses);
 }
 
-Flowfact *Flowfact::CreateEmpty(const ASTContext &C) {
-  void *Mem = C.Allocate(sizeof(Flowfact),
-                         llvm::alignOf<Flowfact>());
-  return new (Mem) Flowfact(SourceRange(),
-                            ArrayRef<int>(),
-                            ArrayRef<std::string>(),
-                            -1);
-}
