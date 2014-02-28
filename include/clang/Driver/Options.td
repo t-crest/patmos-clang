@@ -1228,6 +1228,8 @@ def mpatmos_sca_serialize : Joined<["-"], "mpatmos-sca-serialize=">, Group<m_Pat
   HelpText<"Export PML specification of generated machine code to FILE">, Flags<[HelpHidden]>;
 def mpatmos_split_call_blocks : Flag<["-"], "mpatmos-split-call-blocks">, Group<m_Patmos_llc_Group>,
   HelpText<"Split basic blocks containing calls into own subfunctions">, Flags<[HelpHidden]>;
+def mpatmos_stack_cache_analysis_bounds : Joined<["-"], "mpatmos-stack-cache-analysis-bounds=">, Group<m_Patmos_llc_Group>,
+  HelpText<"File containing bounds for the stack cache analysis">, Flags<[HelpHidden]>;
 def mpatmos_stack_cache_size : Joined<["-"], "mpatmos-stack-cache-size=">, Group<m_Patmos_llc_Group>,
   HelpText<"Total size of the stack cache in bytes">, Flags<[HelpHidden]>;
 
