@@ -21,6 +21,7 @@
 #include "llvm/TableGen/TableGenBackend.h"
 #include <algorithm>
 #include <cctype>
+#include <memory>
 #include <set>
 #include <sstream>
 
@@ -967,8 +968,8 @@ namespace {
   };
 }
 
-static Argument *createArgument(Record &Arg, StringRef Attr,
-                                Record *Search = 0) {
+static std::unique_ptr<Argument> createArgument(Record &Arg, StringRef Attr,
+                                                Record *Search = 0) {
   if (!Search)
     Search = &Arg;
 
@@ -1008,7 +1009,7 @@ static Argument *createArgument(Record &Arg, StringRef Attr,
     // Search in reverse order so that the most-derived type is handled first.
     std::vector<Record*> Bases = Search->getSuperClasses();
     for (auto i = Bases.rbegin(), e = Bases.rend(); i != e; ++i) {
-      Ptr = createArgument(Arg, Attr, *i);
+      Ptr = createArgument(Arg, Attr, *i).release();
       if (Ptr)
         break;
     }
@@ -1017,7 +1018,7 @@ static Argument *createArgument(Record &Arg, StringRef Attr,
   if (Ptr && Arg.getValueAsBit("Optional"))
     Ptr->setOptional(true);
 
-  return Ptr;
+  return std::unique_ptr<Argument>(Ptr);
 }
 
 static void writeAvailabilityValue(raw_ostream &OS) {
@@ -1052,8 +1053,10 @@ static void writeGetSpellingFunction(Record &R, raw_ostream &OS) {
   OS << "}\n\n";
 }
 
-static void writePrettyPrintFunction(Record &R, std::vector<Argument*> &Args,
-                                     raw_ostream &OS) {
+static void
+writePrettyPrintFunction(Record &R,
+                         const std::vector<std::unique_ptr<Argument>> &Args,
+                         raw_ostream &OS) {
   std::vector<FlattenedSpelling> Spellings = GetFlattenedSpellings(R);
 
   OS << "void " << R.getName() << "Attr::printPretty("
@@ -1114,16 +1117,8 @@ static void writePrettyPrintFunction(Record &R, std::vector<Argument*> &Args,
       "  case " << I << " : {\n"
       "    OS << \"" + Prefix.str() + Spelling.str();
 
-    if (Variety == "Pragma") {
-      OS << " \";\n";
-      OS << "    printPrettyPragma(OS, Policy);\n";
-      OS << "    break;\n";
-      OS << "  }\n";
-      continue;
-    }
-
-
-    if (Args.size()) OS << "(";
+    if (!Args.empty())
+      OS << "(";
     if (Spelling == "availability") {
       writeAvailabilityValue(OS);
     } else {
@@ -1133,7 +1128,8 @@ static void writePrettyPrintFunction(Record &R, std::vector<Argument*> &Args,
       }
     }
 
-    if (Args.size()) OS << ")";
+    if (!Args.empty())
+      OS << ")";
     OS << Suffix.str() + "\";\n";
 
     OS <<
@@ -1396,15 +1392,12 @@ void EmitClangAttrClass(RecordKeeper &Records, raw_ostream &OS) {
     OS << "class " << R.getName() << "Attr : public " << SuperName << " {\n";
 
     std::vector<Record*> ArgRecords = R.getValueAsListOfDefs("Args");
-    std::vector<Argument*> Args;
+    std::vector<std::unique_ptr<Argument>> Args;
     Args.reserve(ArgRecords.size());
 
     for (auto ArgRecord : ArgRecords) {
-      Argument *Arg = createArgument(*ArgRecord, R.getName());
-      assert(Arg);
-      Args.push_back(Arg);
-
-      Arg->writeDeclarations(OS);
+      Args.emplace_back(createArgument(*ArgRecord, R.getName()));
+      Args.back()->writeDeclarations(OS);
       OS << "\n\n";
     }
 
@@ -1428,7 +1421,7 @@ void EmitClangAttrClass(RecordKeeper &Records, raw_ostream &OS) {
     OS << "ASTContext &Ctx";
     if (!ElideSpelling)
       OS << ", Spelling S";
-    for (auto ai : Args) {
+    for (auto const &ai : Args) {
       OS << ", ";
       ai->writeCtorParameters(OS);
     }
@@ -1436,7 +1429,7 @@ void EmitClangAttrClass(RecordKeeper &Records, raw_ostream &OS) {
     OS << ") {\n";
     OS << "    " << R.getName() << "Attr *A = new (Ctx) " << R.getName();
     OS << "Attr(Loc, Ctx, ";
-    for (auto ai : Args) {
+    for (auto const &ai : Args) {
       ai->writeImplicitCtorArgs(OS);
       OS << ", ";
     }
@@ -1447,7 +1440,7 @@ void EmitClangAttrClass(RecordKeeper &Records, raw_ostream &OS) {
     OS << "  " << R.getName() << "Attr(SourceRange R, ASTContext &Ctx\n";
     
     bool HasOpt = false;
-    for (auto ai : Args) {
+    for (auto const &ai : Args) {
       OS << "              , ";
       ai->writeCtorParameters(OS);
       OS << "\n";
@@ -1461,7 +1454,7 @@ void EmitClangAttrClass(RecordKeeper &Records, raw_ostream &OS) {
     OS << "             )\n";
     OS << "    : " << SuperName << "(attr::" << R.getName() << ", R, SI)\n";
 
-    for (auto ai : Args) {
+    for (auto const &ai : Args) {
       OS << "              , ";
       ai->writeCtorInitializers(OS);
       OS << "\n";
@@ -1469,7 +1462,7 @@ void EmitClangAttrClass(RecordKeeper &Records, raw_ostream &OS) {
 
     OS << "  {\n";
   
-    for (auto ai : Args) {
+    for (auto const &ai : Args) {
       ai->writeCtorBody(OS);
       OS << "\n";
     }
@@ -1479,7 +1472,7 @@ void EmitClangAttrClass(RecordKeeper &Records, raw_ostream &OS) {
     // optional arguments as well.
     if (HasOpt) {
       OS << "  " << R.getName() << "Attr(SourceRange R, ASTContext &Ctx\n";
-      for (auto ai : Args) {
+      for (auto const &ai : Args) {
         if (!ai->isOptional()) {
           OS << "              , ";
           ai->writeCtorParameters(OS);
@@ -1493,7 +1486,7 @@ void EmitClangAttrClass(RecordKeeper &Records, raw_ostream &OS) {
       OS << "             )\n";
       OS << "    : " << SuperName << "(attr::" << R.getName() << ", R, SI)\n";
 
-      for (auto ai : Args) {
+      for (auto const &ai : Args) {
         OS << "              , ";
         ai->writeCtorDefaultInitializers(OS);
         OS << "\n";
@@ -1501,7 +1494,7 @@ void EmitClangAttrClass(RecordKeeper &Records, raw_ostream &OS) {
 
       OS << "  {\n";
   
-      for (auto ai : Args) {
+      for (auto const &ai : Args) {
         if (!ai->isOptional()) {
           ai->writeCtorBody(OS);
           OS << "\n";
@@ -1525,14 +1518,15 @@ void EmitClangAttrClass(RecordKeeper &Records, raw_ostream &OS) {
 
     writeAttrAccessorDefinition(R, OS);
 
-    for (auto ai : Args) {
+    for (auto const &ai : Args) {
       ai->writeAccessors(OS);
       OS << "\n\n";
 
       if (ai->isEnumArg())
-        static_cast<EnumArgument *>(ai)->writeConversion(OS);
+        static_cast<const EnumArgument *>(ai.get())->writeConversion(OS);
       else if (ai->isVariadicEnumArg())
-        static_cast<VariadicEnumArgument *>(ai)->writeConversion(OS);
+        static_cast<const VariadicEnumArgument *>(ai.get())
+            ->writeConversion(OS);
     }
 
     OS << R.getValueAsString("AdditionalMembers");
@@ -1565,19 +1559,19 @@ void EmitClangAttrImpl(RecordKeeper &Records, raw_ostream &OS) {
     
     if (!R.getValueAsBit("ASTNode"))
       continue;
-    
-    std::vector<Record*> ArgRecords = R.getValueAsListOfDefs("Args");
-    std::vector<Argument*> Args;
-    for (auto ri : ArgRecords)
-      Args.push_back(createArgument(*ri, R.getName()));
 
-    for (auto ai : Args)
+    std::vector<Record*> ArgRecords = R.getValueAsListOfDefs("Args");
+    std::vector<std::unique_ptr<Argument>> Args;
+    for (auto ri : ArgRecords)
+      Args.emplace_back(createArgument(*ri, R.getName()));
+
+    for (auto const &ai : Args)
       ai->writeAccessorDefinitions(OS);
 
     OS << R.getName() << "Attr *" << R.getName()
        << "Attr::clone(ASTContext &C) const {\n";
     OS << "  return new (C) " << R.getName() << "Attr(getLocation(), C";
-    for (auto ai : Args) {
+    for (auto const &ai : Args) {
       OS << ", ";
       ai->writeCloneArgs(OS);
     }
@@ -1668,7 +1662,7 @@ void EmitClangAttrPCHRead(RecordKeeper &Records, raw_ostream &OS) {
   Record *InhClass = Records.getClass("InheritableAttr");
   std::vector<Record*> Attrs = Records.getAllDerivedDefinitions("Attr"),
                        ArgRecords;
-  std::vector<Argument*> Args;
+  std::vector<std::unique_ptr<Argument>> Args;
 
   OS << "  switch (Kind) {\n";
   OS << "  default:\n";
@@ -1687,12 +1681,11 @@ void EmitClangAttrPCHRead(RecordKeeper &Records, raw_ostream &OS) {
     ArgRecords = R.getValueAsListOfDefs("Args");
     Args.clear();
     for (auto ai : ArgRecords) {
-      Argument *A = createArgument(*ai, R.getName());
-      Args.push_back(A);
-      A->writePCHReadDecls(OS);
+      Args.emplace_back(createArgument(*ai, R.getName()));
+      Args.back()->writePCHReadDecls(OS);
     }
     OS << "    New = new (Context) " << R.getName() << "Attr(Range, Context";
-    for (auto ri : Args) {
+    for (auto const &ri : Args) {
       OS << ", ";
       ri->writePCHReadArgs(OS);
     }
@@ -1863,12 +1856,8 @@ void EmitClangAttrASTVisitor(RecordKeeper &Records, raw_ostream &OS) {
        << "    return false;\n";
 
     std::vector<Record*> ArgRecords = R.getValueAsListOfDefs("Args");
-    for (auto ri : ArgRecords) {
-      Record &ArgRecord = *ri;
-      Argument *Arg = createArgument(ArgRecord, R.getName());
-      assert(Arg);
-      Arg->writeASTVisitorTraversal(OS);
-    }
+    for (auto ri : ArgRecords)
+      createArgument(*ri, R.getName())->writeASTVisitorTraversal(OS);
 
     OS << "  return true;\n";
     OS << "}\n\n";
@@ -1938,20 +1927,17 @@ void EmitClangAttrTemplateInstantiate(RecordKeeper &Records, raw_ostream &OS) {
     }
 
     std::vector<Record*> ArgRecords = R.getValueAsListOfDefs("Args");
-    std::vector<Argument*> Args;
+    std::vector<std::unique_ptr<Argument>> Args;
     Args.reserve(ArgRecords.size());
 
-    for (auto ArgRecord : ArgRecords) {
-      Argument *Arg = createArgument(*ArgRecord, R.getName());
-      assert(Arg);
-      Args.push_back(Arg);
-    }
+    for (auto ArgRecord : ArgRecords)
+      Args.emplace_back(createArgument(*ArgRecord, R.getName()));
 
-    for (auto ai : Args) {
+    for (auto const &ai : Args)
       ai->writeTemplateInstantiation(OS);
-    }
+
     OS << "      return new (C) " << R.getName() << "Attr(A->getLocation(), C";
-    for (auto ai : Args) {
+    for (auto const &ai : Args) {
       OS << ", ";
       ai->writeTemplateInstantiationArgs(OS);
     }
