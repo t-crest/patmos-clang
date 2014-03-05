@@ -6318,7 +6318,10 @@ TreeTransform<Derived>::TransformOMPSimdDirective(OMPSimdDirective *D) {
 template<typename Derived>
 OMPClause *
 TreeTransform<Derived>::TransformOMPIfClause(OMPIfClause *C) {
-  return getDerived().RebuildOMPIfClause(C->getCondition(), C->getLocStart(),
+  ExprResult Cond = getDerived().TransformExpr(C->getCondition());
+  if (Cond.isInvalid())
+    return 0;
+  return getDerived().RebuildOMPIfClause(Cond.take(), C->getLocStart(),
                                          C->getLParenLoc(), C->getLocEnd());
 }
 
