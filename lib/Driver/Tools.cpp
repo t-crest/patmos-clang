@@ -672,10 +672,6 @@ StringRef tools::arm::getARMFloatABI(const Driver &D, const ArgList &Args,
         // EABI is always AAPCS, and if it was not marked 'hard', it's softfp
         FloatABI = "softfp";
         break;
-      case llvm::Triple::MachO: {
-        FloatABI = "soft";
-        break;
-      }
       case llvm::Triple::Android: {
         std::string ArchName =
           arm::getLLVMArchSuffixForARM(arm::getARMTargetCPU(Args, Triple));
@@ -688,6 +684,10 @@ StringRef tools::arm::getARMFloatABI(const Driver &D, const ArgList &Args,
       default:
         // Assume "soft", but warn the user we are guessing.
         FloatABI = "soft";
+        // *-macho defaults to "soft"
+        if (Triple.getOS() == llvm::Triple::UnknownOS &&
+            Triple.getObjectFormat() == llvm::Triple::MachO)
+          break;
         D.Diag(diag::warn_drv_assuming_mfloat_abi_is) << "soft";
         break;
       }
@@ -863,7 +863,8 @@ void Clang::AddARMTargetArgs(const ArgList &Args,
     // The backend is hardwired to assume AAPCS for M-class processors, ensure
     // the frontend matches that.
     if (Triple.getEnvironment() == llvm::Triple::EABI ||
-        Triple.getEnvironment() == llvm::Triple::MachO ||
+        (Triple.getOS() == llvm::Triple::UnknownOS &&
+         Triple.getObjectFormat() == llvm::Triple::MachO) ||
         StringRef(CPUName).startswith("cortex-m")) {
       ABIName = "aapcs";
     } else {
@@ -6235,7 +6236,7 @@ void darwin::setTripleTypeForMachOArchName(llvm::Triple &T, StringRef Str) {
     T.setArchName(Str);
   else if (Str == "armv6m" || Str == "armv7m" || Str == "armv7em") {
     T.setOS(llvm::Triple::UnknownOS);
-    T.setEnvironment(llvm::Triple::MachO);
+    T.setObjectFormat(llvm::Triple::MachO);
   }
 }
 
