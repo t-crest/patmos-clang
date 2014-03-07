@@ -6325,7 +6325,7 @@ template<typename Derived>
 StmtResult
 TreeTransform<Derived>::TransformOMPSimdDirective(OMPSimdDirective *D) {
   DeclarationNameInfo DirName;
-  getSema().StartOpenMPDSABlock(OMPD_simd, DirName, 0);
+  getDerived().getSema().StartOpenMPDSABlock(OMPD_simd, DirName, 0);
   StmtResult Res = getDerived().TransformOMPExecutableDirective(D);
   getDerived().getSema().EndOpenMPDSABlock(Res.get());
   return Res;
