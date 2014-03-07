@@ -1956,8 +1956,7 @@ void PatmosToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
         ie = filePaths.end(); i != ie; i++) {
       // construct a library search path
       CC1Args.push_back("-isystem");
-      Twine IncPath = StringRef(*i) + "include/";
-      CC1Args.push_back(DriverArgs.MakeArgString(IncPath));
+      CC1Args.push_back(DriverArgs.MakeArgString(Twine(*i) + "include/"));
     }
   }
 }
