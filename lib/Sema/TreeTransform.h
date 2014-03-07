@@ -6315,7 +6315,7 @@ template<typename Derived>
 StmtResult
 TreeTransform<Derived>::TransformOMPParallelDirective(OMPParallelDirective *D) {
   DeclarationNameInfo DirName;
-  getSema().StartOpenMPDSABlock(OMPD_parallel, DirName, 0);
+  getDerived().getSema().StartOpenMPDSABlock(OMPD_parallel, DirName, 0);
   StmtResult Res = getDerived().TransformOMPExecutableDirective(D);
   getDerived().getSema().EndOpenMPDSABlock(Res.get());
   return Res;
