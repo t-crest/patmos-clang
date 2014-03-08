@@ -137,7 +137,7 @@ static void addHeaderInclude(StringRef HeaderName,
                              SmallVectorImpl<char> &Includes,
                              const LangOptions &LangOpts,
                              bool IsExternC) {
-  if (IsExternC)
+  if (IsExternC && LangOpts.CPlusPlus)
     Includes += "extern \"C\" {\n";
   if (LangOpts.ObjC1)
     Includes += "#import \"";
@@ -145,7 +145,7 @@ static void addHeaderInclude(StringRef HeaderName,
     Includes += "#include \"";
   Includes += HeaderName;
   Includes += "\"\n";
-  if (IsExternC)
+  if (IsExternC && LangOpts.CPlusPlus)
     Includes += "}\n";
 }
 
