@@ -22,11 +22,11 @@
 #include "clang/Sema/DeclSpec.h"
 #include "clang/Sema/Loopbound.h"
 #include "clang/Sema/Sema.h"
-#include "llvm/ADT/OwningPtr.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/SaveAndRestore.h"
+#include <memory>
 #include <stack>
 
 namespace clang {
