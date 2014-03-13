@@ -51,6 +51,23 @@ llvm::Value *CodeGenModule::getBuiltinLibFunction(const FunctionDecl *FD,
   return GetOrCreateLLVMFunction(Name, Ty, D, /*ForVTable=*/false);
 }
 
+/// getLLVMIntrinsicFunction - Given a builtin id for a function like
+/// "__llvm_pcmarker", return the corresponding LLVM intrinsic
+llvm::Value *CodeGenModule::getLLVMIntrinsicFunction(const FunctionDecl *FD,
+						     unsigned BuiltinID) {
+  llvm::FunctionType *Ty =
+    cast<llvm::FunctionType>(getTypes().ConvertType(FD->getType()));
+  switch (BuiltinID) {
+  default: // not yet supported
+    this->ErrorUnsupported(FD, Context.BuiltinInfo.GetName(BuiltinID));
+    return llvm::UndefValue::get(Ty);
+    ;
+  case Builtin::BI__llvm_pcmarker:
+    return this->getIntrinsic(Intrinsic::pcmarker);
+  // TODO: add support for other LLVM intrinsics
+  }
+}
+
 /// Emit the conversions required to turn the given value into an
 /// integer of the given size.
 static Value *EmitToInt(CodeGenFunction &CGF, llvm::Value *V,
@@ -1513,6 +1530,12 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
   // using exactly the normal call path.
   if (getContext().BuiltinInfo.isPredefinedLibFunction(BuiltinID))
     return emitLibraryCall(*this, FD, E, EmitScalarExpr(E->getCallee()));
+
+  // If this a call to a LLVM intrinsic (e.g. __llvm_pcmarker), generate the
+  // corresponding call to the intrinsic function (e.g., @llvm.pcmarker)
+  if (getContext().BuiltinInfo.isLLVMIntrinsicFunction(BuiltinID))
+    return emitLibraryCall(*this, FD, E,
+			   CGM.getLLVMIntrinsicFunction(FD, BuiltinID));
 
   // See if we have a target specific intrinsic.
   const char *Name = getContext().BuiltinInfo.GetName(BuiltinID);

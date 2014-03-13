@@ -783,6 +783,9 @@ public:
   llvm::Value *getBuiltinLibFunction(const FunctionDecl *FD,
                                      unsigned BuiltinID);
 
+  llvm::Value *getLLVMIntrinsicFunction(const FunctionDecl *FD,
+                                     unsigned BuiltinID);
+
   llvm::Function *getIntrinsic(unsigned IID, ArrayRef<llvm::Type*> Tys = None);
 
   /// EmitTopLevelDecl - Emit code for a single top level declaration.

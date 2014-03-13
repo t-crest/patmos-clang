@@ -680,6 +680,9 @@ LANGBUILTIN(__assume,     "vb",  "n", ALL_MS_LANGUAGES)
 LANGBUILTIN(__noop,       "v.",  "n", ALL_MS_LANGUAGES)
 LANGBUILTIN(__debugbreak, "v",   "n", ALL_MS_LANGUAGES)
 
+// Builtins for LLVM intrinsics
+BUILTIN(__llvm_pcmarker, "vi", "n")
+
 // C99 library functions
 // C99 stdlib.h
 LIBBUILTIN(abort, "v",            "fr",    "stdlib.h", ALL_LANGUAGES)

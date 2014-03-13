@@ -138,6 +138,12 @@ public:
     return strchr(GetRecord(ID).Attributes, 'i') != 0;
   }
 
+  /// \brief Return true if this is a builtin that should translate
+  /// to a LLVM intrinsic of the same name
+  bool isLLVMIntrinsicFunction(unsigned ID) const {
+    return strncmp("__llvm_", GetRecord(ID).Name, 7) == 0;
+  }
+
   /// \brief Determines whether this builtin has custom typechecking.
   bool hasCustomTypechecking(unsigned ID) const {
     return strchr(GetRecord(ID).Attributes, 't') != 0;
@@ -146,7 +152,7 @@ public:
   /// \brief Completely forget that the given ID was ever considered a builtin,
   /// e.g., because the user provided a conflicting signature.
   void ForgetBuiltin(unsigned ID, IdentifierTable &Table);
-  
+
   /// \brief If this is a library function that comes from a specific
   /// header, retrieve that header name.
   const char *getHeaderName(unsigned ID) const {
