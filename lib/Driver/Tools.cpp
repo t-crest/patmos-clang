@@ -4953,7 +4953,7 @@ bool patmos::PatmosBaseTool::ConstructOptJob(const Tool &Creator,
                      const char *OutputFilename,
                      const char *InputFilename,
                      const ArgList &Args,
-                     bool IsLinkPass, bool IsLastPass) const
+                     bool IsLinkPass, bool LinkAsObject, bool IsLastPass) const
 {
   ArgStringList OptArgs;
 
@@ -4961,7 +4961,7 @@ bool patmos::PatmosBaseTool::ConstructOptJob(const Tool &Creator,
   // with a list of passes to enable/disable, or something..
 
   bool DisableDefaultOpts = Args.hasArg(options::OPT_fpatmos_no_std_link_opts);
-  bool DisableInternalize =
+  bool DisableInternalize = LinkAsObject ||
                    Args.hasArg(options::OPT_fpatmos_disable_internalize);
 
   int OptLevel = 2;
@@ -5449,7 +5449,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
                     CreateOutputFilename(C, Output, "opt-", "opt.bc", EmitLLVM);
 
     if (ConstructOptJob(*this, C, JA, optimizedBCFileName, linkedBCFileName,
-                        Args, true, EmitLLVM)) {
+                        Args, true, LinkAsObject, EmitLLVM)) {
       linkedBCFileName = optimizedBCFileName;
     }
   }

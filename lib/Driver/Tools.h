@@ -222,7 +222,7 @@ namespace patmos {
                          const char *OutputFilename,
                          const char *InputFilename,
                          const llvm::opt::ArgList &TCArgs,
-                         bool IsLinkPass, bool IsLastPass) const;
+                         bool IsLinkPass, bool LinkAsObject, bool IsLastPass) const;
 
     void ConstructLLCJob(const Tool &Creator, Compilation &C,
                       const JobAction &JA,
