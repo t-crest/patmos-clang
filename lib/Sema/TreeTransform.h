@@ -6367,10 +6367,8 @@ OMPClause *
 TreeTransform<Derived>::TransformOMPPrivateClause(OMPPrivateClause *C) {
   llvm::SmallVector<Expr *, 16> Vars;
   Vars.reserve(C->varlist_size());
-  for (OMPPrivateClause::varlist_iterator I = C->varlist_begin(),
-                                          E = C->varlist_end();
-       I != E; ++I) {
-    ExprResult EVar = getDerived().TransformExpr(cast<Expr>(*I));
+  for (auto *I : C->varlists()) {
+    ExprResult EVar = getDerived().TransformExpr(cast<Expr>(I));
     if (EVar.isInvalid())
       return 0;
     Vars.push_back(EVar.take());
@@ -6387,10 +6385,8 @@ TreeTransform<Derived>::TransformOMPFirstprivateClause(
                                                  OMPFirstprivateClause *C) {
   llvm::SmallVector<Expr *, 16> Vars;
   Vars.reserve(C->varlist_size());
-  for (OMPFirstprivateClause::varlist_iterator I = C->varlist_begin(),
-                                               E = C->varlist_end();
-       I != E; ++I) {
-    ExprResult EVar = getDerived().TransformExpr(cast<Expr>(*I));
+  for (auto *I : C->varlists()) {
+    ExprResult EVar = getDerived().TransformExpr(cast<Expr>(I));
     if (EVar.isInvalid())
       return 0;
     Vars.push_back(EVar.take());
@@ -6406,10 +6402,8 @@ OMPClause *
 TreeTransform<Derived>::TransformOMPSharedClause(OMPSharedClause *C) {
   llvm::SmallVector<Expr *, 16> Vars;
   Vars.reserve(C->varlist_size());
-  for (OMPSharedClause::varlist_iterator I = C->varlist_begin(),
-                                         E = C->varlist_end();
-       I != E; ++I) {
-    ExprResult EVar = getDerived().TransformExpr(cast<Expr>(*I));
+  for (auto *I : C->varlists()) {
+    ExprResult EVar = getDerived().TransformExpr(cast<Expr>(I));
     if (EVar.isInvalid())
       return 0;
     Vars.push_back(EVar.take());
