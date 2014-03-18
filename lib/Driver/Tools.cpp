@@ -5375,6 +5375,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
     AddStdLibs = false;
     AddLibC = false;
     AddLibGloss = false;
+    EmitLLVM = !(EmitObject || EmitAsm);
   }
 
   bool StopAfterLink = EmitLLVM && SkipOpt;
