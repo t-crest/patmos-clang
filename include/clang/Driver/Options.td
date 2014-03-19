@@ -753,12 +753,14 @@ def fpack_struct_EQ : Joined<["-"], "fpack-struct=">, Group<f_Group>, Flags<[CC1
 def fpascal_strings : Flag<["-"], "fpascal-strings">, Group<f_Group>, Flags<[CC1Option]>,
   HelpText<"Recognize and construct Pascal-style string literals">;
 
-def fpatmos_emit_obj : Flag<["-"], "fpatmos-emit-obj">, 
-  HelpText<"Generate a relocatable object instead of an executable object or bitcode">;
+def fpatmos_emit_llvm : Flag<["-"], "fpatmos-emit-llvm">,
+  HelpText<"Generate bitcode instead of a native binary">;
+def fpatmos_emit_reloc : Flag<["-"], "fpatmos-emit-reloc">, 
+  HelpText<"Generate a relocatable object instead of an executable or bitcode">;
 def fpatmos_emit_asm : Flag<["-"], "fpatmos-emit-asm">,
   HelpText<"Generate native assembler code">;
 def fpatmos_link_object: Flag<["-"], "fpatmos-link-object">, 
-  HelpText<"Link as object, i.e., do not link in libraries or startup code">;
+  HelpText<"Link as (relocatable) object, i.e., do not link in libraries or startup code. Emits bitcode by default.">;
 def fpatmos_disable_internalize: Flag<["-"], "fpatmos-disable-internalize">, 
   HelpText<"Disable internalize pass after bitcode linking">;
 def fpatmos_no_std_link_opts: Flag<["-"], "fpatmos-no-std-link-opts">,

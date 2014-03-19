@@ -5242,12 +5242,16 @@ void patmos::Compile::ConstructJob(Compilation &C, const JobAction &JA,
   bool IsLastPhase = false;
 
   if (Arg *A = C.getArgs().getLastArg(options::OPT_emit_llvm,
-                  options::OPT_fpatmos_emit_obj, options::OPT_fpatmos_emit_asm))
+                                      options::OPT_fpatmos_emit_llvm,
+                                      options::OPT_fpatmos_emit_reloc,
+                                      options::OPT_fpatmos_emit_asm))
   {
-    if (A->getOption().matches(options::OPT_emit_llvm)) {
+    if (A->getOption().matches(options::OPT_emit_llvm) ||
+        A->getOption().matches(options::OPT_fpatmos_emit_llvm))
+    {
       EmitLLVM = true;
     }
-    else if (A->getOption().matches(options::OPT_fpatmos_emit_obj)) {
+    else if (A->getOption().matches(options::OPT_fpatmos_emit_reloc)) {
       EmitLLVM = false;
       EmitAsm = false;
     }
@@ -5350,9 +5354,10 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   bool LinkAsObject = C.getArgs().hasArg(options::OPT_fpatmos_link_object);
 
   // Do not execute llc and gold
-  bool EmitLLVM = C.getArgs().hasArg(options::OPT_emit_llvm);
+  bool EmitLLVM = C.getArgs().hasArg(options::OPT_fpatmos_emit_llvm) ||
+                  C.getArgs().hasArg(options::OPT_emit_llvm);
   // Do not execute gold
-  bool EmitObject = C.getArgs().hasArg(options::OPT_fpatmos_emit_obj);
+  bool EmitObject = C.getArgs().hasArg(options::OPT_fpatmos_emit_reloc);
   // Do not execute gold, emit assembler
   bool EmitAsm = C.getArgs().hasArg(options::OPT_fpatmos_emit_asm);
 
@@ -5379,22 +5384,23 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   bool StopAfterLink = EmitLLVM && SkipOpt;
-  bool StopAfterLLC = EmitAsm || EmitObject;
+  bool StopAfterOpt = EmitLLVM;
+  bool StopAfterLLC = EmitAsm;
 
   //----------------------------------------------------------------------------
   // Sanity checks and check for some unsupported options
 
   if (EmitObject && EmitAsm) {
-    llvm::report_fatal_error("-fpatmos-emit-obj and -fpatmos-emit-asm are mutually exclusive");
+    llvm::report_fatal_error("-fpatmos-emit-reloc and -fpatmos-emit-asm are mutually exclusive");
   }
   if (EmitLLVM && (EmitObject || EmitAsm)) {
-    llvm::report_fatal_error("-emit-llvm cannot be used with -fpatmos-emit-obj or -fpatmos-emit-asm");
-  }
-  if (UseLTO && (EmitLLVM || EmitObject || EmitAsm)) {
-    llvm::report_fatal_error("-emit-* cannot be used when linking with LTO support");
+    llvm::report_fatal_error("-fpatmos-emit-llvm cannot be used with -fpatmos-emit-reloc or -fpatmos-emit-asm");
   }
   if (UseLTO && LinkAsObject) {
     llvm::report_fatal_error("-fpatmos-link-object and linking with LTO support is mutually exclusive.");
+  }
+  if (UseLTO && (EmitLLVM || EmitObject || EmitAsm)) {
+    llvm::report_fatal_error("-fpatmos-emit-* cannot be used when linking with LTO support");
   }
 
   if (Arg *A = Args.getLastArg(options::OPT_shared)) {
@@ -5447,16 +5453,16 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
 
   if (!SkipOpt && linkedBCFileName) {
     char const *optimizedBCFileName =
-                    CreateOutputFilename(C, Output, "opt-", "opt.bc", EmitLLVM);
+                CreateOutputFilename(C, Output, "opt-", "opt.bc", StopAfterOpt);
 
     if (ConstructOptJob(*this, C, JA, optimizedBCFileName, linkedBCFileName,
-                        Args, true, LinkAsObject, EmitLLVM)) {
+                        Args, true, LinkAsObject, StopAfterOpt)) {
       linkedBCFileName = optimizedBCFileName;
     }
   }
 
   // If we only want to emit bitcode, we are done now.
-  if (EmitLLVM) {
+  if (StopAfterOpt) {
     return;
   }
 
@@ -5489,7 +5495,7 @@ void patmos::Link::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   ConstructGoldJob(*this, C, JA, linkedELFFileName, GoldInputs, Args,
-                   UseLTO, LinkAsObject, !LinkRTEMS);
+                   UseLTO, EmitObject || LinkAsObject, !LinkRTEMS);
 }
 
 
