@@ -1344,9 +1344,10 @@ def AcquireCapability : InheritableAttr {
   let Spellings = [GNU<"acquire_capability">,
                    CXX11<"clang", "acquire_capability">,
                    GNU<"acquire_shared_capability">,
-                   CXX11<"clang", "acquire_shared_capability">];
-  let Subjects = SubjectList<[Function, FunctionTemplate],
-                             ErrorDiag>;
+                   CXX11<"clang", "acquire_shared_capability">,
+                   GNU<"exclusive_lock_function">,
+                   GNU<"shared_lock_function">];
+  let Subjects = SubjectList<[Function, FunctionTemplate]>;
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
@@ -1354,7 +1355,8 @@ def AcquireCapability : InheritableAttr {
   let Args = [VariadicExprArgument<"Args">];
   let Accessors = [Accessor<"isShared",
                     [GNU<"acquire_shared_capability">,
-                     CXX11<"clang", "acquire_shared_capability">]>];
+                     CXX11<"clang", "acquire_shared_capability">,
+                     GNU<"shared_lock_function">]>];
   let Documentation = [AcquireCapabilityDocs];
 }
 
@@ -1382,9 +1384,9 @@ def ReleaseCapability : InheritableAttr {
                    GNU<"release_shared_capability">,
                    CXX11<"clang", "release_shared_capability">,
                    GNU<"release_generic_capability">,
-                   CXX11<"clang", "release_generic_capability">];
-  let Subjects = SubjectList<[Function, FunctionTemplate],
-                             ErrorDiag>;
+                   CXX11<"clang", "release_generic_capability">,
+                   GNU<"unlock_function">];
+  let Subjects = SubjectList<[Function, FunctionTemplate]>;
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
@@ -1472,28 +1474,6 @@ def AcquiredBefore : InheritableAttr {
   let Documentation = [Undocumented];
 }
 
-def ExclusiveLockFunction : InheritableAttr {
-  let Spellings = [GNU<"exclusive_lock_function">];
-  let Args = [VariadicExprArgument<"Args">];
-  let LateParsed = 1;
-  let TemplateDependent = 1;
-  let ParseArgumentsAsUnevaluated = 1;
-  let DuplicatesAllowedWhileMerging = 1;
-  let Subjects = SubjectList<[Function, FunctionTemplate]>;
-  let Documentation = [Undocumented];
-}
-
-def SharedLockFunction : InheritableAttr {
-  let Spellings = [GNU<"shared_lock_function">];
-  let Args = [VariadicExprArgument<"Args">];
-  let LateParsed = 1;
-  let TemplateDependent = 1;
-  let ParseArgumentsAsUnevaluated = 1;
-  let DuplicatesAllowedWhileMerging = 1;
-  let Subjects = SubjectList<[Function, FunctionTemplate]>;
-  let Documentation = [Undocumented];
-}
-
 def AssertExclusiveLock : InheritableAttr {
   let Spellings = [GNU<"assert_exclusive_lock">];
   let Args = [VariadicExprArgument<"Args">];
@@ -1534,17 +1514,6 @@ def ExclusiveTrylockFunction : InheritableAttr {
 def SharedTrylockFunction : InheritableAttr {
   let Spellings = [GNU<"shared_trylock_function">];
   let Args = [ExprArgument<"SuccessValue">, VariadicExprArgument<"Args">];
-  let LateParsed = 1;
-  let TemplateDependent = 1;
-  let ParseArgumentsAsUnevaluated = 1;
-  let DuplicatesAllowedWhileMerging = 1;
-  let Subjects = SubjectList<[Function, FunctionTemplate]>;
-  let Documentation = [Undocumented];
-}
-
-def UnlockFunction : InheritableAttr {
-  let Spellings = [GNU<"unlock_function">];
-  let Args = [VariadicExprArgument<"Args">];
   let LateParsed = 1;
   let TemplateDependent = 1;
   let ParseArgumentsAsUnevaluated = 1;
