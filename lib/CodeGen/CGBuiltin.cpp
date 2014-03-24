@@ -3156,7 +3156,6 @@ static Value *EmitAArch64TblBuiltinExpr(CodeGenFunction &CGF,
   unsigned int Int = 0;
   const char *s = NULL;
 
-  unsigned TblPos;
   switch (BuiltinID) {
   default:
     return 0;
@@ -3172,8 +3171,6 @@ static Value *EmitAArch64TblBuiltinExpr(CodeGenFunction &CGF,
   case NEON::BI__builtin_neon_vtbl4_v:
   case NEON::BI__builtin_neon_vqtbl4_v:
   case NEON::BI__builtin_neon_vqtbl4q_v:
-    TblPos = 0;
-    break;
   case NEON::BI__builtin_neon_vtbx1_v:
   case NEON::BI__builtin_neon_vqtbx1_v:
   case NEON::BI__builtin_neon_vqtbx1q_v:
@@ -3186,7 +3183,6 @@ static Value *EmitAArch64TblBuiltinExpr(CodeGenFunction &CGF,
   case NEON::BI__builtin_neon_vtbx4_v:
   case NEON::BI__builtin_neon_vqtbx4_v:
   case NEON::BI__builtin_neon_vqtbx4q_v:
-    TblPos = 1;
     break;
   }
 
