@@ -1228,6 +1228,8 @@ def mpatmos_sca_remove_ensures : Flag<["-"], "mpatmos-sca-remove-ensures">, Grou
   HelpText<"Remove unnecessary ensure instructions during Stack Cache Analysis">, Flags<[HelpHidden]>;
 def mpatmos_sca_serialize : Joined<["-"], "mpatmos-sca-serialize=">, Group<m_Patmos_llc_Group>,
   HelpText<"Export PML specification of generated machine code to FILE">, Flags<[HelpHidden]>;
+def mpatmos_singlepath : Joined<["-"], "mpatmos-singlepath=">, Group<m_Patmos_llc_Group>,
+  HelpText<"Functions for which single-path code is generated">, Flags<[HelpHidden]>;
 def mpatmos_split_call_blocks : Flag<["-"], "mpatmos-split-call-blocks">, Group<m_Patmos_llc_Group>,
   HelpText<"Split basic blocks containing calls into own subfunctions">, Flags<[HelpHidden]>;
 def mpatmos_stack_cache_analysis_bounds : Joined<["-"], "mpatmos-stack-cache-analysis-bounds=">, Group<m_Patmos_llc_Group>,
