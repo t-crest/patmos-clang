@@ -2732,7 +2732,7 @@ ABIArgInfo WinX86_64ABIInfo::classify(QualType Ty, bool IsReturnType) const {
       return ABIArgInfo::getIndirect(0, /*ByVal=*/false);
 
     // FIXME: mingw-w64-gcc emits 128-bit struct as i128
-    if (Size == 128 && getTarget().getTriple().getOS() == llvm::Triple::MinGW32)
+    if (Size == 128 && getTarget().getTriple().isWindowsGNUEnvironment())
       return ABIArgInfo::getDirect(llvm::IntegerType::get(getVMContext(),
                                                           Size));
 
@@ -4768,15 +4768,22 @@ bool X86_32TargetCodeGenInfo::isStructReturnInRegABI(
     return true;
 
   switch (Triple.getOS()) {
-  case llvm::Triple::Cygwin:
-  case llvm::Triple::MinGW32:
   case llvm::Triple::AuroraUX:
   case llvm::Triple::DragonFly:
   case llvm::Triple::FreeBSD:
   case llvm::Triple::OpenBSD:
   case llvm::Triple::Bitrig:
-  case llvm::Triple::Win32:
     return true;
+  case llvm::Triple::Win32:
+    switch (Triple.getEnvironment()) {
+    case llvm::Triple::UnknownEnvironment:
+    case llvm::Triple::Cygnus:
+    case llvm::Triple::GNU:
+    case llvm::Triple::MSVC:
+      return true;
+    default:
+      return false;
+    }
   default:
     return false;
   }
@@ -5881,7 +5888,7 @@ const TargetCodeGenInfo &CodeGenModule::getTargetCodeGenInfo() {
     bool IsDarwinVectorABI = Triple.isOSDarwin();
     bool IsSmallStructInRegABI =
         X86_32TargetCodeGenInfo::isStructReturnInRegABI(Triple, CodeGenOpts);
-    bool IsWin32FloatStructABI = (Triple.getOS() == llvm::Triple::Win32);
+    bool IsWin32FloatStructABI = Triple.isWindowsMSVCEnvironment();
 
     if (Triple.getOS() == llvm::Triple::Win32) {
       return *(TheTargetCodeGenInfo =
@@ -5920,6 +5927,5 @@ const TargetCodeGenInfo &CodeGenModule::getTargetCodeGenInfo() {
     return *(TheTargetCodeGenInfo = new SparcV9TargetCodeGenInfo(Types));
   case llvm::Triple::xcore:
     return *(TheTargetCodeGenInfo = new XCoreTargetCodeGenInfo(Types));
-
   }
 }
