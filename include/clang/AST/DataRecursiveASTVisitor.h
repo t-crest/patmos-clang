@@ -2406,7 +2406,11 @@ bool DataRecursiveASTVisitor<Derived>::VisitOMPSharedClause(OMPSharedClause *C) 
   return true;
 }
 
-DEF_TRAVERSE_STMT(Flowfact, { })
+template<typename Derived>
+bool DataRecursiveASTVisitor<Derived>::VisitOMPCopyinClause(OMPCopyinClause *C) {
+  VisitOMPClauseList(C);
+  return true;
+}
 
 // FIXME: look at the following tricky-seeming exprs to see if we
 // need to recurse on anything.  These are ones that have methods

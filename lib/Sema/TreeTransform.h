@@ -1383,12 +1383,16 @@ public:
                                              EndLoc);
   }
 
-  StmtResult RebuildFlowfact(SourceRange Range) {
-    SmallVector<int, 2> foo;
-    SmallVector<std::string, 2> bar;
-    llvm_unreachable("not implemented");
-    return getSema().ActOnFlowfact(Range.getBegin(), Range.getEnd(),
-                                   foo, bar, -1);
+  /// \brief Build a new OpenMP 'copyin' clause.
+  ///
+  /// By default, performs semantic analysis to build the new statement.
+  /// Subclasses may override this routine to provide different behavior.
+  OMPClause *RebuildOMPCopyinClause(ArrayRef<Expr *> VarList,
+                                    SourceLocation StartLoc,
+                                    SourceLocation LParenLoc,
+                                    SourceLocation EndLoc) {
+    return getSema().ActOnOpenMPCopyinClause(VarList, StartLoc, LParenLoc,
+                                             EndLoc);
   }
 
   /// \brief Rebuild the operand to an Objective-C \@synchronized statement.
@@ -6432,11 +6436,23 @@ TreeTransform<Derived>::TransformOMPSharedClause(OMPSharedClause *C) {
 }
 
 template<typename Derived>
-StmtResult
-TreeTransform<Derived>::TransformFlowfact(Flowfact *F) {
-  return getDerived().RebuildFlowfact(F->getSourceRange());
+OMPClause *
+TreeTransform<Derived>::TransformOMPCopyinClause(OMPCopyinClause *C) {
+  llvm::SmallVector<Expr *, 16> Vars;
+  Vars.reserve(C->varlist_size());
+  for (OMPCopyinClause::varlist_iterator I = C->varlist_begin(),
+                                         E = C->varlist_end();
+       I != E; ++I) {
+    ExprResult EVar = getDerived().TransformExpr(cast<Expr>(*I));
+    if (EVar.isInvalid())
+      return 0;
+    Vars.push_back(EVar.take());
+  }
+  return getDerived().RebuildOMPCopyinClause(Vars,
+                                             C->getLocStart(),
+                                             C->getLParenLoc(),
+                                             C->getLocEnd());
 }
-
 
 //===----------------------------------------------------------------------===//
 // Expression transformation
