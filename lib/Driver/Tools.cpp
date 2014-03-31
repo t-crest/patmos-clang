@@ -31,6 +31,7 @@
 #include "llvm/Option/Arg.h"
 #include "llvm/Option/ArgList.h"
 #include "llvm/Option/Option.h"
+#include "llvm/Support/Compression.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Format.h"
@@ -1925,8 +1926,12 @@ static void CollectArgsForIntegratedAssembler(Compilation &C,
         }
       }
     }
-    if (CompressDebugSections)
-      CmdArgs.push_back("-compress-debug-sections");
+    if (CompressDebugSections) {
+      if (llvm::zlib::isAvailable())
+        CmdArgs.push_back("-compress-debug-sections");
+      else
+        D.Diag(diag::warn_debug_compression_unavailable);
+    }
 }
 
 // Until ARM libraries are build separately, we have them all in one library
