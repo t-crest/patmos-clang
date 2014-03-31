@@ -2806,7 +2806,6 @@ static Value *EmitCommonNeonSISDBuiltinExpr(CodeGenFunction &CGF,
                                             const NeonIntrinsicInfo &SISDInfo,
                                             SmallVectorImpl<Value *> &Ops,
                                             const CallExpr *E) {
-  unsigned BuiltinID = SISDInfo.BuiltinID;
   unsigned int Int = SISDInfo.LLVMIntrinsic;
   unsigned Modifier = SISDInfo.TypeModifier;
   const char *s = SISDInfo.NameHint;
