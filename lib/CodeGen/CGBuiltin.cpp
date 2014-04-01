@@ -6575,7 +6575,8 @@ Value *CodeGenFunction::EmitARM64BuiltinExpr(unsigned BuiltinID,
                 llvm::PointerType::getUnqual(Ops[1]->getType()));
     return Builder.CreateStore(Ops[1], Ops[0]);
   }
-  case NEON::BI__builtin_neon_vld2_dup_v: {
+  case NEON::BI__builtin_neon_vld2_dup_v:
+  case NEON::BI__builtin_neon_vld2q_dup_v: {
     llvm::Type *PTy =
       llvm::PointerType::getUnqual(VTy->getElementType());
     Ops[1] = Builder.CreateBitCast(Ops[1], PTy);
@@ -6586,7 +6587,8 @@ Value *CodeGenFunction::EmitARM64BuiltinExpr(unsigned BuiltinID,
                 llvm::PointerType::getUnqual(Ops[1]->getType()));
     return Builder.CreateStore(Ops[1], Ops[0]);
   }
-  case NEON::BI__builtin_neon_vld3_dup_v: {
+  case NEON::BI__builtin_neon_vld3_dup_v:
+  case NEON::BI__builtin_neon_vld3q_dup_v: {
     llvm::Type *PTy =
       llvm::PointerType::getUnqual(VTy->getElementType());
     Ops[1] = Builder.CreateBitCast(Ops[1], PTy);
@@ -6597,7 +6599,8 @@ Value *CodeGenFunction::EmitARM64BuiltinExpr(unsigned BuiltinID,
                 llvm::PointerType::getUnqual(Ops[1]->getType()));
     return Builder.CreateStore(Ops[1], Ops[0]);
   }
-  case NEON::BI__builtin_neon_vld4_dup_v: {
+  case NEON::BI__builtin_neon_vld4_dup_v:
+  case NEON::BI__builtin_neon_vld4q_dup_v: {
     llvm::Type *PTy =
       llvm::PointerType::getUnqual(VTy->getElementType());
     Ops[1] = Builder.CreateBitCast(Ops[1], PTy);
