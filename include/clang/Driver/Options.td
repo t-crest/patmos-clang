@@ -1236,6 +1236,8 @@ def mpatmos_stack_cache_analysis_bounds : Joined<["-"], "mpatmos-stack-cache-ana
   HelpText<"File containing bounds for the stack cache analysis">, Flags<[HelpHidden]>;
 def mpatmos_stack_cache_size : Joined<["-"], "mpatmos-stack-cache-size=">, Group<m_Patmos_llc_Group>,
   HelpText<"Total size of the stack cache in bytes">, Flags<[HelpHidden]>;
+def mpatmos_stack_cache_block_size : Joined<["-"], "mpatmos-stack-cache-block-size=">, Group<m_Patmos_llc_Group>,
+  HelpText<"Block size of the stack cache in bytes">, Flags<[HelpHidden]>;
 
 def mimport_pml : Joined<["-"], "mimport-pml=">, Group<m_PML_Group>, 
   HelpText<"Read external analysis results from PML file">, Flags<[HelpHidden]>;
