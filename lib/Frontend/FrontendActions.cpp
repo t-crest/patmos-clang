@@ -58,6 +58,11 @@ ASTConsumer *ASTDumpAction::CreateASTConsumer(CompilerInstance &CI,
                          CI.getFrontendOpts().ASTDumpLookups);
 }
 
+ASTConsumer *FlowfactExportAction::CreateASTConsumer(CompilerInstance &CI,
+                                              StringRef InFile) {
+  return CreateFlowfactExporter(CI.getFrontendOpts().FlowfactExportFile);
+}
+
 ASTConsumer *ASTDeclListAction::CreateASTConsumer(CompilerInstance &CI,
                                                   StringRef InFile) {
   return CreateASTDeclNodeLister();

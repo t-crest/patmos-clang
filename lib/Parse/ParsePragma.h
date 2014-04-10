@@ -134,6 +134,13 @@ private:
   Sema &Actions;
 };
 
+class PragmaPlatinHandler : public PragmaHandler {
+public:
+  PragmaPlatinHandler() : PragmaHandler("platin") { }
+  virtual void HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer,
+                            Token &FirstToken);
+};
+
 }  // end namespace clang
 
 #endif

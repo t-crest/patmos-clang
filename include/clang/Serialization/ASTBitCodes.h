@@ -1334,6 +1334,8 @@ namespace clang {
       // OpenMP drectives
       STMT_OMP_PARALLEL_DIRECTIVE,
 
+      STMT_PLATIN,
+
       // ARC
       EXPR_OBJC_BRIDGED_CAST,     // ObjCBridgedCastExpr
       

@@ -50,6 +50,12 @@ protected:
                                          StringRef InFile);
 };
 
+class FlowfactExportAction : public ASTFrontendAction {
+protected:
+  virtual ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                         StringRef InFile);
+};
+
 class ASTDeclListAction : public ASTFrontendAction {
 protected:
   virtual ASTConsumer *CreateASTConsumer(CompilerInstance &CI,

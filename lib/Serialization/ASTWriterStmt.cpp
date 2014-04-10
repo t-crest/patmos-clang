@@ -1750,6 +1750,11 @@ void ASTStmtWriter::VisitOMPParallelDirective(OMPParallelDirective *D) {
   Code = serialization::STMT_OMP_PARALLEL_DIRECTIVE;
 }
 
+void ASTStmtWriter::VisitFlowfact(Flowfact *F) {
+  VisitStmt(F);
+  Code = serialization::STMT_PLATIN;
+}
+
 //===----------------------------------------------------------------------===//
 // ASTWriter Implementation
 //===----------------------------------------------------------------------===//

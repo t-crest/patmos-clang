@@ -8,6 +8,7 @@ add_clang_library(clangParse
   ParseInit.cpp
   ParseObjc.cpp
   ParseOpenMP.cpp
+  ParsePlatin.cpp
   ParsePragma.cpp
   ParseStmt.cpp
   ParseTemplate.cpp

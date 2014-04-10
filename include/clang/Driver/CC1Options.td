@@ -338,6 +338,8 @@ def ast_dump : Flag<["-"], "ast-dump">,
   HelpText<"Build ASTs and then debug dump them">;
 def ast_view : Flag<["-"], "ast-view">,
   HelpText<"Build ASTs and view them with GraphViz">;
+def flowfact_export_EQ : Joined<["-"], "ff-export=">,
+  HelpText<"Export flowfacts to PML file">;
 def print_decl_contexts : Flag<["-"], "print-decl-contexts">,
   HelpText<"Print DeclContexts and their Decls">;
 def emit_module : Flag<["-"], "emit-module">,

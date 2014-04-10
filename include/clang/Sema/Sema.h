@@ -7087,6 +7087,12 @@ public:
                                           SourceLocation StartLoc,
                                           SourceLocation EndLoc);
 
+  StmtResult ActOnFlowfact(SourceLocation StartLoc,
+                           SourceLocation EndLoc,
+                           ArrayRef<int> Multipliers,
+                           ArrayRef<std::string> Markers,
+                           int Rhs);
+
   OMPClause *ActOnOpenMPSimpleClause(OpenMPClauseKind Kind,
                                      unsigned Argument,
                                      SourceLocation ArgumentLoc,

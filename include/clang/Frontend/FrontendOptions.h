@@ -28,6 +28,7 @@ namespace frontend {
     ASTDump,                ///< Parse ASTs and dump them.
     ASTPrint,               ///< Parse ASTs and print them.
     ASTView,                ///< Parse ASTs and view them in Graphviz.
+    FlowfactExport,
     DumpRawTokens,          ///< Dump out raw tokens.
     DumpTokens,             ///< Dump out preprocessed tokens.
     EmitAssembly,           ///< Emit a .s file.
@@ -234,7 +235,10 @@ public:
   /// \brief File name of the file that will provide record layouts
   /// (in the format produced by -fdump-record-layouts).
   std::string OverrideRecordLayoutsFile;
-  
+
+  /// Name of the flowfact export file.
+  std::string FlowfactExportFile;
+
 public:
   FrontendOptions() :
     DisableFree(false), RelocatablePCH(false), ShowHelp(false),

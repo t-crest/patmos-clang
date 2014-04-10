@@ -66,6 +66,9 @@ Parser::Parser(Preprocessor &pp, Sema &actions, bool skipFunctionBodies)
   AlignHandler.reset(new PragmaAlignHandler());
   PP.AddPragmaHandler(AlignHandler.get());
 
+  PlatinHandler.reset(new PragmaPlatinHandler());
+  PP.AddPragmaHandler(PlatinHandler.get());
+
   GCCVisibilityHandler.reset(new PragmaGCCVisibilityHandler());
   PP.AddPragmaHandler("GCC", GCCVisibilityHandler.get());
 
@@ -452,6 +455,8 @@ Parser::~Parser() {
   WeakHandler.reset();
   PP.RemovePragmaHandler(RedefineExtnameHandler.get());
   RedefineExtnameHandler.reset();
+  PP.RemovePragmaHandler(PlatinHandler.get());
+  PlatinHandler.reset();
 
   if (getLangOpts().OpenCL) {
     PP.RemovePragmaHandler("OPENCL", OpenCLExtensionHandler.get());

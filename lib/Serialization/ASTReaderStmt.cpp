@@ -1768,6 +1768,10 @@ void ASTStmtReader::VisitOMPParallelDirective(OMPParallelDirective *D) {
   VisitOMPExecutableDirective(D);
 }
 
+void ASTStmtReader::VisitFlowfact(Flowfact *F) {
+  VisitStmt(F);
+}
+
 //===----------------------------------------------------------------------===//
 // ASTReader Implementation
 //===----------------------------------------------------------------------===//

@@ -17,6 +17,7 @@
 #include "clang/Parse/Parser.h"
 #include "clang/Sema/Scope.h"
 #include "llvm/ADT/StringSwitch.h"
+#include "llvm/Support/Debug.h"
 using namespace clang;
 
 /// \brief Handle the annotation token produced for #pragma unused(...)
@@ -929,3 +930,30 @@ void PragmaCommentHandler::HandlePragma(Preprocessor &PP,
 
   Actions.ActOnPragmaMSComment(Kind, ArgumentString);
 }
+
+void
+PragmaPlatinHandler::HandlePragma(Preprocessor &PP,
+                                  PragmaIntroducerKind Introducer,
+                                  Token &FirstTok) {
+  SmallVector<Token, 16> Pragma;
+  Token Tok;
+  Tok.startToken();
+  Tok.setKind(tok::annot_pragma_platinff);
+  Tok.setLocation(FirstTok.getLocation());
+
+  while (Tok.isNot(tok::eod)) {
+    Pragma.push_back(Tok);
+    PP.Lex(Tok);
+  }
+  SourceLocation EodLoc = Tok.getLocation();
+  Tok.startToken();
+  Tok.setKind(tok::annot_pragma_platinff_end);
+  Tok.setLocation(EodLoc);
+  Pragma.push_back(Tok);
+
+  Token *Toks = new Token[Pragma.size()];
+  std::copy(Pragma.begin(), Pragma.end(), Toks);
+  PP.EnterTokenStream(Toks, Pragma.size(),
+                      /*DisableMacroExpansion=*/true, /*OwnsTokens=*/true);
+}
+
