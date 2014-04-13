@@ -644,8 +644,9 @@ StmtResult Parser::ParseCaseStatement(bool MissingCase, ExprResult Expr) {
     ColonProtection.restore();
 
     if (TryConsumeToken(tok::colon, ColonLoc)) {
-    } else if (TryConsumeToken(tok::semi, ColonLoc)) {
-      // Treat "case blah;" as a typo for "case blah:".
+    } else if (TryConsumeToken(tok::semi, ColonLoc) ||
+               TryConsumeToken(tok::coloncolon, ColonLoc)) {
+      // Treat "case blah;" or "case blah::" as a typo for "case blah:".
       Diag(ColonLoc, diag::err_expected_after)
           << "'case'" << tok::colon
           << FixItHint::CreateReplacement(ColonLoc, ":");
