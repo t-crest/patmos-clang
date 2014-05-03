@@ -1751,7 +1751,7 @@ StmtResult Parser::ParseReturnStatement() {
       return StmtError();
     }
   }
-  return Actions.ActOnReturnStmt(ReturnLoc, R.take());
+  return Actions.ActOnReturnStmt(ReturnLoc, R.take(), getCurScope());
 }
 
 
