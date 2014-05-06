@@ -1884,6 +1884,9 @@ public:
   llvm::Function *GenerateCapturedStmtFunction(const CapturedDecl *CD,
                                                const RecordDecl *RD,
                                                SourceLocation Loc);
+  llvm::Value *GenerateCapturedStmtArgument(const CapturedStmt &S);
+
+  void EmitOMPParallelDirective(const OMPParallelDirective &S);
 
   //===--------------------------------------------------------------------===//
   //                         LValue Expression Emission
