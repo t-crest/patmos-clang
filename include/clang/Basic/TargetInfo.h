@@ -742,7 +742,7 @@ public:
 
   /// \brief Return the section to use for C++ static initialization functions.
   virtual const char *getStaticInitSectionSpecifier() const {
-    return 0;
+    return nullptr;
   }
 
   const LangAS::Map &getAddressSpaceMap() const {
@@ -808,7 +808,7 @@ protected:
                                 unsigned &NumAliases) const = 0;
   virtual void getGCCAddlRegNames(const AddlRegName *&Addl,
                                   unsigned &NumAddl) const {
-    Addl = 0;
+    Addl = nullptr;
     NumAddl = 0;
   }
   virtual bool validateAsmConstraint(const char *&Name,
