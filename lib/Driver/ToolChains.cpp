@@ -2681,7 +2681,9 @@ NetBSD::NetBSD(const Driver &D, const llvm::Triple& Triple, const ArgList &Args)
       getFilePaths().push_back("=/usr/lib/i386");
       break;
     case llvm::Triple::arm:
+    case llvm::Triple::armeb:
     case llvm::Triple::thumb:
+    case llvm::Triple::thumbeb:
       switch (Triple.getEnvironment()) {
       case llvm::Triple::EABI:
       case llvm::Triple::EABIHF:
