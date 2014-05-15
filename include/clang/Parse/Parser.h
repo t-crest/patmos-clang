@@ -1396,9 +1396,9 @@ private:
                                         ParsedType &CastTy,
                                         SourceLocation &RParenLoc);
 
-  ExprResult ParseCXXAmbiguousParenExpression(ParenParseOption &ExprType,
-                                            ParsedType &CastTy,
-                                            BalancedDelimiterTracker &Tracker);
+  ExprResult ParseCXXAmbiguousParenExpression(
+      ParenParseOption &ExprType, ParsedType &CastTy,
+      BalancedDelimiterTracker &Tracker, ColonProtectionRAIIObject &ColonProt);
   ExprResult ParseCompoundLiteralExpression(ParsedType Ty,
                                                   SourceLocation LParenLoc,
                                                   SourceLocation RParenLoc);
