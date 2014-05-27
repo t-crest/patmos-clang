@@ -2317,6 +2317,13 @@ bool RecursiveASTVisitor<Derived>::VisitOMPSafelenClause(OMPSafelenClause *C) {
 }
 
 template <typename Derived>
+bool
+RecursiveASTVisitor<Derived>::VisitOMPCollapseClause(OMPCollapseClause *C) {
+  TraverseStmt(C->getNumForLoops());
+  return true;
+}
+
+template <typename Derived>
 bool RecursiveASTVisitor<Derived>::VisitOMPDefaultClause(OMPDefaultClause *C) {
   return true;
 }
