@@ -1118,18 +1118,13 @@ void CompilerInvocation::setLangDefaults(LangOptions &Opts, InputKind IK,
   Opts.ImplicitInt = Std.hasImplicitInt();
 
   // Set OpenCL Version.
-  if (LangStd == LangStandard::lang_opencl) {
-    Opts.OpenCL = 1;
+  Opts.OpenCL = LangStd == LangStandard::lang_opencl || IK == IK_OpenCL;
+  if (LangStd == LangStandard::lang_opencl)
     Opts.OpenCLVersion = 100;
-  }
-  else if (LangStd == LangStandard::lang_opencl11) {
-      Opts.OpenCL = 1;
+  else if (LangStd == LangStandard::lang_opencl11)
       Opts.OpenCLVersion = 110;
-  }
-  else if (LangStd == LangStandard::lang_opencl12) {
-    Opts.OpenCL = 1;
+  else if (LangStd == LangStandard::lang_opencl12)
     Opts.OpenCLVersion = 120;
-  }
   
   // OpenCL has some additional defaults.
   if (Opts.OpenCL) {
@@ -1140,8 +1135,7 @@ void CompilerInvocation::setLangDefaults(LangOptions &Opts, InputKind IK,
     Opts.NativeHalfType = 1;
   }
 
-  if (LangStd == LangStandard::lang_cuda)
-    Opts.CUDA = 1;
+  Opts.CUDA = LangStd == LangStandard::lang_cuda || IK == IK_CUDA;
 
   // OpenCL and C++ both have bool, true, false keywords.
   Opts.Bool = Opts.OpenCL || Opts.CPlusPlus;
