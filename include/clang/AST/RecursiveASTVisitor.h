@@ -2376,6 +2376,13 @@ bool RecursiveASTVisitor<Derived>::VisitOMPFirstprivateClause(
 }
 
 template <typename Derived>
+bool RecursiveASTVisitor<Derived>::VisitOMPLastprivateClause(
+    OMPLastprivateClause *C) {
+  VisitOMPClauseList(C);
+  return true;
+}
+
+template <typename Derived>
 bool RecursiveASTVisitor<Derived>::VisitOMPSharedClause(OMPSharedClause *C) {
   VisitOMPClauseList(C);
   return true;
