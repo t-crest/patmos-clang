@@ -1035,6 +1035,9 @@ private:
                                         llvm::PointerType *PTy,
                                         const VarDecl *D);
 
+  llvm::StringMapEntry<llvm::GlobalVariable *> *
+  getConstantStringMapEntry(StringRef Str, int CharByteWidth);
+
   /// Set attributes which are common to any form of a global definition (alias,
   /// Objective-C method, function, global variable).
   ///
