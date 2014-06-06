@@ -1860,14 +1860,11 @@ public:
   void EmitIndirectGotoStmt(const IndirectGotoStmt &S);
   void EmitIfStmt(const IfStmt &S);
 
-  void EmitCondBrBounds(llvm::LLVMContext &Context, llvm::BranchInst *CondBr,
-                        const ArrayRef<const Attr *> &Attrs);
-  void EmitHeaderBounds(llvm::BasicBlock *Header,
-                        const ArrayRef<const Attr *> &Attrs);
+  void EmitCondBrHints(llvm::LLVMContext &Context, llvm::BranchInst *CondBr,
+                       const ArrayRef<const Attr *> &Attrs);
   void EmitWhileStmt(const WhileStmt &S,
                      const ArrayRef<const Attr *> &Attrs = None);
-  void EmitDoStmt(const DoStmt &S,
-                  const ArrayRef<const Attr *> &Attrs = None);
+  void EmitDoStmt(const DoStmt &S, const ArrayRef<const Attr *> &Attrs = None);
   void EmitForStmt(const ForStmt &S,
                    const ArrayRef<const Attr *> &Attrs = None);
   void EmitReturnStmt(const ReturnStmt &S);

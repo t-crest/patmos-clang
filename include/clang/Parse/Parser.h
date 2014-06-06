@@ -20,7 +20,7 @@
 #include "clang/Lex/CodeCompletionHandler.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Sema/DeclSpec.h"
-#include "clang/Sema/Loopbound.h"
+#include "clang/Sema/LoopHint.h"
 #include "clang/Sema/Sema.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Compiler.h"
@@ -162,6 +162,7 @@ class Parser : public CodeCompletionHandler {
   std::unique_ptr<PragmaHandler> MSCodeSeg;
   std::unique_ptr<PragmaHandler> MSSection;
   std::unique_ptr<PragmaHandler> OptimizeHandler;
+  std::unique_ptr<PragmaHandler> LoopHintHandler;
 
   std::unique_ptr<CommentHandler> CommentSemaHandler;
 
@@ -521,8 +522,8 @@ private:
   StmtResult HandlePragmaCaptured();
 
   /// \brief Handle the annotation token produced for
-  /// #pragma loopbound
-  void HandlePragmaLoopbound(Loopbound &LB);
+  /// #pragma vectorize...
+  LoopHint HandlePragmaLoopHint();
 
   /// GetLookAheadToken - This peeks ahead N tokens and returns that token
   /// without consuming any tokens.  LookAhead(0) returns 'Tok', LookAhead(1)
@@ -1606,9 +1607,9 @@ private:
   StmtResult ParseReturnStatement();
   StmtResult ParseAsmStatement(bool &msAsm);
   StmtResult ParseMicrosoftAsmStatement(SourceLocation AsmLoc);
-  StmtResult ParsePragmaLoopbound(StmtVector &Stmts, bool OnlyStatement,
-                                  SourceLocation *TrailingElseLoc,
-                                  ParsedAttributesWithRange &Attrs);
+  StmtResult ParsePragmaLoopHint(StmtVector &Stmts, bool OnlyStatement,
+                                 SourceLocation *TrailingElseLoc,
+                                 ParsedAttributesWithRange &Attrs);
 
   /// \brief Describes the behavior that should be taken for an __if_exists
   /// block.
