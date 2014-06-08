@@ -17,6 +17,7 @@ add_clang_library(clangParse
   ParsePlatin.cpp
   ParsePragma.cpp
   ParseStmt.cpp
+  ParseStmtAsm.cpp
   ParseTemplate.cpp
   ParseTentative.cpp
   Parser.cpp
