@@ -1825,8 +1825,7 @@ std::string Driver::GetProgramPath(const char *Name,
 std::string Driver::GetTemporaryPath(StringRef Prefix, const char *Suffix)
   const {
   SmallString<128> Path;
-  llvm::error_code EC =
-      llvm::sys::fs::createTemporaryFile(Prefix, Suffix, Path);
+  std::error_code EC = llvm::sys::fs::createTemporaryFile(Prefix, Suffix, Path);
   if (EC) {
     Diag(clang::diag::err_unable_to_make_temp) << EC.message();
     return "";
