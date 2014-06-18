@@ -1818,5 +1818,5 @@ def LoopHint : Attr {
   }
   }];
 
-  let Documentation = [Undocumented];
+  let Documentation = [LoopHintDocs];
 }
