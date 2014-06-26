@@ -2362,8 +2362,7 @@ RecursiveASTVisitor<Derived>::VisitOMPScheduleClause(OMPScheduleClause *C) {
 }
 
 template <typename Derived>
-bool
-RecursiveASTVisitor<Derived>::VisitOMPOrderedClause(OMPOrderedClause *) {
+bool RecursiveASTVisitor<Derived>::VisitOMPOrderedClause(OMPOrderedClause *) {
   return true;
 }
 
