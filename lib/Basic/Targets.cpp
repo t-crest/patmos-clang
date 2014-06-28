@@ -5677,7 +5677,7 @@ public:
     MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 32;
   }
   bool setABI(const std::string &Name) override {
-    if ((Name == "o32") || (Name == "eabi")) {
+    if (Name == "o32" || Name == "eabi") {
       ABI = Name;
       return true;
     } else if (Name == "32") {
