@@ -5681,10 +5681,6 @@ public:
       ABI = Name;
       return true;
     }
-    if (Name == "32") {
-      ABI = "o32";
-      return true;
-    }
     return false;
   }
   void getTargetDefines(const LangOptions &Opts,
@@ -5820,9 +5816,9 @@ public:
       ABI = Name;
       return true;
     }
-    if (Name == "n64" || Name == "64") {
+    if (Name == "n64") {
       setN64ABITypes();
-      ABI = "n64";
+      ABI = Name;
       return true;
     }
     return false;
