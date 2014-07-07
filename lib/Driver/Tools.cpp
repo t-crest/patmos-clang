@@ -41,7 +41,6 @@
 #include "llvm/Support/Process.h"
 #include "llvm/Support/Program.h"
 #include "llvm/Support/raw_ostream.h"
-#include <sys/stat.h>
 
 #include "InputInfo.h"
 #include "ToolChains.h"
