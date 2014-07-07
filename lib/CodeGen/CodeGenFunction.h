@@ -1888,6 +1888,7 @@ public:
 
   void EmitCXXTryStmt(const CXXTryStmt &S);
   void EmitSEHTryStmt(const SEHTryStmt &S);
+  void EmitSEHLeaveStmt(const SEHLeaveStmt &S);
   void EmitCXXForRangeStmt(const CXXForRangeStmt &S,
                            const ArrayRef<const Attr *> &Attrs = None);
 
