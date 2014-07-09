@@ -2274,9 +2274,8 @@ DEF_TRAVERSE_STMT(AsTypeExpr, {})
 template <typename Derived>
 bool RecursiveASTVisitor<Derived>::TraverseOMPExecutableDirective(
     OMPExecutableDirective *S) {
-  for (auto *C : S->clauses()) {
+  for (auto *C : S->clauses())
     TRY_TO(TraverseOMPClause(C));
-  }
   return true;
 }
 
