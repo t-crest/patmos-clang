@@ -53,7 +53,6 @@ TargetInfo::TargetInfo(const llvm::Triple &T) : TargetOpts(), Triple(T) {
   SizeType = UnsignedLong;
   PtrDiffType = SignedLong;
   IntMaxType = SignedLongLong;
-  UIntMaxType = UnsignedLongLong;
   IntPtrType = SignedLong;
   WCharType = SignedInt;
   WIntType = SignedInt;
@@ -279,7 +278,6 @@ void TargetInfo::adjust(const LangOptions &Opts) {
     IntPtrType = Is32BitArch ? SignedInt : SignedLong;
 
     IntMaxType = SignedLongLong;
-    UIntMaxType = UnsignedLongLong;
     Int64Type = SignedLong;
 
     HalfFormat = &llvm::APFloat::IEEEhalf;
