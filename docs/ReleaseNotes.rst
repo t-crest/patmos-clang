@@ -63,53 +63,10 @@ Clang's diagnostics are constantly being improved to catch more issues,
 explain them more clearly, and provide more accurate source information
 about them. The improvements since the 3.4 release include:
 
-    void foo(char *a, char *b, unsigned c) {
-	  for (unsigned i = 0; i < c; ++i) {
-		a[i] = b[i];
-		++i;
-	  }
-    }
+- GCC compatibility: Clang displays a warning on unsupported gcc
+  optimization flags instead of an error.
 
-  returns
-  `warning: variable 'i' is incremented both in the loop header and in the loop body [-Wloop-analysis]`
-
-- -Wuninitialized now performs checking across field initializers to detect
-  when one field in used uninitialized in another field initialization.
-
-  .. code-block:: c++
-
-    class A {
-      int x;
-      int y;
-      A() : x(y) {}
-    };
-
-  returns
-  `warning: field 'y' is uninitialized when used here [-Wuninitialized]`
-
-- Clang can detect initializer list use inside a macro and suggest parentheses
-  if possible to fix.
-- Many improvements to Clang's typo correction facilities, such as:
-
-  + Adding global namespace qualifiers so that corrections can refer to shadowed
-    or otherwise ambiguous or unreachable namespaces.
-  + Including accessible class members in the set of typo correction candidates,
-    so that corrections requiring a class name in the name specifier are now
-    possible.
-  + Allowing typo corrections that involve removing a name specifier.
-  + In some situations, correcting function names when a function was given the
-    wrong number of arguments, including situations where the original function
-    name was correct but was shadowed by a lexically closer function with the
-    same name yet took a different number of arguments.
-  + Offering typo suggestions for 'using' declarations.
-  + Providing better diagnostics and fixit suggestions in more situations when
-    a '->' was used instead of '.' or vice versa.
-  + Providing more relevant suggestions for typos followed by '.' or '='.
-  + Various performance improvements when searching for typo correction
-    candidates.
-
-- `LeakSanitizer <LeakSanitizer.html>`_ is an experimental memory leak detector
-  which can be combined with AddressSanitizer.
+-  ...
 
 New Compiler Flags
 ------------------
