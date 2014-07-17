@@ -26,8 +26,8 @@ class FileEntry;
 class InitOnlyAction : public FrontendAction {
   void ExecuteAction() override;
 
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef InFile) override;
+  ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                 StringRef InFile) override;
 
 public:
   // Don't claim to only use the preprocessor, we want to follow the AST path,
@@ -41,14 +41,14 @@ public:
 
 class ASTPrintAction : public ASTFrontendAction {
 protected:
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef InFile) override;
+  ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                 StringRef InFile) override;
 };
 
 class ASTDumpAction : public ASTFrontendAction {
 protected:
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef InFile) override;
+  ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                 StringRef InFile) override;
 };
 
 class FlowfactExportAction : public ASTFrontendAction {
@@ -59,26 +59,26 @@ protected:
 
 class ASTDeclListAction : public ASTFrontendAction {
 protected:
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef InFile) override;
+  ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                 StringRef InFile) override;
 };
 
 class ASTViewAction : public ASTFrontendAction {
 protected:
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef InFile) override;
+  ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                 StringRef InFile) override;
 };
 
 class DeclContextPrintAction : public ASTFrontendAction {
 protected:
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef InFile) override;
+  ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                 StringRef InFile) override;
 };
 
 class GeneratePCHAction : public ASTFrontendAction {
 protected:
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef InFile) override;
+  ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                 StringRef InFile) override;
 
   TranslationUnitKind getTranslationUnitKind() override {
     return TU_Prefix;
@@ -104,8 +104,8 @@ class GenerateModuleAction : public ASTFrontendAction {
   bool IsSystem;
   
 protected:
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef InFile) override;
+  ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                 StringRef InFile) override;
 
   TranslationUnitKind getTranslationUnitKind() override {
     return TU_Module;
@@ -134,8 +134,8 @@ public:
 
 class SyntaxOnlyAction : public ASTFrontendAction {
 protected:
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef InFile) override;
+  ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                         StringRef InFile) override;
 
 public:
   bool hasCodeCompletionSupport() const override { return true; }
@@ -145,8 +145,8 @@ public:
 /// basic debugging and discovery.
 class DumpModuleInfoAction : public ASTFrontendAction {
 protected:
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef InFile) override;
+  ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                 StringRef InFile) override;
   void ExecuteAction() override;
 
 public:
@@ -158,8 +158,8 @@ public:
 
 class VerifyPCHAction : public ASTFrontendAction {
 protected:
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef InFile) override;
+  ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                 StringRef InFile) override;
 
   void ExecuteAction() override;
 
@@ -183,8 +183,8 @@ class ASTMergeAction : public FrontendAction {
   std::vector<std::string> ASTFiles;
 
 protected:
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                 StringRef InFile) override;
+  ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
+                                 StringRef InFile) override;
 
   bool BeginSourceFileAction(CompilerInstance &CI,
                              StringRef Filename) override;
@@ -206,8 +206,7 @@ public:
 class PrintPreambleAction : public FrontendAction {
 protected:
   void ExecuteAction() override;
-  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &,
-                                                 StringRef) override {
+  ASTConsumer *CreateASTConsumer(CompilerInstance &, StringRef) override {
     return nullptr;
   }
 
