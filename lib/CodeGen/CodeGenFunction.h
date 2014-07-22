@@ -1935,6 +1935,7 @@ public:
   void EmitOMPBarrierDirective(const OMPBarrierDirective &S);
   void EmitOMPTaskwaitDirective(const OMPTaskwaitDirective &S);
   void EmitOMPFlushDirective(const OMPFlushDirective &S);
+  void EmitOMPOrderedDirective(const OMPOrderedDirective &S);
 
   //===--------------------------------------------------------------------===//
   //                         LValue Expression Emission
