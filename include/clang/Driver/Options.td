@@ -1187,14 +1187,22 @@ def multiply__defined__unused : Separate<["-"], "multiply_defined_unused">;
 def multiply__defined : Separate<["-"], "multiply_defined">;
 def mwarn_nonportable_cfstrings : Flag<["-"], "mwarn-nonportable-cfstrings">, Group<m_Group>;
 
-def mpatmos_stack_base : Joined<["-"], "mpatmos-stack-base=">, Group<m_Patmos_Group>;
-def mpatmos_shadow_stack_base : Joined<["-"], "mpatmos-shadow-stack-base=">, Group<m_Patmos_Group>;
-def mpatmos_heap_end : Joined<["-"], "mpatmos-heap-end=">, Group<m_Patmos_Group>;
-def mpatmos_iomap_base : Joined<["-"], "mpatmos-iomap-base=">, Group<m_Patmos_Group>;
-def mpatmos_cpuinfo_offset : Joined<["-"], "mpatmos-cpuinfo-offset=">, Group<m_Patmos_Group>;
-def mpatmos_excunit_offset : Joined<["-"], "mpatmos-excunit-offset=">, Group<m_Patmos_Group>;
-def mpatmos_timer_offset : Joined<["-"], "mpatmos-timer-offset=">, Group<m_Patmos_Group>;
-def mpatmos_uart_offset : Joined<["-"], "mpatmos-uart-offset=">, Group<m_Patmos_Group>;
+def mpatmos_stack_base : Joined<["-"], "mpatmos-stack-base=">, Group<m_Patmos_Group>, 
+  HelpText<"Set the address for the stack cache base address symbol">, Flags<[HelpHidden]>;
+def mpatmos_shadow_stack_base : Joined<["-"], "mpatmos-shadow-stack-base=">, Group<m_Patmos_Group>, 
+  HelpText<"Set the address for the shadow stack base address symbol">, Flags<[HelpHidden]>;
+def mpatmos_heap_end : Joined<["-"], "mpatmos-heap-end=">, Group<m_Patmos_Group>, 
+  HelpText<"Set the address for the upper heap address symbol">, Flags<[HelpHidden]>;
+def mpatmos_iomap_base : Joined<["-"], "mpatmos-iomap-base=">, Group<m_Patmos_Group>, 
+  HelpText<"Set the address of the IO map base address symbol">, Flags<[HelpHidden]>;
+def mpatmos_cpuinfo_offset : Joined<["-"], "mpatmos-cpuinfo-offset=">, Group<m_Patmos_Group>, 
+  HelpText<"Set the offset of the CPU info symbol in the IO map">, Flags<[HelpHidden]>;
+def mpatmos_excunit_offset : Joined<["-"], "mpatmos-excunit-offset=">, Group<m_Patmos_Group>, 
+  HelpText<"Set the offset of the exception unit base address symbol in the IO map">, Flags<[HelpHidden]>;
+def mpatmos_timer_offset : Joined<["-"], "mpatmos-timer-offset=">, Group<m_Patmos_Group>, 
+  HelpText<"Set the offset of the timer info symbol in the IO map">, Flags<[HelpHidden]>;
+def mpatmos_uart_offset : Joined<["-"], "mpatmos-uart-offset=">, Group<m_Patmos_Group>, 
+  HelpText<"Set the offset of the UART base address symbol in the IO map">, Flags<[HelpHidden]>;
 
 // Some common patmos-llc options that should be passed through. Keep in sync with patmos-llc option names and help.
 // These options might be deprecated in favor of -Xllc in the future.
