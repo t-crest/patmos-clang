@@ -1895,8 +1895,6 @@ static llvm::Triple computeTargetTriple(StringRef DefaultTargetTriple,
         Target.setArch(llvm::Triple::mips64el);
       else if (Target.getArch() == llvm::Triple::aarch64_be)
         Target.setArch(llvm::Triple::aarch64);
-      else if (Target.getArch() == llvm::Triple::arm64_be)
-        Target.setArch(llvm::Triple::arm64);
     } else {
       if (Target.getArch() == llvm::Triple::mipsel)
         Target.setArch(llvm::Triple::mips);
@@ -1904,8 +1902,6 @@ static llvm::Triple computeTargetTriple(StringRef DefaultTargetTriple,
         Target.setArch(llvm::Triple::mips64);
       else if (Target.getArch() == llvm::Triple::aarch64)
         Target.setArch(llvm::Triple::aarch64_be);
-      else if (Target.getArch() == llvm::Triple::arm64)
-        Target.setArch(llvm::Triple::arm64_be);
     }
   }
 
