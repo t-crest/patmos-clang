@@ -1797,7 +1797,8 @@ def LoopHint : Attr {
   /// unroll: fully unroll loop if 'value != 0'.
   /// unroll_count: unrolls loop 'value' times.
 
-  let Spellings = [Pragma<"clang", "loop">, Pragma<"", "unroll">];
+  let Spellings = [Pragma<"clang", "loop">, Pragma<"", "unroll">,
+                   Pragma<"", "nounroll">];
 
   /// State of the loop optimization specified by the spelling.
   let Args = [EnumArgument<"Option", "OptionType",
@@ -1828,9 +1829,13 @@ def LoopHint : Attr {
 
   void printPrettyPragma(raw_ostream &OS, const PrintingPolicy &Policy) const {
     unsigned SpellingIndex = getSpellingListIndex();
+    // For "#pragma unroll" and "#pragma nounroll" the string "unroll" or
+    // "nounroll" is already emitted as the pragma name.
+    if (SpellingIndex == Pragma_nounroll) {
+      OS << "\n";
+      return;
+    }
     if (SpellingIndex == Pragma_unroll) {
-      // String "unroll" of "#pragma unroll" is already emitted as the
-      // pragma name.
       if (option == UnrollCount)
         printArgument(OS);
       OS << "\n";
@@ -1864,11 +1869,12 @@ def LoopHint : Attr {
     std::string DiagnosticName;
     llvm::raw_string_ostream OS(DiagnosticName);
     unsigned SpellingIndex = getSpellingListIndex();
-    if (SpellingIndex == Pragma_unroll && option == Unroll)
+    if (SpellingIndex == Pragma_nounroll)
+      OS << "#pragma nounroll";
+    else if (SpellingIndex == Pragma_unroll) {
       OS << "#pragma unroll";
-    else if (SpellingIndex == Pragma_unroll && option == UnrollCount) {
-      OS << "#pragma unroll";
-      printArgument(OS);
+      if (option == UnrollCount)
+        printArgument(OS);
     } else {
       assert(SpellingIndex == Pragma_clang_loop && "Unexpected spelling");
       OS << getOptionName(option);
