@@ -67,6 +67,8 @@ using llvm::opt::ArgStringList;
                             llvm::opt::ArgStringList &CmdArgs) const;
     void AddMIPSTargetArgs(const llvm::opt::ArgList &Args,
                            llvm::opt::ArgStringList &CmdArgs) const;
+    void AddPPCTargetArgs(const llvm::opt::ArgList &Args,
+                          llvm::opt::ArgStringList &CmdArgs) const;
     void AddR600TargetArgs(const llvm::opt::ArgList &Args,
                            llvm::opt::ArgStringList &CmdArgs) const;
     void AddSparcTargetArgs(const llvm::opt::ArgList &Args,
@@ -388,6 +390,10 @@ namespace mips {
   bool isNaN2008(const llvm::opt::ArgList &Args, const llvm::Triple &Triple);
   bool isFPXXDefault(const llvm::Triple &Triple, StringRef CPUName,
                      StringRef ABIName);
+}
+
+namespace ppc {
+  bool hasPPCAbiArg(const llvm::opt::ArgList &Args, const char *Value);
 }
 
 namespace darwin {
