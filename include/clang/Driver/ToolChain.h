@@ -118,9 +118,6 @@ public:
   StringRef getPlatform() const { return Triple.getVendorName(); }
   StringRef getOS() const { return Triple.getOSName(); }
 
-  /// \brief Returns true if the toolchain is targeting a non-native architecture.
-  bool isCrossCompiling() const;
-
   /// \brief Provide the default architecture name (as expected by -arch) for
   /// this toolchain. Note t
   StringRef getDefaultUniversalArchName() const;
@@ -172,6 +169,10 @@ public:
   virtual void printVerboseInfo(raw_ostream &OS) const {};
 
   // Platform defaults information
+
+  /// \brief Returns true if the toolchain is targeting a non-native
+  /// architecture.
+  virtual bool isCrossCompiling() const;
 
   /// HasNativeLTOLinker - Check whether the linker and related tools have
   /// native LLVM support.
