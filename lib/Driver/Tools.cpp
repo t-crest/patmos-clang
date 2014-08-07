@@ -2207,7 +2207,8 @@ static void addClangRTLinux(
 
 static void addProfileRT(
     const ToolChain &TC, const ArgList &Args, ArgStringList &CmdArgs) {
-  if (!(Args.hasArg(options::OPT_fprofile_arcs) ||
+  if (!(Args.hasFlag(options::OPT_fprofile_arcs, options::OPT_fno_profile_arcs,
+                     false) ||
         Args.hasArg(options::OPT_fprofile_generate) ||
         Args.hasArg(options::OPT_fprofile_instr_generate) ||
         Args.hasArg(options::OPT_fcreate_profile) ||
@@ -3337,7 +3338,8 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   if (Args.hasArg(options::OPT_ftest_coverage) ||
       Args.hasArg(options::OPT_coverage))
     CmdArgs.push_back("-femit-coverage-notes");
-  if (Args.hasArg(options::OPT_fprofile_arcs) ||
+  if (Args.hasFlag(options::OPT_fprofile_arcs, options::OPT_fno_profile_arcs,
+                   false) ||
       Args.hasArg(options::OPT_coverage))
     CmdArgs.push_back("-femit-coverage-data");
 
