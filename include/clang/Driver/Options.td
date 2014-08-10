@@ -1246,6 +1246,8 @@ def mpatmos_stack_cache_size : Joined<["-"], "mpatmos-stack-cache-size=">, Group
   HelpText<"Total size of the stack cache in bytes">, Flags<[HelpHidden]>;
 def mpatmos_stack_cache_block_size : Joined<["-"], "mpatmos-stack-cache-block-size=">, Group<m_Patmos_llc_Group>,
   HelpText<"Block size of the stack cache in bytes">, Flags<[HelpHidden]>;
+def mpatmos_enable_block_aligned_stack_cache : Joined<["-"], "mpatmos-enable-block-aligned-stack-cache">, Group<m_Patmos_llc_Group>,
+  HelpText<"Enable the use of Patmos' block-aligned stack cache">, Flags<[HelpHidden]>;
 
 def mimport_pml : Joined<["-"], "mimport-pml=">, Group<m_PML_Group>, 
   HelpText<"Read external analysis results from PML file">, Flags<[HelpHidden]>;
