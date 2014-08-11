@@ -2912,7 +2912,7 @@ static Distro DetectDistro(llvm::Triple::ArchType Arch) {
       llvm::MemoryBuffer::getFile("/etc/lsb-release");
   if (File) {
     StringRef Data = File.get()->getBuffer();
-    SmallVector<StringRef, 8> Lines;
+    SmallVector<StringRef, 16> Lines;
     Data.split(Lines, "\n");
     Distro Version = UnknownDistro;
     for (unsigned i = 0, s = Lines.size(); i != s; ++i)
