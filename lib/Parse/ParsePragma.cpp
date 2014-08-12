@@ -929,3 +929,54 @@ void PragmaCommentHandler::HandlePragma(Preprocessor &PP,
 
   Actions.ActOnPragmaMSComment(Kind, ArgumentString);
 }
+
+
+// #pragma loopbound min NUM max NUM
+void PragmaLoopboundHandler::HandlePragma(Preprocessor &PP,
+                                          PragmaIntroducerKind Introducer,
+                                          Token &LoopboundTok) {
+  //SourceLocation LoopboundLoc = LoopboundTok.getLocation();
+
+  Token Tok;
+  Token LoopboundMin, LoopboundMax;
+
+  PP.LexUnexpandedToken(Tok);
+  if (Tok.isNot(tok::identifier) ||
+      !Tok.getIdentifierInfo()->isStr("min")) {
+    PP.Diag(Tok.getLocation(), diag::err_pragma_loopbound_malformed);
+    return;
+  }
+
+  PP.Lex(Tok); // allow macro expansion for minimum
+  if (!Tok.is(tok::numeric_constant)) {
+    PP.Diag(Tok.getLocation(), diag::err_pragma_loopbound_malformed);
+    return;
+  }
+  // store loopbound min
+  LoopboundMin = Tok;
+
+  PP.LexUnexpandedToken(Tok);
+  if (Tok.isNot(tok::identifier) ||
+      !Tok.getIdentifierInfo()->isStr("max")) {
+    PP.Diag(Tok.getLocation(), diag::err_pragma_loopbound_malformed);
+    return;
+  }
+
+  PP.Lex(Tok); // allow macro expansion for maximum
+  if (!Tok.is(tok::numeric_constant)) {
+    PP.Diag(Tok.getLocation(), diag::err_pragma_loopbound_malformed);
+    return;
+  }
+  // store loopbound max
+  LoopboundMax = Tok;
+
+  // eat the max
+  PP.Lex(Tok);
+  if (Tok.isNot(tok::eod)) {
+    PP.Diag(Tok.getLocation(), diag::err_pragma_loopbound_malformed);
+    return;
+  }
+
+  // TODO
+  // assert(0 && "not yet implemented");
+}

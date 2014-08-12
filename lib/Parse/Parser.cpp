@@ -109,6 +109,9 @@ Parser::Parser(Preprocessor &pp, Sema &actions, bool skipFunctionBodies)
     PP.AddPragmaHandler(MSDetectMismatchHandler.get());
   }
 
+  LoopboundHandler.reset(new PragmaLoopboundHandler());
+  PP.AddPragmaHandler(LoopboundHandler.get());
+
   CommentSemaHandler.reset(new ActionCommentHandler(actions));
   PP.addCommentHandler(CommentSemaHandler.get());
 
@@ -470,6 +473,9 @@ Parser::~Parser() {
 
   PP.RemovePragmaHandler("STDC", FPContractHandler.get());
   FPContractHandler.reset();
+
+  PP.RemovePragmaHandler(LoopboundHandler.get());
+  LoopboundHandler.reset();
 
   PP.removeCommentHandler(CommentSemaHandler.get());
 
