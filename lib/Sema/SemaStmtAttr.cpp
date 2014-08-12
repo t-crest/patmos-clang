@@ -46,9 +46,8 @@ static Attr *handleFallThroughAttr(Sema &S, Stmt *St, const AttributeList &A,
 
 static Attr *handleLoopboundAttr(Sema &S, Stmt *St, const AttributeList &A,
                                  SourceRange Range) {
-  IdentifierLoc *PragmaNameLoc = A.getArgAsIdent(0);
-  Expr *MinExpr = A.getArgAsExpr(1);
-  Expr *MaxExpr = A.getArgAsExpr(2);
+  Expr *MinExpr = A.getArgAsExpr(0);
+  Expr *MaxExpr = A.getArgAsExpr(1);
 
   if (St->getStmtClass() != Stmt::DoStmtClass &&
       St->getStmtClass() != Stmt::ForStmtClass &&

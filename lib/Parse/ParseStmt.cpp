@@ -1754,10 +1754,9 @@ StmtResult Parser::ParsePragmaLoopbound(StmtVector &Stmts, bool OnlyStatement,
     Loopbound LB;
     HandlePragmaLoopbound(LB);
 
-    ArgsUnion ArgLB[] = {LB.PragmaNameLoc,
-                         ArgsUnion(LB.MinExpr), ArgsUnion(LB.MaxExpr) };
+    ArgsUnion ArgLB[] = {ArgsUnion(LB.MinExpr), ArgsUnion(LB.MaxExpr)};
     TempAttrs.addNew(LB.PragmaNameLoc->Ident, LB.Range, NULL,
-                     LB.PragmaNameLoc->Loc, ArgLB, 3,
+                     LB.PragmaNameLoc->Loc, ArgLB, 2,
                      AttributeList::AS_Pragma);
   }
 
