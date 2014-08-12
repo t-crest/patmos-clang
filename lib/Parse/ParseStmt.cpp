@@ -346,6 +346,9 @@ Retry:
     ProhibitAttributes(Attrs);
     return ParseOpenMPDeclarativeOrExecutableDirective();
 
+  case tok::annot_pragma_loopbound:
+    ProhibitAttributes(Attrs);
+    return ParsePragmaLoopbound(Stmts, OnlyStatement, TrailingElseLoc, Attrs);
   }
 
   // If we reached this code, the statement must end in a semicolon.
@@ -1738,6 +1741,39 @@ StmtResult Parser::ParseReturnStatement() {
   }
   return Actions.ActOnReturnStmt(ReturnLoc, R.take());
 }
+
+
+StmtResult Parser::ParsePragmaLoopbound(StmtVector &Stmts, bool OnlyStatement,
+                                        SourceLocation *TrailingElseLoc,
+                                        ParsedAttributesWithRange &Attrs) {
+  // Create temporary attribute list.
+  ParsedAttributesWithRange TempAttrs(AttrFactory);
+
+  // Get loopbound and consume annotated token.
+  while (Tok.is(tok::annot_pragma_loopbound)) {
+    Loopbound LB;
+    HandlePragmaLoopbound(LB);
+
+    ArgsUnion ArgLB[] = {LB.PragmaNameLoc,
+                         ArgsUnion(LB.MinExpr), ArgsUnion(LB.MaxExpr) };
+    TempAttrs.addNew(LB.PragmaNameLoc->Ident, LB.Range, NULL,
+                     LB.PragmaNameLoc->Loc, ArgLB, 3,
+                     AttributeList::AS_Pragma);
+  }
+
+  // Get the next statement.
+  MaybeParseCXX11Attributes(Attrs);
+
+  StmtResult S = ParseStatementOrDeclarationAfterAttributes(
+      Stmts, OnlyStatement, TrailingElseLoc, Attrs);
+
+  Attrs.takeAllFrom(TempAttrs);
+  return S;
+}
+
+
+
+
 
 namespace {
   class ClangAsmParserCallback : public llvm::MCAsmParserSemaCallback {

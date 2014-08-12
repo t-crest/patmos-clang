@@ -103,6 +103,9 @@ class CXX11<string namespace, string name> : Spelling<name, "CXX11"> {
   string Namespace = namespace;
 }
 class Keyword<string name> : Spelling<name, "Keyword">;
+class Pragma<string namespace, string name> : Spelling<name, "Pragma"> {
+  string Namespace = namespace;
+}
 
 class Accessor<string name, list<Spelling> spellings> {
   string Name = name;
@@ -1100,4 +1103,26 @@ def UnspecifiedInheritance : MSInheritanceAttr {
 
 def Unaligned : IgnoredAttr {
   let Spellings = [Keyword<"__unaligned">];
+}
+
+def Loopbound : Attr {
+  // #pragma loopbound min VALUE max VALUE
+  let Spellings = [Pragma<"", "loopbound">];
+  let Args = [DefaultIntArgument<"Min", -1>,
+              DefaultIntArgument<"Max", -1>];
+
+  let AdditionalMembers = [{
+    void printPrettyPragma(raw_ostream &OS, const PrintingPolicy &Policy) const {
+      OS << "min " << getValueString(min, Policy)
+         << "max " << getValueString(max, Policy) << "\n";
+    }
+
+    std::string getValueString(int val, const PrintingPolicy &Policy) const {
+      std::string ValueName;
+      llvm::raw_string_ostream OS(ValueName);
+      OS << val << " ";
+      return OS.str();
+    }
+
+  }];
 }

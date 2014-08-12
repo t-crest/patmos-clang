@@ -477,6 +477,10 @@ def err_pragma_pop_visibility_mismatch : Error<
   "#pragma visibility pop with no matching #pragma visibility push">;
 def note_surrounding_namespace_starts_here : Note<
   "surrounding namespace with visibility attribute starts here">;
+def err_pragma_loopbound_invalid_values : Error<
+  "invalid values; expected min >= 0 && max >= 0 && min <= max">;
+def err_pragma_loop_precedes_nonloop : Error<
+  "expected a for, while, or do-while loop to follow '%0'">;
 
 /// Objective-C parser diagnostics
 def err_duplicate_class_def : Error<

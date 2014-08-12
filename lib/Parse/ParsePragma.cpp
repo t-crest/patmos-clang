@@ -15,6 +15,7 @@
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Parse/ParseDiagnostic.h"
 #include "clang/Parse/Parser.h"
+#include "clang/Sema/Loopbound.h"
 #include "clang/Sema/Scope.h"
 #include "llvm/ADT/StringSwitch.h"
 using namespace clang;
@@ -180,6 +181,35 @@ void Parser::HandlePragmaOpenCLExtension() {
   }
 }
 
+struct PragmaLoopboundInfo {
+  Token PragmaName;
+  Token Min;
+  Token Max;
+};
+
+
+void Parser::HandlePragmaLoopbound(Loopbound &LB) {
+  assert(Tok.is(tok::annot_pragma_loopbound));
+
+  PragmaLoopboundInfo *Info =
+      static_cast<PragmaLoopboundInfo *>(Tok.getAnnotationValue());
+  ConsumeToken(); // The annotation token.
+
+  LB.PragmaNameLoc = IdentifierLoc::create(
+      Actions.Context,
+      Info->PragmaName.getLocation(),
+      Info->PragmaName.getIdentifierInfo()
+      );
+
+  assert(Info->Min.is(tok::numeric_constant));
+  LB.MinExpr = Actions.ActOnNumericConstant(Info->Min).get();
+
+  assert(Info->Max.is(tok::numeric_constant));
+  LB.MaxExpr = Actions.ActOnNumericConstant(Info->Max).get();
+
+  LB.Range =
+        SourceRange(Info->PragmaName.getLocation(), Info->Max.getLocation());
+}
 
 
 // #pragma GCC visibility comes in two variants:
@@ -935,10 +965,11 @@ void PragmaCommentHandler::HandlePragma(Preprocessor &PP,
 void PragmaLoopboundHandler::HandlePragma(Preprocessor &PP,
                                           PragmaIntroducerKind Introducer,
                                           Token &LoopboundTok) {
-  //SourceLocation LoopboundLoc = LoopboundTok.getLocation();
-
   Token Tok;
-  Token LoopboundMin, LoopboundMax;
+
+  PragmaLoopboundInfo *Info =
+    new (PP.getPreprocessorAllocator()) PragmaLoopboundInfo;
+  Info->PragmaName = LoopboundTok;
 
   PP.LexUnexpandedToken(Tok);
   if (Tok.isNot(tok::identifier) ||
@@ -953,7 +984,7 @@ void PragmaLoopboundHandler::HandlePragma(Preprocessor &PP,
     return;
   }
   // store loopbound min
-  LoopboundMin = Tok;
+  Info->Min = Tok;
 
   PP.LexUnexpandedToken(Tok);
   if (Tok.isNot(tok::identifier) ||
@@ -968,7 +999,7 @@ void PragmaLoopboundHandler::HandlePragma(Preprocessor &PP,
     return;
   }
   // store loopbound max
-  LoopboundMax = Tok;
+  Info->Max = Tok;
 
   // eat the max
   PP.Lex(Tok);
@@ -977,6 +1008,12 @@ void PragmaLoopboundHandler::HandlePragma(Preprocessor &PP,
     return;
   }
 
-  // TODO
-  // assert(0 && "not yet implemented");
+  // Generate the hint token.
+  Token *TokenArray = new Token[1];
+  TokenArray[0].startToken();
+  TokenArray[0].setKind(tok::annot_pragma_loopbound);
+  TokenArray[0].setLocation(LoopboundTok.getLocation());
+  TokenArray[0].setAnnotationValue(static_cast<void *>(Info));
+  PP.EnterTokenStream(TokenArray, 1, /*DisableMacroExpansion=*/false,
+                      /*OwnsTokens=*/true);
 }
