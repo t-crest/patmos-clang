@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef CLANG_LIB_DRIVER_TOOLS_H_
-#define CLANG_LIB_DRIVER_TOOLS_H_
+#ifndef LLVM_CLANG_LIB_DRIVER_TOOLS_H
+#define LLVM_CLANG_LIB_DRIVER_TOOLS_H
 
 #include "clang/Driver/Tool.h"
 #include "clang/Driver/Types.h"
@@ -822,4 +822,4 @@ namespace XCore {
 } // end namespace driver
 } // end namespace clang
 
-#endif // CLANG_LIB_DRIVER_TOOLS_H_
+#endif
