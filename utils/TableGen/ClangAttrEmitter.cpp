@@ -956,6 +956,14 @@ static void writePrettyPrintFunction(Record &R, std::vector<Argument*> &Args,
     } else if (Variety == "Keyword") {
       Prefix = " ";
       Suffix = "";
+    } else if (Variety == "Pragma") {
+      Prefix = "#pragma ";
+      Suffix = "\n";
+      std::string Namespace = Spellings[I]->getValueAsString("Namespace");
+      if (!Namespace.empty()) {
+        Spelling += Namespace;
+        Spelling += " ";
+      }
     } else {
       llvm_unreachable("Unknown attribute syntax variety!");
     }
@@ -965,6 +973,15 @@ static void writePrettyPrintFunction(Record &R, std::vector<Argument*> &Args,
     OS <<
       "  case " << I << " : {\n"
       "    OS << \"" + Prefix.str() + Spelling.str();
+
+    if (Variety == "Pragma") {
+      OS << " \";\n";
+      OS << "    printPrettyPragma(OS, Policy);\n";
+      OS << "    break;\n";
+      OS << "  }\n";
+      continue;
+    }
+
 
     if (Args.size()) OS << "(";
     if (Spelling == "availability") {

@@ -44,6 +44,39 @@ static Attr *handleFallThroughAttr(Sema &S, Stmt *St, const AttributeList &A,
   return ::new (S.Context) FallThroughAttr(A.getRange(), S.Context);
 }
 
+static Attr *handleLoopboundAttr(Sema &S, Stmt *St, const AttributeList &A,
+                                 SourceRange Range) {
+  Expr *MinExpr = A.getArgAsExpr(0);
+  Expr *MaxExpr = A.getArgAsExpr(1);
+
+  if (St->getStmtClass() != Stmt::DoStmtClass &&
+      St->getStmtClass() != Stmt::ForStmtClass &&
+      St->getStmtClass() != Stmt::CXXForRangeStmtClass &&
+      St->getStmtClass() != Stmt::WhileStmtClass) {
+    S.Diag(St->getLocStart(), diag::err_pragma_loop_precedes_nonloop)
+       << "#pragma loopbound";
+    return 0;
+  }
+
+  llvm::APSInt MinAPS, MaxAPS;
+  assert(MinExpr != NULL && MaxExpr != NULL);
+  if (!MinExpr->isIntegerConstantExpr(MinAPS, S.Context) ||
+      !MaxExpr->isIntegerConstantExpr(MaxAPS, S.Context)) {
+    S.Diag(A.getLoc(), diag::err_pragma_loopbound_invalid_values);
+    return 0;
+  }
+
+  int MinInt = MinAPS.getSExtValue();
+  int MaxInt = MaxAPS.getSExtValue();
+
+  if ( MinInt < 0 || MaxInt < 0 || MinInt > MaxInt) {
+    S.Diag(A.getLoc(), diag::err_pragma_loopbound_invalid_values);
+    return 0;
+  }
+
+  return ::new (S.Context) LoopboundAttr(A.getRange(), S.Context,
+      MinInt, MaxInt);
+}
 
 static Attr *ProcessStmtAttribute(Sema &S, Stmt *St, const AttributeList &A,
                                   SourceRange Range) {
@@ -55,6 +88,8 @@ static Attr *ProcessStmtAttribute(Sema &S, Stmt *St, const AttributeList &A,
     return 0;
   case AttributeList::AT_FallThrough:
     return handleFallThroughAttr(S, St, A, Range);
+  case AttributeList::AT_Loopbound:
+    return handleLoopboundAttr(S, St, A, Range);
   default:
     // if we're here, then we parsed a known attribute, but didn't recognize
     // it as a statement attribute => it is declaration attribute

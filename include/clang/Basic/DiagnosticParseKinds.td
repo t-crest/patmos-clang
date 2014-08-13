@@ -810,6 +810,10 @@ def err_pragma_comment_unknown_kind : Error<"unknown kind of pragma comment">;
 def err_pragma_detect_mismatch_malformed : Error<
   "pragma detect_mismatch is malformed; it requires two comma-separated "
   "string literals">;
+// - #pragma loopbound
+def err_pragma_loopbound_malformed : Error<
+  "pragma loopbound is malformed; expecting "
+  "'#pragma loopbound min NUM max NUM'">;
 
 // OpenCL Section 6.8.g
 def err_not_opencl_storage_class_specifier : Error<

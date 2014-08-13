@@ -1817,9 +1817,17 @@ public:
   void EmitGotoStmt(const GotoStmt &S);
   void EmitIndirectGotoStmt(const IndirectGotoStmt &S);
   void EmitIfStmt(const IfStmt &S);
-  void EmitWhileStmt(const WhileStmt &S);
-  void EmitDoStmt(const DoStmt &S);
-  void EmitForStmt(const ForStmt &S);
+
+  void EmitCondBrBounds(llvm::LLVMContext &Context, llvm::BranchInst *CondBr,
+                        const ArrayRef<const Attr *> &Attrs);
+  void EmitHeaderBounds(llvm::BasicBlock *Header,
+                        const ArrayRef<const Attr *> &Attrs);
+  void EmitWhileStmt(const WhileStmt &S,
+                     const ArrayRef<const Attr *> &Attrs = None);
+  void EmitDoStmt(const DoStmt &S,
+                  const ArrayRef<const Attr *> &Attrs = None);
+  void EmitForStmt(const ForStmt &S,
+                   const ArrayRef<const Attr *> &Attrs = None);
   void EmitReturnStmt(const ReturnStmt &S);
   void EmitDeclStmt(const DeclStmt &S);
   void EmitBreakStmt(const BreakStmt &S);
@@ -1843,7 +1851,8 @@ public:
 
   void EmitCXXTryStmt(const CXXTryStmt &S);
   void EmitSEHTryStmt(const SEHTryStmt &S);
-  void EmitCXXForRangeStmt(const CXXForRangeStmt &S);
+  void EmitCXXForRangeStmt(const CXXForRangeStmt &S,
+                           const ArrayRef<const Attr *> &Attrs = None);
 
   llvm::Function *EmitCapturedStmt(const CapturedStmt &S, CapturedRegionKind K);
   llvm::Function *GenerateCapturedStmtFunction(const CapturedDecl *CD,

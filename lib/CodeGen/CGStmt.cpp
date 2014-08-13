@@ -394,7 +394,23 @@ void CodeGenFunction::EmitLabelStmt(const LabelStmt &S) {
 }
 
 void CodeGenFunction::EmitAttributedStmt(const AttributedStmt &S) {
-  EmitStmt(S.getSubStmt());
+  const Stmt *SubStmt = S.getSubStmt();
+  switch (SubStmt->getStmtClass()) {
+    case Stmt::DoStmtClass:
+      EmitDoStmt(cast<DoStmt>(*SubStmt), S.getAttrs());
+      break;
+    case Stmt::ForStmtClass:
+      EmitForStmt(cast<ForStmt>(*SubStmt), S.getAttrs());
+      break;
+    case Stmt::WhileStmtClass:
+      EmitWhileStmt(cast<WhileStmt>(*SubStmt), S.getAttrs());
+      break;
+    case Stmt::CXXForRangeStmtClass:
+      EmitCXXForRangeStmt(cast<CXXForRangeStmt>(*SubStmt), S.getAttrs());
+      break;
+    default:
+      EmitStmt(SubStmt);
+  }
 }
 
 void CodeGenFunction::EmitGotoStmt(const GotoStmt &S) {
@@ -495,7 +511,81 @@ void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
   EmitBlock(ContBlock, true);
 }
 
-void CodeGenFunction::EmitWhileStmt(const WhileStmt &S) {
+// This inserts a loopbound intrinsic into the basic block that
+// is the header of an emitted loop.
+// We assume here that the block is already filled with instructions.
+void CodeGenFunction::EmitHeaderBounds(llvm::BasicBlock *Header,
+                                       const ArrayRef<const Attr *> &Attrs) {
+  // Return if there are no hints.
+  if (Attrs.empty())
+    return;
+
+  for (unsigned i = 0; i < Attrs.size(); ++i) {
+    const Attr *A = Attrs[i];
+    const LoopboundAttr *LB = dyn_cast<LoopboundAttr>(A);
+
+    // Skip non loopbound attributes
+    if (!LB) continue;
+
+    SmallVector<llvm::Value*, 16> Args;
+    llvm::Value *MinVal = llvm::ConstantInt::get(Int32Ty, LB->getMin());
+    llvm::Value *MaxVal = llvm::ConstantInt::get(Int32Ty, LB->getMax());
+
+    Args.push_back(MinVal);
+    Args.push_back(MaxVal);
+    llvm::BasicBlock::iterator I = Header->getFirstInsertionPt();
+
+    llvm::Value *Callee =
+      CGM.getIntrinsic(llvm::Intrinsic::loopbound);
+    llvm::CallSite CS = llvm::CallInst::Create(Callee, Args, "", I);
+  }
+
+}
+
+void CodeGenFunction::EmitCondBrBounds(llvm::LLVMContext &Context,
+                                       llvm::BranchInst *CondBr,
+                                       const ArrayRef<const Attr *> &Attrs) {
+  // Return if there are no hints.
+  if (Attrs.empty())
+    return;
+
+  // Add loopbounds to the metadata on the conditional branch.
+  SmallVector<llvm::Value *, 2> Metadata(1);
+  for (unsigned i = 0; i < Attrs.size(); ++i) {
+    const Attr *A = Attrs[i];
+    const LoopboundAttr *LB = dyn_cast<LoopboundAttr>(A);
+
+    // Skip non loopbound attributes
+    if (!LB) continue;
+
+    const char *MetadataName = "llvm.loop.bound";
+    llvm::MDString *Name = llvm::MDString::get(Context, MetadataName);
+    llvm::Value *MinVal = llvm::ConstantInt::get(Int32Ty, LB->getMin());
+    llvm::Value *MaxVal = llvm::ConstantInt::get(Int32Ty, LB->getMax());
+
+    SmallVector<llvm::Value *, 3> OpValues;
+    OpValues.push_back(Name);
+    OpValues.push_back(MinVal);
+    OpValues.push_back(MaxVal);
+
+    // Set or overwrite metadata indicated by Name.
+    Metadata.push_back(llvm::MDNode::get(Context, OpValues));
+  }
+
+  if (!Metadata.empty()) {
+    // Add llvm.loop MDNode to CondBr.
+    llvm::MDNode *LoopID = llvm::MDNode::get(Context, Metadata);
+    LoopID->replaceOperandWith(0, LoopID); // First op points to itself.
+
+    CondBr->setMetadata("llvm.loop", LoopID);
+  }
+
+}
+
+
+
+void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
+                                    const ArrayRef<const Attr *> &Attrs) {
   // Emit the header for the loop, which will also become
   // the continue target.
   JumpDest LoopHeader = getJumpDestInCurrentScope("while.cond");
@@ -539,12 +629,16 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S) {
     if (ConditionScope.requiresCleanups())
       ExitBlock = createBasicBlock("while.exit");
 
-    Builder.CreateCondBr(BoolCondVal, LoopBody, ExitBlock);
+    llvm::BranchInst *CondBr =
+      Builder.CreateCondBr(BoolCondVal, LoopBody, ExitBlock);
 
     if (ExitBlock != LoopExit.getBlock()) {
       EmitBlock(ExitBlock);
       EmitBranchThroughCleanup(LoopExit);
     }
+
+    // Attach metadata to loop body conditional branch.
+    EmitCondBrBounds(LoopBody->getContext(), CondBr, Attrs);
   }
 
   // Emit the loop body.  We have to emit this in a cleanup scope
@@ -554,6 +648,10 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S) {
     EmitBlock(LoopBody);
     EmitStmt(S.getBody());
   }
+
+  // Insert loopbound instrinsic
+  EmitHeaderBounds(LoopBody, Attrs);
+
 
   BreakContinueStack.pop_back();
 
@@ -572,7 +670,8 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S) {
     SimplifyForwardingBlocks(LoopHeader.getBlock());
 }
 
-void CodeGenFunction::EmitDoStmt(const DoStmt &S) {
+void CodeGenFunction::EmitDoStmt(const DoStmt &S,
+                                 const ArrayRef<const Attr *> &Attrs) {
   JumpDest LoopExit = getJumpDestInCurrentScope("do.end");
   JumpDest LoopCond = getJumpDestInCurrentScope("do.cond");
 
@@ -586,6 +685,10 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S) {
     RunCleanupsScope BodyScope(*this);
     EmitStmt(S.getBody());
   }
+
+  // Insert loopbound instrinsic
+  EmitHeaderBounds(LoopBody, Attrs);
+
 
   BreakContinueStack.pop_back();
 
@@ -607,8 +710,12 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S) {
       EmitBoolCondBranch = false;
 
   // As long as the condition is true, iterate the loop.
-  if (EmitBoolCondBranch)
-    Builder.CreateCondBr(BoolCondVal, LoopBody, LoopExit.getBlock());
+  if (EmitBoolCondBranch) {
+    llvm::BranchInst *CondBr =
+      Builder.CreateCondBr(BoolCondVal, LoopBody, LoopExit.getBlock());
+    // Attach metadata to loop body conditional branch.
+    EmitCondBrBounds(LoopBody->getContext(), CondBr, Attrs);
+  }
 
   // Emit the exit block.
   EmitBlock(LoopExit.getBlock());
@@ -619,7 +726,8 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S) {
     SimplifyForwardingBlocks(LoopCond.getBlock());
 }
 
-void CodeGenFunction::EmitForStmt(const ForStmt &S) {
+void CodeGenFunction::EmitForStmt(const ForStmt &S,
+                                  const ArrayRef<const Attr *> &Attrs) {
   JumpDest LoopExit = getJumpDestInCurrentScope("for.end");
 
   RunCleanupsScope ForScope(*this);
@@ -642,6 +750,7 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S) {
   // Create a cleanup scope for the condition variable cleanups.
   RunCleanupsScope ConditionScope(*this);
 
+  llvm::BasicBlock *ForBody = NULL;
   if (S.getCond()) {
     // If the for statement has a condition scope, emit the local variable
     // declaration.
@@ -656,11 +765,16 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S) {
       ExitBlock = createBasicBlock("for.cond.cleanup");
 
     // As long as the condition is true, iterate the loop.
-    llvm::BasicBlock *ForBody = createBasicBlock("for.body");
+    ForBody = createBasicBlock("for.body");
 
     // C99 6.8.5p2/p4: The first substatement is executed if the expression
     // compares unequal to 0.  The condition must be a scalar type.
-    EmitBranchOnBoolExpr(S.getCond(), ForBody, ExitBlock);
+    llvm::Value *BoolCondVal = EvaluateExprAsBool(S.getCond());
+    llvm::BranchInst *CondBr =
+        Builder.CreateCondBr(BoolCondVal, ForBody, ExitBlock);
+
+    // Attach metadata to loop body conditional branch.
+    EmitCondBrBounds(ForBody->getContext(), CondBr, Attrs);
 
     if (ExitBlock != LoopExit.getBlock()) {
       EmitBlock(ExitBlock);
@@ -690,6 +804,10 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S) {
     EmitStmt(S.getBody());
   }
 
+  // Insert loopbound instrinsic
+  if (ForBody) EmitHeaderBounds(ForBody, Attrs);
+
+
   // If there is an increment, emit it next.
   if (S.getInc()) {
     EmitBlock(Continue.getBlock());
@@ -710,7 +828,8 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S) {
   EmitBlock(LoopExit.getBlock(), true);
 }
 
-void CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S) {
+void CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S,
+                                          const ArrayRef<const Attr*> &Attrs) {
   JumpDest LoopExit = getJumpDestInCurrentScope("for.end");
 
   RunCleanupsScope ForScope(*this);
@@ -740,7 +859,12 @@ void CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S) {
 
   // The body is executed if the expression, contextually converted
   // to bool, is true.
-  EmitBranchOnBoolExpr(S.getCond(), ForBody, ExitBlock);
+  llvm::Value *BoolCondVal = EvaluateExprAsBool(S.getCond());
+  llvm::BranchInst *CondBr =
+    Builder.CreateCondBr(BoolCondVal, ForBody, ExitBlock);
+
+  // Attach metadata to loop body conditional branch.
+  EmitCondBrBounds(ForBody->getContext(), CondBr, Attrs);
 
   if (ExitBlock != LoopExit.getBlock()) {
     EmitBlock(ExitBlock);
@@ -761,6 +885,10 @@ void CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S) {
     EmitStmt(S.getLoopVarStmt());
     EmitStmt(S.getBody());
   }
+
+  // Insert loopbound instrinsic
+  EmitHeaderBounds(ForBody, Attrs);
+
 
   // If there is an increment, emit it next.
   EmitBlock(Continue.getBlock());
