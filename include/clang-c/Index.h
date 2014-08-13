@@ -2070,7 +2070,11 @@ enum CXCursorKind {
    */
   CXCursor_OMPParallelDirective          = 232,
 
-  CXCursor_LastStmt                      = CXCursor_OMPParallelDirective,
+  /** \brief Platin flowfact.
+   */
+  CXCursor_Flowfact                      = 233,
+
+  CXCursor_LastStmt                      = CXCursor_Flowfact,
 
   /**
    * \brief Cursor that represents the translation unit itself.

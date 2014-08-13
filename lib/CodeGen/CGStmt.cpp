@@ -172,6 +172,9 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
   case Stmt::SEHTryStmtClass:
     EmitSEHTryStmt(cast<SEHTryStmt>(*S));
     break;
+  case Stmt::FlowfactClass:
+    // flowfacts are not being translated at this point
+    break;
   }
 }
 

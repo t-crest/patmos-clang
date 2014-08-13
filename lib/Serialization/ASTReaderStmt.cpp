@@ -2250,7 +2250,8 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
                                           Record[ASTStmtReader::NumStmtFields],
                                           Empty);
       break;
-        
+    case STMT_PLATIN:
+      llvm_unreachable("deserializing flowfact not implemented");
     case EXPR_CXX_OPERATOR_CALL:
       S = new (Context) CXXOperatorCallExpr(Context, Empty);
       break;
