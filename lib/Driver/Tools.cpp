@@ -8272,6 +8272,16 @@ void netbsd::Link::ConstructJob(Compilation &C, const JobAction &JA,
        CmdArgs.push_back("elf64ltsmip");
    }
    break;
+  case llvm::Triple::ppc:
+    CmdArgs.push_back("-m");
+    CmdArgs.push_back("elf32ppc_nbsd");
+    break;
+
+  case llvm::Triple::ppc64:
+  case llvm::Triple::ppc64le:
+    CmdArgs.push_back("-m");
+    CmdArgs.push_back("elf64ppc");
+    break;
 
   case llvm::Triple::sparc:
     CmdArgs.push_back("-m");
@@ -8332,6 +8342,8 @@ void netbsd::Link::ConstructJob(Compilation &C, const JobAction &JA,
     case llvm::Triple::thumb:
     case llvm::Triple::thumbeb:
     case llvm::Triple::ppc:
+    case llvm::Triple::ppc64:
+    case llvm::Triple::ppc64le:
     case llvm::Triple::x86:
     case llvm::Triple::x86_64:
       useLibgcc = false;
