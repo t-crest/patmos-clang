@@ -28,6 +28,7 @@
 #include "clang/AST/StmtCXX.h"
 #include "clang/AST/StmtObjC.h"
 #include "clang/AST/StmtOpenMP.h"
+#include "clang/AST/StmtPlatin.h"
 #include "clang/AST/TemplateBase.h"
 #include "clang/AST/TemplateName.h"
 #include "clang/AST/Type.h"
@@ -2345,6 +2346,8 @@ bool RecursiveASTVisitor<Derived>::TraverseOMPClause(OMPClause *C) {
   }
   return true;
 }
+
+DEF_TRAVERSE_STMT(Flowfact, { return true; })
 
 template<typename Derived>
 bool RecursiveASTVisitor<Derived>::VisitOMPDefaultClause(OMPDefaultClause *C) {

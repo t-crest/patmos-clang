@@ -142,6 +142,7 @@ class Parser : public CodeCompletionHandler {
   llvm::SmallDenseMap<IdentifierInfo *, tok::TokenKind> RevertableTypeTraits;
 
   OwningPtr<PragmaHandler> AlignHandler;
+  OwningPtr<PragmaHandler> PlatinHandler;
   OwningPtr<PragmaHandler> GCCVisibilityHandler;
   OwningPtr<PragmaHandler> OptionsHandler;
   OwningPtr<PragmaHandler> PackHandler;
@@ -2231,6 +2232,9 @@ private:
   /// \param Kind Kind of current clause.
   ///
   OMPClause *ParseOpenMPVarListClause(OpenMPClauseKind Kind);
+
+  /// \brief Parses declarative or executable directive.
+  StmtResult ParsePlatinPragma();
 public:
   bool ParseUnqualifiedId(CXXScopeSpec &SS, bool EnteringContext,
                           bool AllowDestructorName,

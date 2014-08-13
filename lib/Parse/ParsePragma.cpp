@@ -18,6 +18,7 @@
 #include "clang/Sema/Loopbound.h"
 #include "clang/Sema/Scope.h"
 #include "llvm/ADT/StringSwitch.h"
+#include "llvm/Support/Debug.h"
 using namespace clang;
 
 /// \brief Handle the annotation token produced for #pragma unused(...)
@@ -960,7 +961,6 @@ void PragmaCommentHandler::HandlePragma(Preprocessor &PP,
   Actions.ActOnPragmaMSComment(Kind, ArgumentString);
 }
 
-
 // #pragma loopbound min NUM max NUM
 void PragmaLoopboundHandler::HandlePragma(Preprocessor &PP,
                                           PragmaIntroducerKind Introducer,
@@ -1016,4 +1016,30 @@ void PragmaLoopboundHandler::HandlePragma(Preprocessor &PP,
   TokenArray[0].setAnnotationValue(static_cast<void *>(Info));
   PP.EnterTokenStream(TokenArray, 1, /*DisableMacroExpansion=*/false,
                       /*OwnsTokens=*/true);
+}
+
+void
+PragmaPlatinHandler::HandlePragma(Preprocessor &PP,
+                                  PragmaIntroducerKind Introducer,
+                                  Token &FirstTok) {
+  SmallVector<Token, 16> Pragma;
+  Token Tok;
+  Tok.startToken();
+  Tok.setKind(tok::annot_pragma_platinff);
+  Tok.setLocation(FirstTok.getLocation());
+
+  while (Tok.isNot(tok::eod)) {
+    Pragma.push_back(Tok);
+    PP.Lex(Tok);
+  }
+  SourceLocation EodLoc = Tok.getLocation();
+  Tok.startToken();
+  Tok.setKind(tok::annot_pragma_platinff_end);
+  Tok.setLocation(EodLoc);
+  Pragma.push_back(Tok);
+
+  Token *Toks = new Token[Pragma.size()];
+  std::copy(Pragma.begin(), Pragma.end(), Toks);
+  PP.EnterTokenStream(Toks, Pragma.size(),
+                      /*DisableMacroExpansion=*/true, /*OwnsTokens=*/true);
 }

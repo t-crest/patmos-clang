@@ -25,6 +25,7 @@
 #include "clang/AST/StmtCXX.h"
 #include "clang/AST/StmtObjC.h"
 #include "clang/AST/StmtOpenMP.h"
+#include "clang/AST/StmtPlatin.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Sema/Designator.h"
 #include "clang/Sema/Lookup.h"
@@ -1341,6 +1342,14 @@ public:
                                     SourceLocation EndLoc) {
     return getSema().ActOnOpenMPSharedClause(VarList, StartLoc, LParenLoc,
                                              EndLoc);
+  }
+
+  StmtResult RebuildFlowfact(SourceRange Range) {
+    SmallVector<int, 2> foo;
+    SmallVector<std::string, 2> bar;
+    llvm_unreachable("not implemented");
+    return getSema().ActOnFlowfact(Range.getBegin(), Range.getEnd(),
+                                   foo, bar, -1);
   }
 
   /// \brief Rebuild the operand to an Objective-C \@synchronized statement.
@@ -6384,6 +6393,13 @@ TreeTransform<Derived>::TransformOMPSharedClause(OMPSharedClause *C) {
                                              C->getLParenLoc(),
                                              C->getLocEnd());
 }
+
+template<typename Derived>
+StmtResult
+TreeTransform<Derived>::TransformFlowfact(Flowfact *F) {
+  return getDerived().RebuildFlowfact(F->getSourceRange());
+}
+
 
 //===----------------------------------------------------------------------===//
 // Expression transformation

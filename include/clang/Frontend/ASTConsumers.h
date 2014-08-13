@@ -45,6 +45,8 @@ ASTConsumer *CreateASTDeclNodeLister();
 // function declarations to stderr.
 ASTConsumer *CreateASTViewer();
 
+ASTConsumer *CreateFlowfactExporter(StringRef filename);
+
 // DeclContext printer: prints out the DeclContext tree in human-readable form
 // to stderr; this is intended for debugging.
 ASTConsumer *CreateDeclContextPrinter();

@@ -19,6 +19,7 @@
 #include "clang/AST/StmtCXX.h"
 #include "clang/AST/StmtObjC.h"
 #include "clang/AST/StmtOpenMP.h"
+#include "clang/AST/StmtPlatin.h"
 #include "clang/AST/Type.h"
 #include "clang/Basic/CharInfo.h"
 #include "clang/Basic/TargetInfo.h"
@@ -1217,4 +1218,36 @@ OMPParallelDirective *OMPParallelDirective::CreateEmpty(const ASTContext &C,
                          sizeof(OMPClause *) * N + sizeof(Stmt *),
                          llvm::alignOf<OMPParallelDirective>());
   return new (Mem) OMPParallelDirective(N);
+}
+
+Flowfact::Flowfact(SourceRange Range,
+                   ArrayRef<int> Multipliers,
+                   ArrayRef<std::string> Markers,
+                   int rhs)
+  : Stmt(FlowfactClass), Range(Range),
+    Multipliers(Multipliers.begin(), Multipliers.end()),
+    Markers(Markers.begin(), Markers.end()),
+    RHS(rhs) {
+    assert(Markers.size() == Multipliers.size());
+}
+
+Flowfact *Flowfact::Create(const ASTContext &C,
+                           SourceRange Range,
+                           ArrayRef<int> Multipliers,
+                           ArrayRef<std::string> Markers,
+                           int rhs) {
+  // XXX this is not he clang way of allocating the Flowfact statement, at least
+  // the LHS terms should be stored as sub-expressions and allocated here
+  void *Mem = C.Allocate(sizeof(Flowfact),
+                         llvm::alignOf<Flowfact>());
+  return new (Mem) Flowfact(Range, Multipliers, Markers, rhs);
+}
+
+Flowfact *Flowfact::CreateEmpty(const ASTContext &C) {
+  void *Mem = C.Allocate(sizeof(Flowfact),
+                         llvm::alignOf<Flowfact>());
+  return new (Mem) Flowfact(SourceRange(),
+                            ArrayRef<int>(),
+                            ArrayRef<std::string>(),
+                            -1);
 }

@@ -14,6 +14,7 @@ add_clang_library(clangSerialization
   GlobalModuleIndex.cpp
   Module.cpp
   ModuleManager.cpp
+  FlowfactExporter.cpp
   )
 
 add_dependencies(clangSerialization

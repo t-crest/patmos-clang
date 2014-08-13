@@ -864,4 +864,7 @@ def err_module_expected_semi : Error<
   "expected ';' after module name">;
 }
 
+def err_pragma_platin_malformed : Error<
+  "platin pragma needs to be flowfact: (c1 @x + c2 @y <= c3)">;
+
 } // end of Parser diagnostics

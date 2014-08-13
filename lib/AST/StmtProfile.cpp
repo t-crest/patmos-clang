@@ -298,6 +298,10 @@ StmtProfiler::VisitOMPParallelDirective(const OMPParallelDirective *S) {
       P.Visit(*I);
 }
 
+void StmtProfiler::VisitFlowfact(const Flowfact *Node) {
+  VisitStmt(Node);
+}
+
 void StmtProfiler::VisitExpr(const Expr *S) {
   VisitStmt(S);
 }

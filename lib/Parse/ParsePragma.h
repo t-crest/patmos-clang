@@ -137,7 +137,13 @@ private:
 class PragmaLoopboundHandler : public PragmaHandler {
 public:
   PragmaLoopboundHandler() : PragmaHandler("loopbound") {}
+  virtual void HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer,
+                            Token &FirstToken);
+};
 
+class PragmaPlatinHandler : public PragmaHandler {
+public:
+  PragmaPlatinHandler() : PragmaHandler("platin") { }
   virtual void HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer,
                             Token &FirstToken);
 };
