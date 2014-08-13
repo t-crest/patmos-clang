@@ -511,6 +511,9 @@ CXCursor cxcursor::MakeCXCursor(const Stmt *S, const Decl *Parent,
   case Stmt::OMPParallelDirectiveClass:
     K = CXCursor_OMPParallelDirective;
     break;
+  case Stmt::FlowfactClass:
+    K = CXCursor_Flowfact;
+    break;
   
   }
   

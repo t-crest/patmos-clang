@@ -3820,6 +3820,8 @@ CXString clang_getCursorKindSpelling(enum CXCursorKind Kind) {
     return cxstring::createRef("ModuleImport");
   case CXCursor_OMPParallelDirective:
       return cxstring::createRef("OMPParallelDirective");
+  case CXCursor_Flowfact:
+      return cxstring::createRef("Flowfact");
   }
 
   llvm_unreachable("Unhandled CXCursorKind");
