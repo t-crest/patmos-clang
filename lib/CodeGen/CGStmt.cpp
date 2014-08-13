@@ -508,7 +508,36 @@ void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
   EmitBlock(ContBlock, true);
 }
 
+// This inserts a loopbound intrinsic into the basic block that
+// is the header of an emitted loop.
+// We assume here that the block is already filled with instructions.
+void CodeGenFunction::EmitHeaderBounds(llvm::BasicBlock *Header,
+                                       const ArrayRef<const Attr *> &Attrs) {
+  // Return if there are no hints.
+  if (Attrs.empty())
+    return;
 
+  for (unsigned i = 0; i < Attrs.size(); ++i) {
+    const Attr *A = Attrs[i];
+    const LoopboundAttr *LB = dyn_cast<LoopboundAttr>(A);
+
+    // Skip non loopbound attributes
+    if (!LB) continue;
+
+    SmallVector<llvm::Value*, 16> Args;
+    llvm::Value *MinVal = llvm::ConstantInt::get(Int32Ty, LB->getMin());
+    llvm::Value *MaxVal = llvm::ConstantInt::get(Int32Ty, LB->getMax());
+
+    Args.push_back(MinVal);
+    Args.push_back(MaxVal);
+    llvm::BasicBlock::iterator I = Header->getFirstInsertionPt();
+
+    llvm::Value *Callee =
+      CGM.getIntrinsic(llvm::Intrinsic::loopbound);
+    llvm::CallSite CS = llvm::CallInst::Create(Callee, Args, "", I);
+  }
+
+}
 
 void CodeGenFunction::EmitCondBrBounds(llvm::LLVMContext &Context,
                                        llvm::BranchInst *CondBr,
@@ -617,6 +646,10 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
     EmitStmt(S.getBody());
   }
 
+  // Insert loopbound instrinsic
+  EmitHeaderBounds(LoopBody, Attrs);
+
+
   BreakContinueStack.pop_back();
 
   // Immediately force cleanup.
@@ -649,6 +682,10 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S,
     RunCleanupsScope BodyScope(*this);
     EmitStmt(S.getBody());
   }
+
+  // Insert loopbound instrinsic
+  EmitHeaderBounds(LoopBody, Attrs);
+
 
   BreakContinueStack.pop_back();
 
@@ -710,6 +747,7 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
   // Create a cleanup scope for the condition variable cleanups.
   RunCleanupsScope ConditionScope(*this);
 
+  llvm::BasicBlock *ForBody = NULL;
   if (S.getCond()) {
     // If the for statement has a condition scope, emit the local variable
     // declaration.
@@ -724,7 +762,7 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
       ExitBlock = createBasicBlock("for.cond.cleanup");
 
     // As long as the condition is true, iterate the loop.
-    llvm::BasicBlock *ForBody = createBasicBlock("for.body");
+    ForBody = createBasicBlock("for.body");
 
     // C99 6.8.5p2/p4: The first substatement is executed if the expression
     // compares unequal to 0.  The condition must be a scalar type.
@@ -762,6 +800,10 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
     RunCleanupsScope BodyScope(*this);
     EmitStmt(S.getBody());
   }
+
+  // Insert loopbound instrinsic
+  if (ForBody) EmitHeaderBounds(ForBody, Attrs);
+
 
   // If there is an increment, emit it next.
   if (S.getInc()) {
@@ -840,6 +882,10 @@ void CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S,
     EmitStmt(S.getLoopVarStmt());
     EmitStmt(S.getBody());
   }
+
+  // Insert loopbound instrinsic
+  EmitHeaderBounds(ForBody, Attrs);
+
 
   // If there is an increment, emit it next.
   EmitBlock(Continue.getBlock());

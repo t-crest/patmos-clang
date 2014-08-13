@@ -1820,6 +1820,8 @@ public:
 
   void EmitCondBrBounds(llvm::LLVMContext &Context, llvm::BranchInst *CondBr,
                         const ArrayRef<const Attr *> &Attrs);
+  void EmitHeaderBounds(llvm::BasicBlock *Header,
+                        const ArrayRef<const Attr *> &Attrs);
   void EmitWhileStmt(const WhileStmt &S,
                      const ArrayRef<const Attr *> &Attrs = None);
   void EmitDoStmt(const DoStmt &S,
