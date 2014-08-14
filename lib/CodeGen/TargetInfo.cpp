@@ -5500,6 +5500,36 @@ llvm::Value *XCoreABIInfo::EmitVAArg(llvm::Value *VAListAddr, QualType Ty,
   return Val;
 }
 
+
+
+//===----------------------------------------------------------------------===//
+// Patmos ABI Implementation
+//===----------------------------------------------------------------------===//
+namespace {
+class PatmosABIInfo : public DefaultABIInfo {
+public:
+  PatmosABIInfo(CodeGen::CodeGenTypes &CGT) : DefaultABIInfo(CGT) {}
+};
+
+class PatmosTargetCodeGenInfo : public TargetCodeGenInfo {
+public:
+  PatmosTargetCodeGenInfo(CodeGenTypes &CGT)
+    : TargetCodeGenInfo(new PatmosABIInfo(CGT)) {}
+
+  void SetTargetAttributes(const Decl *D, llvm::GlobalValue *GV,
+                           CodeGen::CodeGenModule &CGM) const {
+    const FunctionDecl *FD = dyn_cast<FunctionDecl>(D);
+    if (!FD) return;
+    llvm::Function *Fn = cast<llvm::Function>(GV);
+    if (FD->hasAttr<SinglePathAttr>()) {
+      Fn->addFnAttr("sp-root");
+      Fn->addFnAttr(llvm::Attribute::NoInline);
+    }
+  }
+};
+}
+
+
 //===----------------------------------------------------------------------===//
 // Driver code
 //===----------------------------------------------------------------------===//
@@ -5517,7 +5547,7 @@ const TargetCodeGenInfo &CodeGenModule::getTargetCodeGenInfo() {
     return *(TheTargetCodeGenInfo = new PNaClTargetCodeGenInfo(Types));
 
   case llvm::Triple::patmos:
-    return *(TheTargetCodeGenInfo = new DefaultTargetCodeGenInfo(Types));
+    return *(TheTargetCodeGenInfo = new PatmosTargetCodeGenInfo(Types));
 
   case llvm::Triple::mips:
   case llvm::Triple::mipsel:

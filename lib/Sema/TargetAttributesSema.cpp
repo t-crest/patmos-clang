@@ -330,6 +330,39 @@ namespace {
   };
 }
 
+static void HandleSinglePathAttr(Decl *D, const AttributeList &Attr, Sema &S) {
+  // check the attribute arguments.
+  if (Attr.getNumArgs()) {
+    S.Diag(Attr.getLoc(), diag::err_attribute_wrong_number_arguments)
+      << Attr.getName() << 0;
+    return;
+  }
+  // Attribute can only be applied to function types.
+  if (!isa<FunctionDecl>(D)) {
+    S.Diag(Attr.getLoc(), diag::err_attribute_wrong_decl_type)
+      << Attr.getName() << /* function */0;
+    return;
+  }
+  D->addAttr(::new (S.Context) SinglePathAttr(Attr.getRange(), S.Context,
+                                    Attr.getAttributeSpellingListIndex()));
+}
+
+
+namespace {
+  class PatmosAttributesSema : public TargetAttributesSema {
+  public:
+    PatmosAttributesSema() { }
+    bool ProcessDeclAttribute(Scope *scope, Decl *D, const AttributeList &Attr,
+                              Sema &S) const {
+      if (Attr.getName()->getName() == "singlepath") {
+        HandleSinglePathAttr(D, Attr, S);
+        return true;
+      }
+      return false;
+    }
+  };
+}
+
 const TargetAttributesSema &Sema::getTargetAttributesSema() const {
   if (TheTargetAttributesSema)
     return *TheTargetAttributesSema;
@@ -347,6 +380,8 @@ const TargetAttributesSema &Sema::getTargetAttributesSema() const {
   case llvm::Triple::mips:
   case llvm::Triple::mipsel:
     return *(TheTargetAttributesSema = new MipsAttributesSema);
+  case llvm::Triple::patmos:
+    return *(TheTargetAttributesSema = new PatmosAttributesSema);
   default:
     return *(TheTargetAttributesSema = new TargetAttributesSema);
   }

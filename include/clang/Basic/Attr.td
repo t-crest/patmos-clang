@@ -691,6 +691,12 @@ def Sentinel : InheritableAttr {
               DefaultIntArgument<"NullPos", 0>];
 }
 
+// For targets that support single-path code generation
+def SinglePath : InheritableAttr, TargetSpecificAttr {
+  let Spellings = [GNU<"singlepath">, CXX11<"gnu", "singlepath">];
+  let Subjects = [Function];
+}
+
 def StdCall : InheritableAttr {
   let Spellings = [GNU<"stdcall">, CXX11<"gnu", "stdcall">,
                    Keyword<"__stdcall">, Keyword<"_stdcall">];
