@@ -652,7 +652,7 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
   }
 
   // Insert loopbound instrinsic
-  EmitHeaderBounds(LoopBody, Attrs);
+  EmitHeaderBounds(LoopHeader.getBlock(), Attrs);
 
 
   BreakContinueStack.pop_back();
