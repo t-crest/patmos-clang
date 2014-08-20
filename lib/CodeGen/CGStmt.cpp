@@ -752,7 +752,6 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
   // Create a cleanup scope for the condition variable cleanups.
   RunCleanupsScope ConditionScope(*this);
 
-  llvm::BasicBlock *ForBody = NULL;
   if (S.getCond()) {
     // If the for statement has a condition scope, emit the local variable
     // declaration.
@@ -767,7 +766,7 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
       ExitBlock = createBasicBlock("for.cond.cleanup");
 
     // As long as the condition is true, iterate the loop.
-    ForBody = createBasicBlock("for.body");
+    llvm::BasicBlock *ForBody = createBasicBlock("for.body");
 
     // C99 6.8.5p2/p4: The first substatement is executed if the expression
     // compares unequal to 0.  The condition must be a scalar type.
@@ -806,10 +805,6 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
     EmitStmt(S.getBody());
   }
 
-  // Insert loopbound instrinsic
-  if (ForBody) EmitHeaderBounds(ForBody, Attrs);
-
-
   // If there is an increment, emit it next.
   if (S.getInc()) {
     EmitBlock(Continue.getBlock());
@@ -820,6 +815,10 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
 
   ConditionScope.ForceCleanup();
   EmitBranch(CondBlock);
+
+  // Insert loopbound instrinsic
+  EmitHeaderBounds(CondBlock, Attrs);
+
 
   ForScope.ForceCleanup();
 
@@ -888,10 +887,6 @@ void CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S,
     EmitStmt(S.getBody());
   }
 
-  // Insert loopbound instrinsic
-  EmitHeaderBounds(ForBody, Attrs);
-
-
   // If there is an increment, emit it next.
   EmitBlock(Continue.getBlock());
   EmitStmt(S.getInc());
@@ -899,6 +894,9 @@ void CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S,
   BreakContinueStack.pop_back();
 
   EmitBranch(CondBlock);
+
+  // Insert loopbound instrinsic
+  EmitHeaderBounds(CondBlock, Attrs);
 
   ForScope.ForceCleanup();
 
