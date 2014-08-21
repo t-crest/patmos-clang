@@ -5085,6 +5085,9 @@ void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
   // We enable printing labels for all blocks by default in Patmos
   LLCArgs.push_back("-mforce-block-labels");
 
+  // @see the note in Clang::AddPatmosTargetArgs()
+  LLCArgs.push_back("-disable-separate-nested-loops");
+
   // floating point arguments are different for LLC
   for (ArgList::const_iterator
          it = Args.begin(), ie = Args.end(); it != ie; ++it) {
