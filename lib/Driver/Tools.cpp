@@ -895,6 +895,21 @@ void Clang::AddPatmosTargetArgs(const ArgList &Args,
     CmdArgs.push_back("-target-feature");
     CmdArgs.push_back("+hard-float");
   }
+
+
+  // Disable nested loop separation for loops with multiple backedges
+  // during Natural Loop Canonicalization (-simplifycfg)
+  // This eases manual annotation of loop bounds as the appearance of
+  // additional nested loops is prohibited by this flag.
+  // When we manage to get rid of loop bound annotations by translating
+  // them to markers and constraints, we can enable this transformation
+  // again.
+  // @see patmos::PatmosBaseTool::ConstructOptJob
+  CmdArgs.push_back("-mllvm");
+  CmdArgs.push_back("-disable-separate-nested-loops");
+
+
+
 }
 
 void Clang::AddARMTargetArgs(const ArgList &Args,
@@ -4993,6 +5008,9 @@ bool patmos::PatmosBaseTool::ConstructOptJob(const Tool &Creator,
       if (DisableInternalize) {
         OptArgs.push_back("-disable-internalize");
       }
+
+      // @see the note in Clang::AddPatmosTargetArgs()
+      OptArgs.push_back("-disable-separate-nested-loops");
     }
   }
 
