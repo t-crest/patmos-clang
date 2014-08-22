@@ -898,6 +898,8 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
   BreakContinueStack.pop_back();
 
   ConditionScope.ForceCleanup();
+
+  EmitStopPoint(&S);
   EmitBranch(CondBlock);
 
   // Insert loopbound instrinsic
