@@ -6163,9 +6163,6 @@ public:
   }
 
   bool hasProtectedVisibility() const override { return false; }
-  CallingConvCheckResult checkCallingConvention(CallingConv CC) const override {
-    return CC == CC_PnaclCall ? CCCR_OK : CCCR_Warning;
-  }
 };
 } // end anonymous namespace.
 
