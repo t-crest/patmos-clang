@@ -691,6 +691,7 @@ bool RecursiveASTVisitor<Derived>::TraverseNestedNameSpecifier(
   case NestedNameSpecifier::Namespace:
   case NestedNameSpecifier::NamespaceAlias:
   case NestedNameSpecifier::Global:
+  case NestedNameSpecifier::Super:
     return true;
 
   case NestedNameSpecifier::TypeSpec:
@@ -715,6 +716,7 @@ bool RecursiveASTVisitor<Derived>::TraverseNestedNameSpecifierLoc(
   case NestedNameSpecifier::Namespace:
   case NestedNameSpecifier::NamespaceAlias:
   case NestedNameSpecifier::Global:
+  case NestedNameSpecifier::Super:
     return true;
 
   case NestedNameSpecifier::TypeSpec:
