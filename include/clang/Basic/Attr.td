@@ -1851,7 +1851,7 @@ def LoopHint : Attr {
               EnumArgument<"State", "LoopHintState",
                            ["default", "enable", "disable"],
                            ["Default", "Enable", "Disable"]>,
-              DefaultIntArgument<"Value", 1>];
+              ExprArgument<"Value">];
 
   let AdditionalMembers = [{
   static const char *getOptionName(int Option) {
@@ -1891,7 +1891,7 @@ def LoopHint : Attr {
     OS << "(";
     if (option == VectorizeWidth || option == InterleaveCount ||
         option == UnrollCount)
-      OS << value;
+      value->printPretty(OS, nullptr, Policy);
     else if (state == Default)
       return "";
     else if (state == Enable)
