@@ -1806,7 +1806,10 @@ public:
                                          bool isInc, bool isPre);
 
   void EmitAlignmentAssumption(llvm::Value *PtrValue, unsigned Alignment,
-                               llvm::Value *OffsetValue = nullptr);
+                               llvm::Value *OffsetValue = nullptr) {
+    Builder.CreateAlignmentAssumption(CGM.getDataLayout(), PtrValue, Alignment,
+                                      OffsetValue);
+  }
 
   //===--------------------------------------------------------------------===//
   //                            Declaration Emission
