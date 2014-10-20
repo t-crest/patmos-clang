@@ -5224,6 +5224,9 @@ void patmos::PatmosBaseTool::ConstructGoldJob(const Tool &Creator,
       render_patmos_symbol(options::OPT_mpatmos_stack_base,
                            "_stack_cache_base", Args, "0x3000000", LDArgs);
     }
+
+    render_patmos_symbol(options::OPT_mpatmos_swsc_spm_size,
+                         "_swsc_spm_size", Args, "0x20", LDArgs);
   }
 
   if (Args.hasArg(options::OPT_v))

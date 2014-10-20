@@ -1203,6 +1203,8 @@ def mpatmos_timer_offset : Joined<["-"], "mpatmos-timer-offset=">, Group<m_Patmo
   HelpText<"Set the offset of the timer info symbol in the IO map">, Flags<[HelpHidden]>;
 def mpatmos_uart_offset : Joined<["-"], "mpatmos-uart-offset=">, Group<m_Patmos_Group>, 
   HelpText<"Set the offset of the UART base address symbol in the IO map">, Flags<[HelpHidden]>;
+def mpatmos_swsc_spm_size : Joined<["-"], "mpatmos-swsc-spm-size=">, Group<m_Patmos_Group>,
+  HelpText<"Size of the SPM stack cache">, Flags<[HelpHidden]>;
 
 // Some common patmos-llc options that should be passed through. Keep in sync with patmos-llc option names and help.
 // These options might be deprecated in favor of -Xllc in the future.
