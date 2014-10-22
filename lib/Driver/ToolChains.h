@@ -727,48 +727,10 @@ public:
   bool isPICDefaultForced() const override;
 };
 
-class LLVM_LIBRARY_VISIBILITY PatmosToolChain : public ToolChain {
-private:
-  mutable OwningPtr<Tool> PatmosClang;
-
-  Tool *getPatmosClang() const;
+class LLVM_LIBRARY_VISIBILITY MSVCToolChain : public ToolChain {
 public:
-  PatmosToolChain(const Driver &D, const llvm::Triple& Triple, 
-	          const llvm::opt::ArgList& Args);
-  ~PatmosToolChain();
-
-  virtual std::string ComputeLLVMTriple(const llvm::opt::ArgList &Args,
-                                 types::ID InputType = types::TY_INVALID) const;
-
-  bool IsMathErrnoDefault() const;
-  bool IsUnwindTablesDefault() const;
-  const char* GetDefaultRelocationModel() const;
-  const char* GetForcedPicModel() const;
-
-  virtual void AddClangSystemIncludeArgs(const llvm::opt::ArgList &DriverArgs,
-                                         llvm::opt::ArgStringList &CC1Args) const;
-
-  virtual bool SupportsProfiling() const { return false; }
-  virtual bool IsIntegratedAssemblerDefault() const { return true; }
-
-  virtual bool ShouldUseClangCompiler(const JobAction &JA) const {
-    return false;
-  }
-  virtual bool IsUsingLTODefault() const { return true; }
-
-  virtual bool isPICDefault() const { return false; }
-  virtual bool isPIEDefault() const { return false; }
-  virtual bool isPICDefaultForced() const { return false; }
-protected:
-  virtual Tool *getTool(Action::ActionClass AC) const;
-
-  virtual Tool *buildLinker() const;
-};
-
-class LLVM_LIBRARY_VISIBILITY Windows : public ToolChain {
-public:
-  Windows(const Driver &D, const llvm::Triple &Triple,
-          const llvm::opt::ArgList &Args);
+  MSVCToolChain(const Driver &D, const llvm::Triple &Triple,
+                const llvm::opt::ArgList &Args);
 
   bool IsIntegratedAssemblerDefault() const override;
   bool IsUnwindTablesDefault() const override;
