@@ -367,6 +367,8 @@ bool Parser::IsSimpleMicrosoftDeclSpec(IdentifierInfo *Ident) {
     .Case("selectany", true)
     .Case("thread", true)
     .Case("safebuffers", true )
+    .Case("patmos_preserve_ret", true)
+    .Case("patmos_preserve_tmp", true)
     .Default(false);
 }
 

@@ -506,6 +506,14 @@ def NoInline : InheritableAttr {
   let Spellings = [GNU<"noinline">, CXX11<"gnu", "noinline">];
 }
 
+def PatmosPreserveRet : InheritableAttr {
+  let Spellings = [GNU<"patmos_preserve_ret">, CXX11<"gnu", "patmos_preserve_ret">];
+}
+
+def PatmosPreserveTmp : InheritableAttr {
+  let Spellings = [GNU<"patmos_preserve_tmp">, CXX11<"gnu", "patmos_preserve_tmp">];
+}
+
 def NoMips16 : InheritableAttr, TargetSpecificAttr {
   let Spellings = [GNU<"nomips16">, CXX11<"gnu", "nomips16">];
   let Subjects = [Function];

@@ -3637,6 +3637,30 @@ static void handleNoInlineAttr(Sema &S, Decl *D, const AttributeList &Attr) {
              Attr.getAttributeSpellingListIndex()));
 }
 
+static void handlePatmosPR(Sema &S, Decl *D, const AttributeList &Attr) {
+  if (!isa<FunctionDecl>(D)) {
+    S.Diag(Attr.getLoc(), diag::warn_attribute_wrong_decl_type)
+      << Attr.getName() << ExpectedFunction;
+    return;
+  }
+
+  D->addAttr(::new (S.Context)
+             PatmosPreserveRetAttr(Attr.getRange(), S.Context,
+             Attr.getAttributeSpellingListIndex()));
+}
+
+static void handlePatmosPT(Sema &S, Decl *D, const AttributeList &Attr) {
+  if (!isa<FunctionDecl>(D)) {
+    S.Diag(Attr.getLoc(), diag::warn_attribute_wrong_decl_type)
+      << Attr.getName() << ExpectedFunction;
+    return;
+  }
+
+  D->addAttr(::new (S.Context)
+             PatmosPreserveTmpAttr(Attr.getRange(), S.Context,
+             Attr.getAttributeSpellingListIndex()));
+}
+
 static void handleNoInstrumentFunctionAttr(Sema &S, Decl *D,
                                            const AttributeList &Attr) {
   if (!isa<FunctionDecl>(D)) {
@@ -4783,6 +4807,8 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case AttributeList::AT_Cleanup:     handleCleanupAttr     (S, D, Attr); break;
   case AttributeList::AT_NoDebug:     handleNoDebugAttr     (S, D, Attr); break;
   case AttributeList::AT_NoInline:    handleNoInlineAttr    (S, D, Attr); break;
+  case AttributeList::AT_PatmosPreserveRet: handlePatmosPR  (S, D, Attr); break;
+  case AttributeList::AT_PatmosPreserveTmp: handlePatmosPT  (S, D, Attr); break;
   case AttributeList::AT_Regparm:     handleRegparmAttr     (S, D, Attr); break;
   case AttributeList::IgnoredAttribute:
     // Just ignore
