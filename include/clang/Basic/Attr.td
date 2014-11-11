@@ -1932,3 +1932,9 @@ def CapturedRecord : InheritableAttr {
   let Documentation = [Undocumented];
 }
 
+def OMPThreadPrivateDecl : InheritableAttr {
+  // This attribute has no spellings as it is only ever created implicitly.
+  let Spellings = [];
+  let SemaHandler = 0;
+  let Documentation = [Undocumented];
+}
