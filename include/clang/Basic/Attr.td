@@ -510,8 +510,8 @@ def PatmosPreserveRet : InheritableAttr {
   let Spellings = [GNU<"patmos_preserve_ret">, CXX11<"gnu", "patmos_preserve_ret">];
 }
 
-def PatmosPreserveTmp : InheritableAttr {
-  let Spellings = [GNU<"patmos_preserve_tmp">, CXX11<"gnu", "patmos_preserve_tmp">];
+def PatmosSCFunc : InheritableAttr {
+  let Spellings = [GNU<"patmos_sc_func">, CXX11<"gnu", "patmos_sc_func">];
 }
 
 def NoMips16 : InheritableAttr, TargetSpecificAttr {

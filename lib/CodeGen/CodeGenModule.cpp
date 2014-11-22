@@ -699,8 +699,8 @@ void CodeGenModule::SetLLVMFunctionAttributesForDefinition(const Decl *D,
   if (D->hasAttr<PatmosPreserveRetAttr>())
     B.addAttribute("patmos-preserve-ret");
 
-if (D->hasAttr<PatmosPreserveTmpAttr>())
-    B.addAttribute("patmos-preserve-tmp");
+  if (D->hasAttr<PatmosSCFuncAttr>())
+    B.addAttribute("patmos-sc-func");
 
   if (D->hasAttr<ColdAttr>()) {
     B.addAttribute(llvm::Attribute::OptimizeForSize);
