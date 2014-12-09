@@ -1544,8 +1544,7 @@ public:
   /// EmitExprAsInit - Emits the code necessary to initialize a
   /// location in memory with the given initializer.
   void EmitExprAsInit(const Expr *init, const ValueDecl *D, LValue lvalue,
-                      bool capturedByInit,
-                      SourceLocation DbgLoc = SourceLocation());
+                      bool capturedByInit, SourceLocation DbgLoc);
 
   /// hasVolatileMember - returns true if aggregate type has a volatile
   /// member.
