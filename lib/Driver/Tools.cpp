@@ -5006,8 +5006,8 @@ bool patmos::PatmosBaseTool::ConstructOptJob(const Tool &Creator,
       OptArgs.push_back("-disable-separate-nested-loops");
     }
 
-    if (OptLevel == 2 || OptLevel == 3) {
-      // added only for -O2, -O3.
+    if (OptLevel == 3) {
+      // added only for -O3.
       // (provides -internalize, -globalsmodref-aa over -O3)
       OptArgs.push_back("-std-link-opts");
 
