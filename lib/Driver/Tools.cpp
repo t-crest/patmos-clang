@@ -903,6 +903,8 @@ void Clang::AddPatmosTargetArgs(const ArgList &Args,
   CmdArgs.push_back("-mllvm");
   CmdArgs.push_back("-disable-separate-nested-loops");
 
+  // Perform all llvm-opt optimizations at link time
+  CmdArgs.push_back("-disable-llvm-optzns");
 
 
 }
