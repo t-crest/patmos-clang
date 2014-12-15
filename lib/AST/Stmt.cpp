@@ -1488,28 +1488,26 @@ OMPSimdDirective *
 OMPSimdDirective::Create(const ASTContext &C, SourceLocation StartLoc,
                          SourceLocation EndLoc, unsigned CollapsedNum,
                          ArrayRef<OMPClause *> Clauses, Stmt *AssociatedStmt,
-                         Expr *IV, Expr *LastIteration, Expr *CalcLastIteration,
-                         Expr *PreCond, Expr *Cond, Expr *SeparatedCond,
-                         Expr *Init, Expr *Inc, ArrayRef<Expr *> Counters,
-                         ArrayRef<Expr *> Updates, ArrayRef<Expr *> Finals) {
+                         const HelperExprs &Exprs) {
   unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPSimdDirective),
                                            llvm::alignOf<OMPClause *>());
-  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * Clauses.size() +
-                         sizeof(Stmt *) * numLoopChildren(CollapsedNum));
+  void *Mem =
+      C.Allocate(Size + sizeof(OMPClause *) * Clauses.size() +
+                 sizeof(Stmt *) * numLoopChildren(CollapsedNum, OMPD_simd));
   OMPSimdDirective *Dir = new (Mem)
       OMPSimdDirective(StartLoc, EndLoc, CollapsedNum, Clauses.size());
   Dir->setClauses(Clauses);
   Dir->setAssociatedStmt(AssociatedStmt);
-  Dir->setIterationVariable(IV);
-  Dir->setLastIteration(LastIteration);
-  Dir->setCalcLastIteration(CalcLastIteration);
-  Dir->setPreCond(PreCond);
-  Dir->setCond(Cond, SeparatedCond);
-  Dir->setInit(Init);
-  Dir->setInc(Inc);
-  Dir->setCounters(Counters);
-  Dir->setUpdates(Updates);
-  Dir->setFinals(Finals);
+  Dir->setIterationVariable(Exprs.IterationVarRef);
+  Dir->setLastIteration(Exprs.LastIteration);
+  Dir->setCalcLastIteration(Exprs.CalcLastIteration);
+  Dir->setPreCond(Exprs.PreCond);
+  Dir->setCond(Exprs.Cond, Exprs.SeparatedCond);
+  Dir->setInit(Exprs.Init);
+  Dir->setInc(Exprs.Inc);
+  Dir->setCounters(Exprs.Counters);
+  Dir->setUpdates(Exprs.Updates);
+  Dir->setFinals(Exprs.Finals);
   return Dir;
 }
 
@@ -1519,8 +1517,9 @@ OMPSimdDirective *OMPSimdDirective::CreateEmpty(const ASTContext &C,
                                                 EmptyShell) {
   unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPSimdDirective),
                                            llvm::alignOf<OMPClause *>());
-  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * NumClauses +
-                         sizeof(Stmt *) * numLoopChildren(CollapsedNum));
+  void *Mem =
+      C.Allocate(Size + sizeof(OMPClause *) * NumClauses +
+                 sizeof(Stmt *) * numLoopChildren(CollapsedNum, OMPD_simd));
   return new (Mem) OMPSimdDirective(CollapsedNum, NumClauses);
 }
 
@@ -1528,28 +1527,33 @@ OMPForDirective *
 OMPForDirective::Create(const ASTContext &C, SourceLocation StartLoc,
                         SourceLocation EndLoc, unsigned CollapsedNum,
                         ArrayRef<OMPClause *> Clauses, Stmt *AssociatedStmt,
-                        Expr *IV, Expr *LastIteration, Expr *CalcLastIteration,
-                        Expr *PreCond, Expr *Cond, Expr *SeparatedCond,
-                        Expr *Init, Expr *Inc, ArrayRef<Expr *> Counters,
-                        ArrayRef<Expr *> Updates, ArrayRef<Expr *> Finals) {
+                        const HelperExprs &Exprs) {
   unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPForDirective),
                                            llvm::alignOf<OMPClause *>());
-  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * Clauses.size() +
-                         sizeof(Stmt *) * numLoopChildren(CollapsedNum));
+  void *Mem =
+      C.Allocate(Size + sizeof(OMPClause *) * Clauses.size() +
+                 sizeof(Stmt *) * numLoopChildren(CollapsedNum, OMPD_for));
   OMPForDirective *Dir =
       new (Mem) OMPForDirective(StartLoc, EndLoc, CollapsedNum, Clauses.size());
   Dir->setClauses(Clauses);
   Dir->setAssociatedStmt(AssociatedStmt);
-  Dir->setIterationVariable(IV);
-  Dir->setLastIteration(LastIteration);
-  Dir->setCalcLastIteration(CalcLastIteration);
-  Dir->setPreCond(PreCond);
-  Dir->setCond(Cond, SeparatedCond);
-  Dir->setInit(Init);
-  Dir->setInc(Inc);
-  Dir->setCounters(Counters);
-  Dir->setUpdates(Updates);
-  Dir->setFinals(Finals);
+  Dir->setIterationVariable(Exprs.IterationVarRef);
+  Dir->setLastIteration(Exprs.LastIteration);
+  Dir->setCalcLastIteration(Exprs.CalcLastIteration);
+  Dir->setPreCond(Exprs.PreCond);
+  Dir->setCond(Exprs.Cond, Exprs.SeparatedCond);
+  Dir->setInit(Exprs.Init);
+  Dir->setInc(Exprs.Inc);
+  Dir->setIsLastIterVariable(Exprs.IL);
+  Dir->setLowerBoundVariable(Exprs.LB);
+  Dir->setUpperBoundVariable(Exprs.UB);
+  Dir->setStrideVariable(Exprs.ST);
+  Dir->setEnsureUpperBound(Exprs.EUB);
+  Dir->setNextLowerBound(Exprs.NLB);
+  Dir->setNextUpperBound(Exprs.NUB);
+  Dir->setCounters(Exprs.Counters);
+  Dir->setUpdates(Exprs.Updates);
+  Dir->setFinals(Exprs.Finals);
   return Dir;
 }
 
@@ -1559,36 +1563,43 @@ OMPForDirective *OMPForDirective::CreateEmpty(const ASTContext &C,
                                               EmptyShell) {
   unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPForDirective),
                                            llvm::alignOf<OMPClause *>());
-  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * NumClauses +
-                         sizeof(Stmt *) * numLoopChildren(CollapsedNum));
+  void *Mem =
+      C.Allocate(Size + sizeof(OMPClause *) * NumClauses +
+                 sizeof(Stmt *) * numLoopChildren(CollapsedNum, OMPD_for));
   return new (Mem) OMPForDirective(CollapsedNum, NumClauses);
 }
 
-OMPForSimdDirective *OMPForSimdDirective::Create(
-    const ASTContext &C, SourceLocation StartLoc, SourceLocation EndLoc,
-    unsigned CollapsedNum, ArrayRef<OMPClause *> Clauses, Stmt *AssociatedStmt,
-    Expr *IV, Expr *LastIteration, Expr *CalcLastIteration, Expr *PreCond,
-    Expr *Cond, Expr *SeparatedCond, Expr *Init, Expr *Inc,
-    ArrayRef<Expr *> Counters, ArrayRef<Expr *> Updates,
-    ArrayRef<Expr *> Finals) {
+OMPForSimdDirective *
+OMPForSimdDirective::Create(const ASTContext &C, SourceLocation StartLoc,
+                            SourceLocation EndLoc, unsigned CollapsedNum,
+                            ArrayRef<OMPClause *> Clauses, Stmt *AssociatedStmt,
+                            const HelperExprs &Exprs) {
   unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPForSimdDirective),
                                            llvm::alignOf<OMPClause *>());
-  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * Clauses.size() +
-                         sizeof(Stmt *) * numLoopChildren(CollapsedNum));
+  void *Mem =
+      C.Allocate(Size + sizeof(OMPClause *) * Clauses.size() +
+                 sizeof(Stmt *) * numLoopChildren(CollapsedNum, OMPD_for_simd));
   OMPForSimdDirective *Dir = new (Mem)
       OMPForSimdDirective(StartLoc, EndLoc, CollapsedNum, Clauses.size());
   Dir->setClauses(Clauses);
   Dir->setAssociatedStmt(AssociatedStmt);
-  Dir->setIterationVariable(IV);
-  Dir->setLastIteration(LastIteration);
-  Dir->setCalcLastIteration(CalcLastIteration);
-  Dir->setPreCond(PreCond);
-  Dir->setCond(Cond, SeparatedCond);
-  Dir->setInit(Init);
-  Dir->setInc(Inc);
-  Dir->setCounters(Counters);
-  Dir->setUpdates(Updates);
-  Dir->setFinals(Finals);
+  Dir->setIterationVariable(Exprs.IterationVarRef);
+  Dir->setLastIteration(Exprs.LastIteration);
+  Dir->setCalcLastIteration(Exprs.CalcLastIteration);
+  Dir->setPreCond(Exprs.PreCond);
+  Dir->setCond(Exprs.Cond, Exprs.SeparatedCond);
+  Dir->setInit(Exprs.Init);
+  Dir->setInc(Exprs.Inc);
+  Dir->setIsLastIterVariable(Exprs.IL);
+  Dir->setLowerBoundVariable(Exprs.LB);
+  Dir->setUpperBoundVariable(Exprs.UB);
+  Dir->setStrideVariable(Exprs.ST);
+  Dir->setEnsureUpperBound(Exprs.EUB);
+  Dir->setNextLowerBound(Exprs.NLB);
+  Dir->setNextUpperBound(Exprs.NUB);
+  Dir->setCounters(Exprs.Counters);
+  Dir->setUpdates(Exprs.Updates);
+  Dir->setFinals(Exprs.Finals);
   return Dir;
 }
 
@@ -1598,8 +1609,9 @@ OMPForSimdDirective *OMPForSimdDirective::CreateEmpty(const ASTContext &C,
                                                       EmptyShell) {
   unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPForSimdDirective),
                                            llvm::alignOf<OMPClause *>());
-  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * NumClauses +
-                         sizeof(Stmt *) * numLoopChildren(CollapsedNum));
+  void *Mem =
+      C.Allocate(Size + sizeof(OMPClause *) * NumClauses +
+                 sizeof(Stmt *) * numLoopChildren(CollapsedNum, OMPD_for_simd));
   return new (Mem) OMPForSimdDirective(CollapsedNum, NumClauses);
 }
 
@@ -1716,28 +1728,33 @@ OMPCriticalDirective *OMPCriticalDirective::CreateEmpty(const ASTContext &C,
 OMPParallelForDirective *OMPParallelForDirective::Create(
     const ASTContext &C, SourceLocation StartLoc, SourceLocation EndLoc,
     unsigned CollapsedNum, ArrayRef<OMPClause *> Clauses, Stmt *AssociatedStmt,
-    Expr *IV, Expr *LastIteration, Expr *CalcLastIteration, Expr *PreCond,
-    Expr *Cond, Expr *SeparatedCond, Expr *Init, Expr *Inc,
-    ArrayRef<Expr *> Counters, ArrayRef<Expr *> Updates,
-    ArrayRef<Expr *> Finals) {
+    const HelperExprs &Exprs) {
   unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPParallelForDirective),
                                            llvm::alignOf<OMPClause *>());
   void *Mem = C.Allocate(Size + sizeof(OMPClause *) * Clauses.size() +
-                         sizeof(Stmt *) * numLoopChildren(CollapsedNum));
+                         sizeof(Stmt *) *
+                             numLoopChildren(CollapsedNum, OMPD_parallel_for));
   OMPParallelForDirective *Dir = new (Mem)
       OMPParallelForDirective(StartLoc, EndLoc, CollapsedNum, Clauses.size());
   Dir->setClauses(Clauses);
   Dir->setAssociatedStmt(AssociatedStmt);
-  Dir->setIterationVariable(IV);
-  Dir->setLastIteration(LastIteration);
-  Dir->setCalcLastIteration(CalcLastIteration);
-  Dir->setPreCond(PreCond);
-  Dir->setCond(Cond, SeparatedCond);
-  Dir->setInit(Init);
-  Dir->setInc(Inc);
-  Dir->setCounters(Counters);
-  Dir->setUpdates(Updates);
-  Dir->setFinals(Finals);
+  Dir->setIterationVariable(Exprs.IterationVarRef);
+  Dir->setLastIteration(Exprs.LastIteration);
+  Dir->setCalcLastIteration(Exprs.CalcLastIteration);
+  Dir->setPreCond(Exprs.PreCond);
+  Dir->setCond(Exprs.Cond, Exprs.SeparatedCond);
+  Dir->setInit(Exprs.Init);
+  Dir->setInc(Exprs.Inc);
+  Dir->setIsLastIterVariable(Exprs.IL);
+  Dir->setLowerBoundVariable(Exprs.LB);
+  Dir->setUpperBoundVariable(Exprs.UB);
+  Dir->setStrideVariable(Exprs.ST);
+  Dir->setEnsureUpperBound(Exprs.EUB);
+  Dir->setNextLowerBound(Exprs.NLB);
+  Dir->setNextUpperBound(Exprs.NUB);
+  Dir->setCounters(Exprs.Counters);
+  Dir->setUpdates(Exprs.Updates);
+  Dir->setFinals(Exprs.Finals);
   return Dir;
 }
 
@@ -1747,35 +1764,41 @@ OMPParallelForDirective::CreateEmpty(const ASTContext &C, unsigned NumClauses,
   unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPParallelForDirective),
                                            llvm::alignOf<OMPClause *>());
   void *Mem = C.Allocate(Size + sizeof(OMPClause *) * NumClauses +
-                         sizeof(Stmt *) * numLoopChildren(CollapsedNum));
+                         sizeof(Stmt *) *
+                             numLoopChildren(CollapsedNum, OMPD_parallel_for));
   return new (Mem) OMPParallelForDirective(CollapsedNum, NumClauses);
 }
 
 OMPParallelForSimdDirective *OMPParallelForSimdDirective::Create(
     const ASTContext &C, SourceLocation StartLoc, SourceLocation EndLoc,
     unsigned CollapsedNum, ArrayRef<OMPClause *> Clauses, Stmt *AssociatedStmt,
-    Expr *IV, Expr *LastIteration, Expr *CalcLastIteration, Expr *PreCond,
-    Expr *Cond, Expr *SeparatedCond, Expr *Init, Expr *Inc,
-    ArrayRef<Expr *> Counters, ArrayRef<Expr *> Updates,
-    ArrayRef<Expr *> Finals) {
+    const HelperExprs &Exprs) {
   unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPParallelForSimdDirective),
                                            llvm::alignOf<OMPClause *>());
-  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * Clauses.size() +
-                         sizeof(Stmt *) * numLoopChildren(CollapsedNum));
+  void *Mem = C.Allocate(
+      Size + sizeof(OMPClause *) * Clauses.size() +
+      sizeof(Stmt *) * numLoopChildren(CollapsedNum, OMPD_parallel_for_simd));
   OMPParallelForSimdDirective *Dir = new (Mem) OMPParallelForSimdDirective(
       StartLoc, EndLoc, CollapsedNum, Clauses.size());
   Dir->setClauses(Clauses);
   Dir->setAssociatedStmt(AssociatedStmt);
-  Dir->setIterationVariable(IV);
-  Dir->setLastIteration(LastIteration);
-  Dir->setCalcLastIteration(CalcLastIteration);
-  Dir->setPreCond(PreCond);
-  Dir->setCond(Cond, SeparatedCond);
-  Dir->setInit(Init);
-  Dir->setInc(Inc);
-  Dir->setCounters(Counters);
-  Dir->setUpdates(Updates);
-  Dir->setFinals(Finals);
+  Dir->setIterationVariable(Exprs.IterationVarRef);
+  Dir->setLastIteration(Exprs.LastIteration);
+  Dir->setCalcLastIteration(Exprs.CalcLastIteration);
+  Dir->setPreCond(Exprs.PreCond);
+  Dir->setCond(Exprs.Cond, Exprs.SeparatedCond);
+  Dir->setInit(Exprs.Init);
+  Dir->setInc(Exprs.Inc);
+  Dir->setIsLastIterVariable(Exprs.IL);
+  Dir->setLowerBoundVariable(Exprs.LB);
+  Dir->setUpperBoundVariable(Exprs.UB);
+  Dir->setStrideVariable(Exprs.ST);
+  Dir->setEnsureUpperBound(Exprs.EUB);
+  Dir->setNextLowerBound(Exprs.NLB);
+  Dir->setNextUpperBound(Exprs.NUB);
+  Dir->setCounters(Exprs.Counters);
+  Dir->setUpdates(Exprs.Updates);
+  Dir->setFinals(Exprs.Finals);
   return Dir;
 }
 
@@ -1785,8 +1808,9 @@ OMPParallelForSimdDirective::CreateEmpty(const ASTContext &C,
                                          unsigned CollapsedNum, EmptyShell) {
   unsigned Size = llvm::RoundUpToAlignment(sizeof(OMPParallelForSimdDirective),
                                            llvm::alignOf<OMPClause *>());
-  void *Mem = C.Allocate(Size + sizeof(OMPClause *) * NumClauses +
-                         sizeof(Stmt *) * numLoopChildren(CollapsedNum));
+  void *Mem = C.Allocate(
+      Size + sizeof(OMPClause *) * NumClauses +
+      sizeof(Stmt *) * numLoopChildren(CollapsedNum, OMPD_parallel_for_simd));
   return new (Mem) OMPParallelForSimdDirective(CollapsedNum, NumClauses);
 }
 
