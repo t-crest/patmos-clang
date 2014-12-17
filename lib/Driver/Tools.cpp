@@ -861,11 +861,6 @@ void Clang::AddPatmosTargetArgs(const ArgList &Args,
   // we do not want to have the host includes here
   CmdArgs.push_back("-nostdsysteminc");
 
-  // Let the clang frontend default to -O2 if no -O options are given
-  if (!Args.hasArgNoClaim(options::OPT_O_Group)) {
-    CmdArgs.push_back("-O2");
-  }
-
   // Set correct floating-point flags
   bool Changed;
   StringRef FloatABI = getPatmosFloatABI(getToolChain().getDriver(), Args,
@@ -908,6 +903,8 @@ void Clang::AddPatmosTargetArgs(const ArgList &Args,
   CmdArgs.push_back("-mllvm");
   CmdArgs.push_back("-disable-separate-nested-loops");
 
+  // Perform all llvm-opt optimizations at link time
+  CmdArgs.push_back("-disable-llvm-optzns");
 
 
 }
@@ -4979,14 +4976,17 @@ bool patmos::PatmosBaseTool::ConstructOptJob(const Tool &Creator,
   bool DisableInternalize = LinkAsObject ||
                    Args.hasArg(options::OPT_fpatmos_disable_internalize);
 
-  int OptLevel = 2;
+  int OptLevel = 0;
   char Lvl;
-  if (GetOptLevel(Args, Lvl)) {
+  Arg *OptArg;
+  if ((OptArg = GetOptLevel(Args, Lvl))) {
     switch (Lvl) {
     case '0': OptLevel = 0; break;
     case '1': OptLevel = 1; break;
     case '2': OptLevel = 2; break;
     case '3': OptLevel = 3; break;
+    // these two need to be > 0, otherwise no opt is triggered
+    case 's': case 'z': OptLevel = 7; break;
     }
   }
 
@@ -4995,23 +4995,35 @@ bool patmos::PatmosBaseTool::ConstructOptJob(const Tool &Creator,
 
   if (IsLinkPass && !DisableDefaultOpts) {
     if (OptLevel > 0) {
-      // TODO add this only for -O2, -O3; otherwise add only some opt passes
-      OptArgs.push_back("-std-link-opts");
 
-      // These passes clean up some mess left by the link opts. We need to
-      // remove unreachable code, otherwise function splitter will fail!
-      OptArgs.push_back("-instcombine");
-      OptArgs.push_back("-simplifycfg");
-      OptArgs.push_back("-adce");
-      OptArgs.push_back("-globaldce");
+      // pass -O level to opt verbatim
+      OptArg->renderAsInput(Args, OptArgs);
 
       if (DisableInternalize) {
+        // works even if in front of -std-link-opts, which adds -internalize
         OptArgs.push_back("-disable-internalize");
       }
 
       // @see the note in Clang::AddPatmosTargetArgs()
       OptArgs.push_back("-disable-separate-nested-loops");
     }
+
+    if (OptLevel == 3) {
+      // added only for -O3.
+      // (provides -internalize, -globalsmodref-aa over -O3)
+      OptArgs.push_back("-std-link-opts");
+
+      // TODO Are these passes still necessary wrt. the function splitter?
+#if 0
+      // These passes clean up some mess left by the link opts. We need to
+      // remove unreachable code, otherwise function splitter will fail!
+      OptArgs.push_back("-instcombine");
+      OptArgs.push_back("-simplifycfg");
+      OptArgs.push_back("-adce");
+      OptArgs.push_back("-globaldce");
+#endif
+    }
+
   }
 
   // Note: We do not add -O* here, this is done per object by clang.
@@ -5079,7 +5091,8 @@ void patmos::PatmosBaseTool::ConstructLLCJob(const Tool &Creator,
       break;
     }
   } else {
-    // If no -O level is supplied, llc uses -O2 as default
+    // If no -O level is supplied, force llc to use -O0
+    LLCArgs.push_back("-O0");
   }
 
   // We enable printing labels for all blocks by default in Patmos
