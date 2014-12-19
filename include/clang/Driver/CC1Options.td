@@ -126,6 +126,8 @@ def migrator_no_finalize_removal : Flag<["-"], "no-finalize-removal">,
 
 def disable_llvm_optzns : Flag<["-"], "disable-llvm-optzns">,
   HelpText<"Don't run LLVM optimization passes">;
+def enable_llvm_baseline_optzns : Flag<["-"], "enable-llvm-baseline-optzns">,
+  HelpText<"Run simple LLVM optimization passes with -disable-llvm-optzns">;
 def disable_llvm_verifier : Flag<["-"], "disable-llvm-verifier">,
   HelpText<"Don't run the LLVM IR verifier pass">;
 def disable_red_zone : Flag<["-"], "disable-red-zone">,

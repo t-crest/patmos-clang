@@ -903,11 +903,13 @@ void Clang::AddPatmosTargetArgs(const ArgList &Args,
   CmdArgs.push_back("-mllvm");
   CmdArgs.push_back("-disable-separate-nested-loops");
 
-  // FIXME: only add this when the job includes linking
-  // Perform all llvm-opt optimizations at link time
-  // CmdArgs.push_back("-disable-llvm-optzns");
-
-
+  // Perform most llvm-opt optimizations at link time (but prepare bitcode with
+  // baseline optimizations)
+  if (Arg *A = Args.getLastArg(options::OPT_O_Group))
+    if (!A->getOption().matches(options::OPT_O0)) {
+      CmdArgs.push_back("-disable-llvm-optzns");
+      CmdArgs.push_back("-enable-llvm-baseline-optzns");
+    }
 }
 
 void Clang::AddARMTargetArgs(const ArgList &Args,

@@ -340,6 +340,7 @@ static bool ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args, InputKind IK,
     Opts.DwarfVersion = 4;
 
   Opts.DisableLLVMOpts = Args.hasArg(OPT_disable_llvm_optzns);
+  Opts.EnableLLVMBaselineOpts = Args.hasArg(OPT_enable_llvm_baseline_optzns);
   Opts.DisableRedZone = Args.hasArg(OPT_disable_red_zone);
   Opts.ForbidGuardVariables = Args.hasArg(OPT_fforbid_guard_variables);
   Opts.UseRegisterSizedBitfieldAccess = Args.hasArg(
