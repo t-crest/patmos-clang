@@ -1998,6 +1998,8 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
                                       StringRef DarwinArchName) const {
   llvm::Triple Target = computeTargetTriple(DefaultTargetTriple, Args,
                                             DarwinArchName);
+  if (Target.isOSWindows())
+    DefaultImageName = "a.exe";
 
   ToolChain *&TC = ToolChains[Target.str()];
   if (!TC) {
