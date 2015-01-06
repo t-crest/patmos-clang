@@ -1785,6 +1785,7 @@ Value *CodeGenFunction::EmitTargetBuiltinExpr(unsigned BuiltinID,
   case llvm::Triple::ppc64le:
     return EmitPPCBuiltinExpr(BuiltinID, E);
   case llvm::Triple::r600:
+  case llvm::Triple::amdgcn:
     return EmitR600BuiltinExpr(BuiltinID, E);
   default:
     return nullptr;

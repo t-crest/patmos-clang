@@ -1624,6 +1624,7 @@ static std::string getCPUName(const ArgList &Args, const llvm::Triple &T) {
     return getSystemZTargetCPU(Args);
 
   case llvm::Triple::r600:
+  case llvm::Triple::amdgcn:
     return getR600TargetGPU(Args);
   }
 }
@@ -5593,6 +5594,7 @@ llvm::Triple::ArchType darwin::getArchTypeForMachOArchName(StringRef Str) {
     .Cases("armv7s", "xscale", llvm::Triple::arm)
     .Case("arm64", llvm::Triple::aarch64)
     .Case("r600", llvm::Triple::r600)
+    .Case("amdgcn", llvm::Triple::amdgcn)
     .Case("nvptx", llvm::Triple::nvptx)
     .Case("nvptx64", llvm::Triple::nvptx64)
     .Case("amdil", llvm::Triple::amdil)
