@@ -589,6 +589,8 @@ bool TargetInfo::validateInputConstraint(ConstraintInfo *OutputConstraints,
     case 'N':
     case 'O':
     case 'P':
+      if (!validateAsmConstraint(Name, Info))
+        return false;
       break;
     case 'r': // general register.
       Info.setAllowsRegister();
