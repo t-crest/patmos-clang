@@ -460,7 +460,9 @@ bool TargetInfo::validateOutputConstraint(ConstraintInfo &Info) const {
         // Eventually, an unknown constraint should just be treated as 'g'.
         return false;
       }
+      break;
     case '&': // early clobber.
+      Info.setEarlyClobber();
       break;
     case '%': // commutative.
       // FIXME: Check that there is a another register after this one.
@@ -494,6 +496,11 @@ bool TargetInfo::validateOutputConstraint(ConstraintInfo &Info) const {
 
     Name++;
   }
+
+  // Early clobber with a read-write constraint which doesn't permit registers
+  // is invalid.
+  if (Info.earlyClobber() && Info.isReadWrite() && !Info.allowsRegister())
+    return false;
 
   // If a constraint allows neither memory nor register operands it contains
   // only modifiers. Reject it.
