@@ -584,6 +584,10 @@ bool TargetInfo::validateInputConstraint(ConstraintInfo *OutputConstraints,
       if (Info.hasTiedOperand() && Info.getTiedOperand() != Index)
         return false;
 
+      // A number must refer to an output only operand.
+      if (OutputConstraints[Index].isReadWrite())
+        return false;
+
       Info.setTiedOperand(Index, OutputConstraints[Index]);
       break;
     }
