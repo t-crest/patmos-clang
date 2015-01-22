@@ -6065,6 +6065,8 @@ public:
       : MipsTargetInfoBase(Triple, "o32", "mips32r2") {
     SizeType = UnsignedInt;
     PtrDiffType = SignedInt;
+    Int64Type = SignedLongLong;
+    IntMaxType = Int64Type;
     MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 32;
   }
   bool setABI(const std::string &Name) override {
@@ -6194,6 +6196,8 @@ public:
     PointerWidth = PointerAlign = 64;
     SizeType = UnsignedLong;
     PtrDiffType = SignedLong;
+    Int64Type = SignedLong;
+    IntMaxType = Int64Type;
   }
 
   void setN32ABITypes() {
@@ -6201,6 +6205,8 @@ public:
     PointerWidth = PointerAlign = 32;
     SizeType = UnsignedInt;
     PtrDiffType = SignedInt;
+    Int64Type = SignedLongLong;
+    IntMaxType = Int64Type;
   }
 
   bool setABI(const std::string &Name) override {
