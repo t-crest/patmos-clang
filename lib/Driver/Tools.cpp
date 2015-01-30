@@ -5282,6 +5282,7 @@ void gcc::Compile::RenderExtraToolArgs(const JobAction &JA,
     break;
   case types::TY_PP_Asm:
     CmdArgs.push_back("-S");
+    break;
   case types::TY_Nothing:
     CmdArgs.push_back("-fsyntax-only");
     break;
