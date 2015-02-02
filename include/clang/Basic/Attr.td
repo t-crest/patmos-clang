@@ -1767,6 +1767,12 @@ def TypeTagForDatatype : InheritableAttr {
 
 // Microsoft-related attributes
 
+def MsNoVTable : InheritableAttr {
+  let Spellings = [Declspec<"novtable">];
+  let Subjects = SubjectList<[CXXRecord]>;
+  let Documentation = [Undocumented];
+}
+
 def MsProperty : IgnoredAttr {
   let Spellings = [Declspec<"property">];
 }
