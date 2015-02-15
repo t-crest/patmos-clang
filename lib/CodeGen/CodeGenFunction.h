@@ -2279,7 +2279,7 @@ public:
       return ConstantEmission(C, false);
     }
 
-    LLVM_EXPLICIT operator bool() const {
+    explicit operator bool() const {
       return ValueAndIsReference.getOpaqueValue() != nullptr;
     }
 
