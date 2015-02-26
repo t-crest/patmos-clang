@@ -849,7 +849,8 @@ public:
 
   enum CallingConvCheckResult {
     CCCR_OK,
-    CCCR_Warning
+    CCCR_Warning,
+    CCCR_Ignore,
   };
 
   /// \brief Determines whether a given calling convention is valid for the
