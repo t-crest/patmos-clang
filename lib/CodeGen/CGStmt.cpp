@@ -538,6 +538,7 @@ void CodeGenFunction::EmitHeaderBounds(llvm::BasicBlock *Header,
     llvm::Value *Callee =
       CGM.getIntrinsic(llvm::Intrinsic::loopbound);
     llvm::CallSite CS = llvm::CallInst::Create(Callee, Args, "", I);
+    (void) CS;
   }
 
 }
