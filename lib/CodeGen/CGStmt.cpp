@@ -531,7 +531,6 @@ void CodeGenFunction::EmitHeaderBounds(llvm::BasicBlock *Header,
     llvm::Value *MinVal = llvm::ConstantInt::get(Int32Ty, LB->getMin());
     llvm::Value *MaxVal = llvm::ConstantInt::get(Int32Ty, LB->getMax());
 
-    Args.push_back(llvm::BlockAddress::get(Header));
     Args.push_back(MinVal);
     Args.push_back(MaxVal);
     llvm::BasicBlock::iterator I = Header->getFirstInsertionPt();
@@ -539,7 +538,6 @@ void CodeGenFunction::EmitHeaderBounds(llvm::BasicBlock *Header,
     llvm::Value *Callee =
       CGM.getIntrinsic(llvm::Intrinsic::loopbound);
     llvm::CallSite CS = llvm::CallInst::Create(Callee, Args, "", I);
-    (void) CS;
   }
 
 }
