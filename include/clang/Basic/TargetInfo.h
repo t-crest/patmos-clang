@@ -67,6 +67,7 @@ protected:
   unsigned char LongWidth, LongAlign;
   unsigned char LongLongWidth, LongLongAlign;
   unsigned char SuitableAlign;
+  unsigned char DefaultAlignForAttributeAligned;
   unsigned char MinGlobalAlign;
   unsigned char MaxAtomicPromoteWidth, MaxAtomicInlineWidth;
   unsigned short MaxVectorAlign;
@@ -314,6 +315,12 @@ public:
   /// \brief Return the alignment that is suitable for storing any
   /// object with a fundamental alignment requirement.
   unsigned getSuitableAlign() const { return SuitableAlign; }
+
+  /// \brief Return the default alignment for __attribute__((aligned)) on
+  /// this target, to be used if no alignment value is specified.
+  unsigned getDefaultAlignForAttributeAligned() const {
+    return DefaultAlignForAttributeAligned;
+  }
 
   /// getMinGlobalAlign - Return the minimum alignment of a global variable,
   /// unless its alignment is explicitly reduced via attributes.
