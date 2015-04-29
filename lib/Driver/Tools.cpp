@@ -5191,16 +5191,6 @@ void patmos::PatmosBaseTool::ConstructGoldJob(const Tool &Creator,
     }
   }
 
-  for (ArgList::const_iterator
-         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
-    Arg *A = *it;
-
-    if (A->getOption().matches(options::OPT_Xgold)) {
-      A->claim();
-      A->renderAsInput(Args, LDArgs);
-    }
-  }
-
   Args.AddAllArgs(LDArgs, options::OPT_T_Group);
 
   Args.AddAllArgs(LDArgs, options::OPT_e);
@@ -5216,16 +5206,16 @@ void patmos::PatmosBaseTool::ConstructGoldJob(const Tool &Creator,
                          "_iomap_base", Args, "0xF0000000", LDArgs);
 
     render_patmos_iodev_symbol(options::OPT_mpatmos_cpuinfo_offset,
-                         "_cpuinfo_base", Args, "0x0000", LDArgs);
+                         "_cpuinfo_base", Args, "0x00000", LDArgs);
 
     render_patmos_iodev_symbol(options::OPT_mpatmos_excunit_offset,
-                         "_excunit_base", Args, "0x0100", LDArgs);
+                         "_excunit_base", Args, "0x10000", LDArgs);
 
     render_patmos_iodev_symbol(options::OPT_mpatmos_timer_offset,
-                         "_timer_base", Args, "0x0200", LDArgs);
+                         "_timer_base", Args, "0x20000", LDArgs);
 
     render_patmos_iodev_symbol(options::OPT_mpatmos_uart_offset,
-                         "_uart_base", Args, "0x0800", LDArgs);
+                         "_uart_base", Args, "0x80000", LDArgs);
 
     LDArgs.push_back("--defsym");
     LDArgs.push_back("__heap_start=end");
@@ -5239,6 +5229,18 @@ void patmos::PatmosBaseTool::ConstructGoldJob(const Tool &Creator,
 
       render_patmos_symbol(options::OPT_mpatmos_stack_base,
                            "_stack_cache_base", Args, "0x3000000", LDArgs);
+    }
+  }
+
+  // Do not append arguments given from the Commandline before
+  // setting the defaults
+  for (ArgList::const_iterator
+         it = Args.begin(), ie = Args.end(); it != ie; ++it) {
+    Arg *A = *it;
+
+    if (A->getOption().matches(options::OPT_Xgold)) {
+      A->claim();
+      A->renderAsInput(Args, LDArgs);
     }
   }
 
