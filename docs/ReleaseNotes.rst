@@ -130,6 +130,10 @@ this section should help get you past the largest hurdles of upgrading.
    objects instead of `MacroDirective` objects. This allows preserving
    full information on macros imported from modules.
 
+-  `clang-c/Index.h` no longer `#include`\s `clang-c/Documentation.h`.
+   You now need to explicitly `#include "clang-c/Documentation.h"` if
+   you use the libclang documentation API.
+
 libclang
 --------
 
