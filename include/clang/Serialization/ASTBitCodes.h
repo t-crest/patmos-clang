@@ -1483,7 +1483,7 @@ namespace clang {
     };
 
     /// @}
-  }
+  } // namespace serialization
 } // end namespace clang
 
 #endif

@@ -55,6 +55,6 @@ ASTConsumer *CreateFlowfactExporter(StringRef filename);
 // to stderr; this is intended for debugging.
 std::unique_ptr<ASTConsumer> CreateDeclContextPrinter();
 
-} // end clang namespace
+} // namespace clang
 
 #endif
