@@ -4301,26 +4301,6 @@ static void render_patmos_symbol(OptSpecifier Opt, const char* Symbol,
   Out.push_back(Args.MakeArgString(tmp));
 }
 
-/// render_patmos_iodev_symbol - check if a -mpatmos-<symbol> option
-/// was given, if so render a --defsym to the out arguments list using
-/// its value as offset from iomap_base. Otherwise, render a --defsym
-/// using the default value os offset.
-static void render_patmos_iodev_symbol(OptSpecifier Opt, const char* Symbol,
-                                       const ArgList &Args, const char *Default,
-                                       ArgStringList &Out)
-{
-  Out.push_back("--defsym");
-  std::string tmp(Symbol);
-  tmp += "=";
-  tmp += "_iomap_base+";
-
-  // get option value
-  Arg *a = Args.getLastArg(Opt);
-  tmp += a ? a->getValue() : Default;
-
-  Out.push_back(Args.MakeArgString(tmp));
-}
-
 llvm::sys::fs::file_magic
 patmos::PatmosBaseTool::getFileType(std::string filename) const {
   llvm::sys::fs::file_magic magic;
@@ -5202,33 +5182,18 @@ void patmos::PatmosBaseTool::ConstructGoldJob(const Tool &Creator,
     // Keep relocations
     LDArgs.push_back("-r");
   } else {
-    render_patmos_symbol(options::OPT_mpatmos_iomap_base,
-                         "_iomap_base", Args, "0xF0000000", LDArgs);
-
-    render_patmos_iodev_symbol(options::OPT_mpatmos_cpuinfo_offset,
-                         "_cpuinfo_base", Args, "0x00000", LDArgs);
-
-    render_patmos_iodev_symbol(options::OPT_mpatmos_excunit_offset,
-                         "_excunit_base", Args, "0x10000", LDArgs);
-
-    render_patmos_iodev_symbol(options::OPT_mpatmos_timer_offset,
-                         "_timer_base", Args, "0x20000", LDArgs);
-
-    render_patmos_iodev_symbol(options::OPT_mpatmos_uart_offset,
-                         "_uart_base", Args, "0x80000", LDArgs);
-
     LDArgs.push_back("--defsym");
     LDArgs.push_back("__heap_start=end");
 
     render_patmos_symbol(options::OPT_mpatmos_heap_end,
-                         "__heap_end", Args, "0x2000000", LDArgs);
+                         "__heap_end", Args, "0x100000", LDArgs);
 
     if (AddStackSymbols) {
       render_patmos_symbol(options::OPT_mpatmos_shadow_stack_base,
-                           "_shadow_stack_base", Args, "0x4000000", LDArgs);
+                           "_shadow_stack_base", Args, "0x1f8000", LDArgs);
 
       render_patmos_symbol(options::OPT_mpatmos_stack_base,
-                           "_stack_cache_base", Args, "0x3000000", LDArgs);
+                           "_stack_cache_base", Args, "0x200000", LDArgs);
     }
   }
 
