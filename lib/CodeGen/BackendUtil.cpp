@@ -610,7 +610,10 @@ void EmitAssemblyHelper::EmitAssembly(BackendAction Action,
   if (!TM)
     TM.reset(CreateTargetMachine(UsesCodeGen));
 
-  if (UsesCodeGen && !TM) return;
+  if (UsesCodeGen && !TM)
+    return;
+  if (TM)
+    TheModule->setDataLayout(*TM->getDataLayout());
   CreatePasses();
 
   switch (Action) {
