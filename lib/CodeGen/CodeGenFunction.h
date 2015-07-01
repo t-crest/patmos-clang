@@ -2201,6 +2201,8 @@ public:
   void EmitOMPAtomicDirective(const OMPAtomicDirective &S);
   void EmitOMPTargetDirective(const OMPTargetDirective &S);
   void EmitOMPTeamsDirective(const OMPTeamsDirective &S);
+  void
+  EmitOMPCancellationPointDirective(const OMPCancellationPointDirective &S);
 
   /// \brief Emit inner loop of the worksharing/simd construct.
   ///
