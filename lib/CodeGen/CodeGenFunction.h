@@ -2221,6 +2221,8 @@ public:
       const llvm::function_ref<void(CodeGenFunction &)> &BodyGen,
       const llvm::function_ref<void(CodeGenFunction &)> &PostIncGen);
 
+  JumpDest getOMPCancelDestination(OpenMPDirectiveKind Kind);
+
 private:
 
   /// Helpers for the OpenMP loop directives.
