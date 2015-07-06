@@ -1283,7 +1283,7 @@ def Target : InheritableAttr {
   let Spellings = [GCC<"target">];
   let Args = [StringArgument<"features">];
   let Subjects =
-      SubjectList<[Function], ErrorDiag, "ExpectedFunctionMethodOrClass">;
+      SubjectList<[Function], ErrorDiag, "ExpectedFunction">;
   let Documentation = [Undocumented];
 }
 
