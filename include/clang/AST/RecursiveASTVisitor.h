@@ -1009,8 +1009,9 @@ DEF_TRAVERSE_TYPE(ObjCObjectType, {
   // type is itself.
   if (T->getBaseType().getTypePtr() != T)
     TRY_TO(TraverseType(T->getBaseType()));
-  for (auto typeArg : T->getTypeArgsAsWritten())
+  for (auto typeArg : T->getTypeArgsAsWritten()) {
     TRY_TO(TraverseType(typeArg));
+  }
 })
 
 DEF_TRAVERSE_TYPE(ObjCObjectPointerType,
@@ -1402,8 +1403,9 @@ DEF_TRAVERSE_DECL(ObjCImplementationDecl, {// FIXME: implement
 
 DEF_TRAVERSE_DECL(ObjCInterfaceDecl, {// FIXME: implement
   if (ObjCTypeParamList *typeParamList = D->getTypeParamListAsWritten()) {
-    for (auto typeParam : *typeParamList)
+    for (auto typeParam : *typeParamList) {
       TRY_TO(TraverseObjCTypeParamDecl(typeParam));
+    }
   }
 
   if (TypeSourceInfo *superTInfo = D->getSuperClassTInfo()) {
