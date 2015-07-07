@@ -1308,7 +1308,12 @@ DEF_TRAVERSE_DECL(ObjCCompatibleAliasDecl, {// FIXME: implement
                                            })
 
 DEF_TRAVERSE_DECL(ObjCCategoryDecl, {// FIXME: implement
-                                    })
+  if (ObjCTypeParamList *typeParamList = D->getTypeParamList()) {
+    for (auto typeParam : *typeParamList)
+      TRY_TO(TraverseObjCTypeParamDecl(typeParam));
+  }
+  return true;
+})
 
 DEF_TRAVERSE_DECL(ObjCCategoryImplDecl, {// FIXME: implement
                                         })
@@ -1317,7 +1322,12 @@ DEF_TRAVERSE_DECL(ObjCImplementationDecl, {// FIXME: implement
                                           })
 
 DEF_TRAVERSE_DECL(ObjCInterfaceDecl, {// FIXME: implement
-                                     })
+  if (ObjCTypeParamList *typeParamList = D->getTypeParamListAsWritten()) {
+    for (auto typeParam : *typeParamList)
+      TRY_TO(TraverseObjCTypeParamDecl(typeParam));
+  }
+  return true;
+})
 
 DEF_TRAVERSE_DECL(ObjCProtocolDecl, {// FIXME: implement
                                     })
@@ -1334,6 +1344,15 @@ DEF_TRAVERSE_DECL(ObjCMethodDecl, {
     TRY_TO(TraverseStmt(D->getBody()));
   }
   return true;
+})
+
+DEF_TRAVERSE_DECL(ObjCTypeParamDecl, {
+  if (D->hasExplicitBound()) {
+    TRY_TO(TraverseTypeLoc(D->getTypeSourceInfo()->getTypeLoc()));
+    // We shouldn't traverse D->getTypeForDecl(); it's a result of
+    // declaring the type alias, not something that was written in the
+    // source.
+  }
 })
 
 DEF_TRAVERSE_DECL(ObjCPropertyDecl, {
