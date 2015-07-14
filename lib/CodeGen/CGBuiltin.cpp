@@ -552,7 +552,7 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
   }
   case Builtin::BI__builtin_readcyclecounter: {
     Value *F = CGM.getIntrinsic(Intrinsic::readcyclecounter);
-    return RValue::get(Builder.CreateCall(F, {}));
+    return RValue::get(Builder.CreateCall(F));
   }
   case Builtin::BI__builtin___clear_cache: {
     Value *Begin = EmitScalarExpr(E->getArg(0));
@@ -940,7 +940,7 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
   }
   case Builtin::BI__builtin_unwind_init: {
     Value *F = CGM.getIntrinsic(Intrinsic::eh_unwind_init);
-    return RValue::get(Builder.CreateCall(F, {}));
+    return RValue::get(Builder.CreateCall(F));
   }
   case Builtin::BI__builtin_extend_pointer: {
     // Extends a pointer to the size of an _Unwind_Word, which is
@@ -979,7 +979,7 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
 
     // Store the stack pointer to the setjmp buffer.
     Value *StackAddr =
-        Builder.CreateCall(CGM.getIntrinsic(Intrinsic::stacksave), {});
+        Builder.CreateCall(CGM.getIntrinsic(Intrinsic::stacksave));
     Value *StackSaveSlot =
       Builder.CreateGEP(Buf, ConstantInt::get(Int32Ty, 2));
     Builder.CreateStore(StackAddr, StackSaveSlot);
@@ -3422,7 +3422,7 @@ Value *CodeGenFunction::EmitARMBuiltinExpr(unsigned BuiltinID,
                 : InlineAsm::get(FTy, ".inst 0x" + utohexstr(ZExtValue), "",
                                  /*SideEffects=*/true);
 
-    return Builder.CreateCall(Emit, {});
+    return Builder.CreateCall(Emit);
   }
 
   if (BuiltinID == ARM::BI__builtin_arm_dbg) {
@@ -3566,7 +3566,7 @@ Value *CodeGenFunction::EmitARMBuiltinExpr(unsigned BuiltinID,
 
   if (BuiltinID == ARM::BI__builtin_arm_clrex) {
     Function *F = CGM.getIntrinsic(Intrinsic::arm_clrex);
-    return Builder.CreateCall(F, {});
+    return Builder.CreateCall(F);
   }
 
   // CRC32
@@ -4362,7 +4362,7 @@ Value *CodeGenFunction::EmitAArch64BuiltinExpr(unsigned BuiltinID,
 
   if (BuiltinID == AArch64::BI__builtin_arm_clrex) {
     Function *F = CGM.getIntrinsic(Intrinsic::aarch64_clrex);
-    return Builder.CreateCall(F, {});
+    return Builder.CreateCall(F);
   }
 
   // CRC32
@@ -6398,7 +6398,7 @@ Value *CodeGenFunction::EmitX86BuiltinExpr(unsigned BuiltinID,
       break;
     }
 
-    Value *Call = Builder.CreateCall(CGM.getIntrinsic(ID), {});
+    Value *Call = Builder.CreateCall(CGM.getIntrinsic(ID));
     Builder.CreateStore(Builder.CreateExtractValue(Call, 0), Ops[0]);
     return Builder.CreateExtractValue(Call, 1);
   }
