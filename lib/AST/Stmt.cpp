@@ -1172,7 +1172,7 @@ bool CapturedStmt::capturesVariable(const VarDecl *Var) const {
   return false;
 }
 
-StmtRange OMPClause::children() {
+OMPClause::child_range OMPClause::children() {
   switch(getClauseKind()) {
   default : break;
 #define OPENMP_CLAUSE(Name, Class)                                       \
