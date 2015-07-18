@@ -2991,7 +2991,7 @@ public:
                          .getCanonicalType((*I).getNonReferenceType())
                          .getTypePtr() ==
                      getContext()
-                         .getCanonicalType(Arg->getType())
+                         .getCanonicalType((*Arg)->getType())
                          .getTypePtr())) &&
                "type mismatch in call argument!");
         ArgTypes.push_back(*I);
