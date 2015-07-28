@@ -548,6 +548,7 @@ TargetMachine *EmitAssemblyHelper::CreateTargetMachine(bool MustCreateTM) {
   Options.FunctionSections = CodeGenOpts.FunctionSections;
   Options.DataSections = CodeGenOpts.DataSections;
   Options.UniqueSectionNames = CodeGenOpts.UniqueSectionNames;
+  Options.EmulatedTLS = CodeGenOpts.EmulatedTLS;
 
   Options.MCOptions.MCRelaxAll = CodeGenOpts.RelaxAll;
   Options.MCOptions.MCSaveTempLabels = CodeGenOpts.SaveTempLabels;
