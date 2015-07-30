@@ -1210,6 +1210,8 @@ def mpatmos_enable_bypass_from_pml : Flag<["-"], "mpatmos-enable-bypass-from-pml
   HelpText<"Enable rewriting unanalyzable (aiT) memory accesses to bypass the cache">, Flags<[HelpHidden]>;
 def mpatmos_enable_stack_cache_analysis : Flag<["-"], "mpatmos-enable-stack-cache-analysis">, Group<m_Patmos_llc_Group>,
   HelpText<"Enable the Patmos stack cache analysis">, Flags<[HelpHidden]>;
+def mpatmos_sca_preemption : Flag<["-"], "mpatmos-sca-preemption">, Group<m_Patmos_llc_Group>,
+  HelpText<"Enable the analysis of preemption costs during Stack Cache Analysis.">, Flags<[HelpHidden]>;
 def mpatmos_ilp_solver : Joined<["-"], "mpatmos-ilp-solver=">, Group<m_Patmos_llc_Group>,
   HelpText<"Path to an ILP solver">, Flags<[HelpHidden]>;
 def mpatmos_max_subfunction_size : Joined<["-"], "mpatmos-max-subfunction-size=">, Group<m_Patmos_llc_Group>,
