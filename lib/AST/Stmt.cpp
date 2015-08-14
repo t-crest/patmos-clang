@@ -1504,6 +1504,12 @@ void OMPLoopDirective::setPrivateCounters(ArrayRef<Expr *> A) {
   std::copy(A.begin(), A.end(), getPrivateCounters().begin());
 }
 
+void OMPLoopDirective::setInits(ArrayRef<Expr *> A) {
+  assert(A.size() == getCollapsedNumber() &&
+         "Number of counter inits is not the same as the collapsed number");
+  std::copy(A.begin(), A.end(), getInits().begin());
+}
+
 void OMPLoopDirective::setUpdates(ArrayRef<Expr *> A) {
   assert(A.size() == getCollapsedNumber() &&
          "Number of counter updates is not the same as the collapsed number");
@@ -1670,6 +1676,7 @@ OMPSimdDirective::Create(const ASTContext &C, SourceLocation StartLoc,
   Dir->setInc(Exprs.Inc);
   Dir->setCounters(Exprs.Counters);
   Dir->setPrivateCounters(Exprs.PrivateCounters);
+  Dir->setInits(Exprs.Inits);
   Dir->setUpdates(Exprs.Updates);
   Dir->setFinals(Exprs.Finals);
   return Dir;
@@ -1717,6 +1724,7 @@ OMPForDirective::Create(const ASTContext &C, SourceLocation StartLoc,
   Dir->setNextUpperBound(Exprs.NUB);
   Dir->setCounters(Exprs.Counters);
   Dir->setPrivateCounters(Exprs.PrivateCounters);
+  Dir->setInits(Exprs.Inits);
   Dir->setUpdates(Exprs.Updates);
   Dir->setFinals(Exprs.Finals);
   return Dir;
@@ -1764,6 +1772,7 @@ OMPForSimdDirective::Create(const ASTContext &C, SourceLocation StartLoc,
   Dir->setNextUpperBound(Exprs.NUB);
   Dir->setCounters(Exprs.Counters);
   Dir->setPrivateCounters(Exprs.PrivateCounters);
+  Dir->setInits(Exprs.Inits);
   Dir->setUpdates(Exprs.Updates);
   Dir->setFinals(Exprs.Finals);
   return Dir;
@@ -1920,6 +1929,7 @@ OMPParallelForDirective *OMPParallelForDirective::Create(
   Dir->setNextUpperBound(Exprs.NUB);
   Dir->setCounters(Exprs.Counters);
   Dir->setPrivateCounters(Exprs.PrivateCounters);
+  Dir->setInits(Exprs.Inits);
   Dir->setUpdates(Exprs.Updates);
   Dir->setFinals(Exprs.Finals);
   return Dir;
@@ -1965,6 +1975,7 @@ OMPParallelForSimdDirective *OMPParallelForSimdDirective::Create(
   Dir->setNextUpperBound(Exprs.NUB);
   Dir->setCounters(Exprs.Counters);
   Dir->setPrivateCounters(Exprs.PrivateCounters);
+  Dir->setInits(Exprs.Inits);
   Dir->setUpdates(Exprs.Updates);
   Dir->setFinals(Exprs.Finals);
   return Dir;
