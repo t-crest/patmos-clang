@@ -2448,7 +2448,8 @@ public:
                                   AlignmentSource::Type,
                                 llvm::MDNode *TBAAInfo = nullptr,
                                 QualType TBAABaseTy = QualType(),
-                                uint64_t TBAAOffset = 0);
+                                uint64_t TBAAOffset = 0,
+                                bool isNontemporal = false);
 
   /// EmitLoadOfScalar - Load a scalar value from an address, taking
   /// care to appropriately convert from the memory representation to
@@ -2464,7 +2465,7 @@ public:
                          AlignmentSource AlignSource = AlignmentSource::Type,
                          llvm::MDNode *TBAAInfo = nullptr, bool isInit = false,
                          QualType TBAABaseTy = QualType(),
-                         uint64_t TBAAOffset = 0);
+                         uint64_t TBAAOffset = 0, bool isNontemporal = false);
 
   /// EmitStoreOfScalar - Store a scalar value to an address, taking
   /// care to appropriately convert from the memory representation to
