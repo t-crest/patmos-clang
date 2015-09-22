@@ -258,8 +258,8 @@ public:
   /// (in the format produced by -fdump-record-layouts).
   std::string OverrideRecordLayoutsFile;
 
-  /// Name of the flowfact export file.
-  std::string FlowfactExportFile;
+  /// \brief Auxiliary triple for CUDA compilation.
+  std::string AuxTriple;
 
 public:
   FrontendOptions() :
