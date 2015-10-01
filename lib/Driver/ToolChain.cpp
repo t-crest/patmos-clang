@@ -23,7 +23,9 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/TargetRegistry.h"
+
 using namespace clang::driver;
+using namespace clang::driver::tools;
 using namespace clang;
 using namespace llvm::opt;
 
@@ -265,20 +267,41 @@ Tool *ToolChain::getTool(Action::ActionClass AC) const {
   llvm_unreachable("Invalid tool kind.");
 }
 
+static StringRef getArchNameForCompilerRTLib(const ToolChain &TC,
+                                             const ArgList &Args) {
+  const llvm::Triple &Triple = TC.getTriple();
+  bool IsWindows = Triple.isOSWindows();
 
-bool ToolChain::ShouldUseClangCompiler(const JobAction &JA) const {
-  // Check if user requested no clang, or clang doesn't understand this type (we
-  // only handle single inputs for now).
-  if (JA.size() != 1 ||
-      !types::isAcceptedByClang((*JA.begin())->getType()))
-    return false;
+  if (Triple.isWindowsMSVCEnvironment() && TC.getArch() == llvm::Triple::x86)
+    return "i386";
 
-  // Otherwise make sure this is an action clang understands.
-  if (!isa<PreprocessJobAction>(JA) && !isa<PrecompileJobAction>(JA) &&
-      !isa<CompileJobAction>(JA))
-    return false;
+  if (TC.getArch() == llvm::Triple::arm || TC.getArch() == llvm::Triple::armeb)
+    return (arm::getARMFloatABI(TC, Args) == arm::FloatABI::Hard && !IsWindows)
+               ? "armhf"
+               : "arm";
 
-  return true;
+  return TC.getArchName();
+}
+
+std::string ToolChain::getCompilerRT(const ArgList &Args, StringRef Component,
+                                     bool Shared) const {
+  const llvm::Triple &TT = getTriple();
+  const char *Env =
+      (TT.getEnvironment() == llvm::Triple::Android) ? "-android" : "";
+  bool IsITANMSVCWindows =
+      TT.isWindowsMSVCEnvironment() || TT.isWindowsItaniumEnvironment();
+
+  StringRef Arch = getArchNameForCompilerRTLib(*this, Args);
+  const char *Prefix = IsITANMSVCWindows ? "" : "lib";
+  const char *Suffix = Shared ? (Triple.isOSWindows() ? ".dll" : ".so")
+                              : (IsITANMSVCWindows ? ".lib" : ".a");
+
+  SmallString<128> Path(getDriver().ResourceDir);
+  StringRef OSLibName = Triple.isOSFreeBSD() ? "freebsd" : getOS();
+  llvm::sys::path::append(Path, "lib", OSLibName);
+  llvm::sys::path::append(Path, Prefix + Twine("clang_rt.") + Component + "-" +
+                                    Arch + Env + Suffix);
+  return Path.str();
 }
 
 Tool *ToolChain::SelectTool(const JobAction &JA) const {
@@ -321,7 +344,6 @@ std::string ToolChain::GetLinkerPath() const {
 
   return GetProgramPath("ld");
 }
-
 
 types::ID ToolChain::LookupTypeForExtension(const char *Ext) const {
   return types::lookupTypeForExtension(Ext);
