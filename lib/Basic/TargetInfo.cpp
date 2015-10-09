@@ -288,9 +288,9 @@ void TargetInfo::adjust(const LangOptions &Opts) {
     LongLongWidth = LongLongAlign = 128;
     HalfWidth = HalfAlign = 16;
     FloatWidth = FloatAlign = 32;
-    
-    // Embedded 32-bit targets (OpenCL EP) might have double C type 
-    // defined as float. Let's not override this as it might lead 
+
+    // Embedded 32-bit targets (OpenCL EP) might have double C type
+    // defined as float. Let's not override this as it might lead
     // to generating illegal code that uses 64bit doubles.
     if (DoubleWidth != FloatWidth) {
       DoubleWidth = DoubleAlign = 64;
@@ -340,7 +340,7 @@ static StringRef removeGCCRegisterPrefix(StringRef Name) {
 /// Sema.
 bool TargetInfo::isValidClobber(StringRef Name) const {
   return (isValidGCCRegisterName(Name) ||
-	  Name == "memory" || Name == "cc");
+          Name == "memory" || Name == "cc");
 }
 
 /// isValidGCCRegisterName - Returns whether the passed in string
@@ -380,11 +380,11 @@ bool TargetInfo::isValidGCCRegisterName(StringRef Name) const {
   for (unsigned i = 0; i < NumAddlNames; i++)
     for (unsigned j = 0; j < llvm::array_lengthof(AddlNames[i].Names); j++) {
       if (!AddlNames[i].Names[j])
-	break;
+        break;
       // Make sure the register that the additional name is for is within
       // the bounds of the register names from above.
       if (AddlNames[i].Names[j] == Name && AddlNames[i].RegNum < NumNames)
-	return true;
+        return true;
   }
 
   // Now check aliases.
@@ -433,11 +433,11 @@ TargetInfo::getNormalizedGCCRegisterName(StringRef Name) const {
   for (unsigned i = 0; i < NumAddlNames; i++)
     for (unsigned j = 0; j < llvm::array_lengthof(AddlNames[i].Names); j++) {
       if (!AddlNames[i].Names[j])
-	break;
+        break;
       // Make sure the register that the additional name is for is within
       // the bounds of the register names from above.
       if (AddlNames[i].Names[j] == Name && AddlNames[i].RegNum < NumNames)
-	return Name;
+        return Name;
     }
 
   // Now check aliases.
@@ -579,7 +579,7 @@ bool TargetInfo::validateInputConstraint(ConstraintInfo *OutputConstraints,
         if (OutputConstraints[i].isReadWrite())
           return false;
 
-        // If the constraint is already tied, it must be tied to the 
+        // If the constraint is already tied, it must be tied to the
         // same operand referenced to by the number.
         if (Info.hasTiedOperand() && Info.getTiedOperand() != i)
           return false;
@@ -599,7 +599,7 @@ bool TargetInfo::validateInputConstraint(ConstraintInfo *OutputConstraints,
       if (!resolveSymbolicName(Name, OutputConstraints, NumOutputs, Index))
         return false;
 
-      // If the constraint is already tied, it must be tied to the 
+      // If the constraint is already tied, it must be tied to the
       // same operand referenced to by the number.
       if (Info.hasTiedOperand() && Info.getTiedOperand() != Index)
         return false;
