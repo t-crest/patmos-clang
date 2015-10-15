@@ -611,8 +611,8 @@ void EmitAssemblyHelper::EmitAssembly(BackendAction Action,
     break;
 
   case Backend_EmitBC:
-    getPerModulePasses()->add(
-        createBitcodeWriterPass(*OS, CodeGenOpts.EmitLLVMUseLists));
+    getPerModulePasses()->add(createBitcodeWriterPass(
+        *OS, CodeGenOpts.EmitLLVMUseLists, CodeGenOpts.EmitFunctionSummary));
     break;
 
   case Backend_EmitLL:
