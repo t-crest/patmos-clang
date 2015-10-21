@@ -511,8 +511,7 @@ bool TargetInfo::validateOutputConstraint(ConstraintInfo &Info) const {
 }
 
 bool TargetInfo::resolveSymbolicName(const char *&Name,
-                                     ConstraintInfo *OutputConstraints,
-                                     unsigned NumOutputs,
+                                     ArrayRef<ConstraintInfo> OutputConstraints,
                                      unsigned &Index) const {
   assert(*Name == '[' && "Symbolic name did not start with '['");
   Name++;
@@ -527,16 +526,16 @@ bool TargetInfo::resolveSymbolicName(const char *&Name,
 
   std::string SymbolicName(Start, Name - Start);
 
-  for (Index = 0; Index != NumOutputs; ++Index)
+  for (Index = 0; Index != OutputConstraints.size(); ++Index)
     if (SymbolicName == OutputConstraints[Index].getName())
       return true;
 
   return false;
 }
 
-bool TargetInfo::validateInputConstraint(ConstraintInfo *OutputConstraints,
-                                         unsigned NumOutputs,
-                                         ConstraintInfo &Info) const {
+bool TargetInfo::validateInputConstraint(
+                              MutableArrayRef<ConstraintInfo> OutputConstraints,
+                              ConstraintInfo &Info) const {
   const char *Name = Info.ConstraintStr.c_str();
 
   if (!*Name)
@@ -557,7 +556,7 @@ bool TargetInfo::validateInputConstraint(ConstraintInfo *OutputConstraints,
           return false;
 
         // Check if matching constraint is out of bounds.
-        if (i >= NumOutputs) return false;
+        if (i >= OutputConstraints.size()) return false;
 
         // A number must refer to an output only operand.
         if (OutputConstraints[i].isReadWrite())
@@ -580,7 +579,7 @@ bool TargetInfo::validateInputConstraint(ConstraintInfo *OutputConstraints,
       break;
     case '[': {
       unsigned Index = 0;
-      if (!resolveSymbolicName(Name, OutputConstraints, NumOutputs, Index))
+      if (!resolveSymbolicName(Name, OutputConstraints, Index))
         return false;
 
       // If the constraint is already tied, it must be tied to the
