@@ -4772,6 +4772,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
                      options::OPT_fno_objc_arc_exceptions,
                      /*default*/ types::isCXX(InputType)))
       CmdArgs.push_back("-fobjc-arc-exceptions");
+
   }
 
   // -fobjc-infer-related-result-type is the default, except in the Objective-C
