@@ -2128,7 +2128,8 @@ enum {
       AddRetType | VectorizeRetType | Add1ArgType | InventFloatType
 };
 
- struct NeonIntrinsicInfo {
+namespace {
+struct NeonIntrinsicInfo {
   unsigned BuiltinID;
   unsigned LLVMIntrinsic;
   unsigned AltLLVMIntrinsic;
@@ -2139,6 +2140,7 @@ enum {
     return BuiltinID < RHSBuiltinID;
   }
 };
+} // end anonymous namespace
 
 #define NEONMAP0(NameBase) \
   { NEON::BI__builtin_neon_ ## NameBase, 0, 0, #NameBase, 0 }
