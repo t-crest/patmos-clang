@@ -2935,7 +2935,7 @@ public:
 
   void EmitLambdaExpr(const LambdaExpr *E, AggValueSlot Dest);
 
-  RValue EmitAtomicExpr(AtomicExpr *E, Address Dest = Address::invalid());
+  RValue EmitAtomicExpr(AtomicExpr *E);
 
   //===--------------------------------------------------------------------===//
   //                         Annotations Emission
