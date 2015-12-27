@@ -7783,6 +7783,12 @@ void freebsd::Assembler::ConstructJob(Compilation &C, const JobAction &JA,
     else
       CmdArgs.push_back("-EL");
 
+    if (Arg *A = Args.getLastArg(options::OPT_G)) {
+      StringRef v = A->getValue();
+      CmdArgs.push_back(Args.MakeArgString("-G" + v));
+      A->claim();
+    }
+
     AddAssemblerKPIC(getToolChain(), Args, CmdArgs);
     break;
   }
