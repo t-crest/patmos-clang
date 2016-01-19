@@ -4985,6 +4985,10 @@ bool patmos::PatmosBaseTool::ConstructOptJob(const Tool &Creator,
       if (DisableInternalize) {
         // works even if in front of -std-link-opts, which adds -internalize
         OptArgs.push_back("-disable-internalize");
+      } else {
+        // for some reason, we need to add this manually
+        OptArgs.push_back("-internalize");
+        OptArgs.push_back("-globaldce");
       }
 
       // @see the note in Clang::AddPatmosTargetArgs()
