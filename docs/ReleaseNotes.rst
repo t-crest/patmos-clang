@@ -16,7 +16,7 @@ frontend, part of the LLVM Compiler Infrastructure, release 3.8. Here we
 describe the status of Clang in some detail, including major
 improvements from the previous release and new feature work. For the
 general LLVM release notes, see `the LLVM
-documentation <http://llvm.org/docs/ReleaseNotes.html>`_. All LLVM
+documentation <../../../docs/ReleaseNotes.html>`_. All LLVM
 releases may be downloaded from the `LLVM releases web
 site <http://llvm.org/releases/>`_.
 
@@ -32,11 +32,6 @@ Generic improvements to Clang as a whole or to its underlying infrastructure
 are described first, followed by language-specific sections with improvements
 to Clang's support for those languages.
 
-Major New Features
-------------------
-
-- Feature1...
-
 Improvements to Clang's diagnostics
 -----------------------------------
 
@@ -47,8 +42,6 @@ about them. The improvements since the 3.7 release include:
 - ``-Wmicrosoft`` has been split into many targeted flags, so that projects can
   choose to enable only a subset of these warnings. ``-Wno-microsoft`` still
   disables all these warnings, and ``-Wmicrosoft`` still enables them all.
-
--  ...
 
 New Compiler Flags
 ------------------
@@ -72,17 +65,6 @@ Specifying ``-g`` without a tuning option will use a target-dependent default.
 
 The new ``-fstrict-vtable-pointers`` flag enables better devirtualization
 support (experimental).
-
-
-New Pragmas in Clang
------------------------
-
-Clang now supports the ...
-
-Windows Support
----------------
-
-Clang's support for building native Windows programs ...
 
 
 C Language Changes in Clang
@@ -118,39 +100,6 @@ type conversion rules, so the following code would not compile:
 Now, Clang is able to selectively use C's type conversion rules during overload
 resolution in C, which allows the above example to compile (albeit potentially
 with a warning about an implicit conversion from ``int*`` to ``char*``).
-
-
-...
-
-
-C11 Feature Support
-^^^^^^^^^^^^^^^^^^^
-
-...
-
-C++ Language Changes in Clang
------------------------------
-
-- ...
-
-C++1y Feature Support
-^^^^^^^^^^^^^^^^^^^^^
-
-Clang 3.4 supports all the features in the current working draft of the
-upcoming C++ standard, provisionally named C++1y. Support for the following
-major new features has been added since Clang 3.3:
-
-- Generic lambdas and initialized lambda captures.
-- Deduced function return types (``auto f() { return 0; }``).
-- Generalized ``constexpr`` support (variable mutation and loops).
-- Variable templates and static data member templates.
-- Use of ``'`` as a digit separator in numeric literals.
-- Support for sized ``::operator delete`` functions.
-
-In addition, ``[[deprecated]]`` is now accepted as a synonym for Clang's
-existing ``deprecated`` attribute.
-
-Use ``-std=c++1y`` to enable C++1y mode.
 
 OpenCL C Language Changes in Clang
 ----------------------------------
@@ -193,8 +142,8 @@ Several additional features/bugfixes have been added to the previous standards:
 OpenMP Support in Clang
 -----------------------
 
-OpenMP 3.1 is fully supported and is enabled by default with -fopenmp 
-which now uses the clang OpenMP library instead of the GCC OpenMP library.
+OpenMP 3.1 is fully supported and is enabled by default with ``-fopenmp`` 
+which now uses the Clang OpenMP library instead of the GCC OpenMP library.
 The runtime can be built in-tree.  
 
 In addition to OpenMP 3.1, several important elements of the OpenMP 4.0/4.5 
@@ -225,7 +174,7 @@ Clang has experimental support for end-to-end CUDA compilation now:
   pipelines, links device-side code with appropriate CUDA bitcode and produces
   single object file with host and GPU code.
 
-- Implemented target attribute-based function overloading which allows clang to
+- Implemented target attribute-based function overloading which allows Clang to
   compile CUDA sources without splitting them into separate host/device TUs.
 
 Internal API Changes
@@ -282,17 +231,11 @@ recordDecl() previously matched AST nodes of type CXXRecordDecl, but now
 matches AST nodes of type RecordDecl. If a CXXRecordDecl is required, use the
 cxxRecordDecl() matcher instead.
 
-...
-
-libclang
---------
-
-...
 
 Static Analyzer
 ---------------
 
-The scan-build and scan-view tools will now be installed with clang. Use these
+The scan-build and scan-view tools will now be installed with Clang. Use these
 tools to run the static analyzer on projects and view the produced results.
 
 Static analysis of C++ lambdas has been greatly improved, including
@@ -313,37 +256,6 @@ Several new checks were added:
   the following command to scan-build:
   ``-enable-checker optin.osx.cocoa.localizability``.
 
-Clang Format
-------------
-
-Clang now includes a new tool ``clang-format`` which can be used to
-automatically format C, C++ and Objective-C source code. ``clang-format``
-automatically chooses linebreaks and indentation and can be easily integrated
-into editors, IDEs and version control systems. It supports several pre-defined
-styles as well as precise style control using a multitude of formatting
-options. ``clang-format`` itself is just a thin wrapper around a library which
-can also be used directly from code refactoring and code translation tools.
-More information can be found on `Clang Format's
-site <http://clang.llvm.org/docs/ClangFormat.html>`_.
-
-Windows Support
----------------
-
-- `clang-cl <UsersManual.html#clang-cl>`_ provides a new driver mode that is
-  designed for compatibility with Visual Studio's compiler, cl.exe. This driver
-  mode makes Clang accept the same kind of command-line options as cl.exe. The
-  installer will attempt to expose clang-cl in any Visual Studio installations
-  on the system as a Platform Toolset, e.g. "LLVM-vs2012". clang-cl targets the
-  Microsoft ABI by default. Please note that this driver mode and compatibility
-  with the MS ABI is highly experimental.
-
-Python Binding Changes
-----------------------
-
-The following methods have been added:
-
-Significant Known Problems
-==========================
 
 Additional Information
 ======================
