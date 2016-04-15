@@ -765,6 +765,15 @@ ANNOTATION(pragma_openmp_end)
 // handles #pragma loop ... directives.
 ANNOTATION(pragma_loop_hint)
 
+// Annotations for #pragma loopbound
+// The lexer produces these so that they only take effect when the parser
+// handles #pragma loopbound ... directives.
+ANNOTATION(pragma_loopbound)
+
+// Annotations for platin #pragmas
+ANNOTATION(pragma_platinff)
+ANNOTATION(pragma_platinff_end)
+
 // Annotations for module import translated from #include etc.
 ANNOTATION(module_include)
 ANNOTATION(module_begin)

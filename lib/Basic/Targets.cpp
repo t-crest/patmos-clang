@@ -5836,6 +5836,154 @@ const Builtin::Info HexagonTargetInfo::BuiltinInfo[] = {
 #include "clang/Basic/BuiltinsHexagon.def"
 };
 
+
+// Patmos abstract base class
+// TODO: builtins
+class PatmosTargetInfo : public TargetInfo {
+  bool SoftFloat : 1;
+public:
+  PatmosTargetInfo(const llvm::Triple &triple) : TargetInfo(triple)  {
+    BigEndian = true;
+    SoftFloat = true;
+    // Keep in sync with PatmosTargetMachine and compiler-rt/lib/patmos/*.ll
+    DataLayoutString =
+      "E-S32-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:32-f32:32:32-f64:32:32-a0:0:32-v64:32:32-v128:32:32-n32";
+    // Note: those values must be kept in sync with the DescriptionString!
+    DoubleAlign = 32;
+    LongLongAlign = 32;
+    LongDoubleAlign = 32;
+    SuitableAlign = 32;
+    PreferWidthAligned = false;
+    // Keep {|} as they are in inline asm
+    NoAsmVariants = true;
+  }
+
+  void setFeatureEnabled(llvm::StringMap<bool> &Features,
+                         StringRef Name,
+                         bool Enabled) const override {
+    if (Name == "hard-float" || Name == "soft-float") {
+      Features[Name] = Enabled;
+    }
+  }
+
+  bool handleTargetFeatures(std::vector<std::string> &Features,
+                            DiagnosticsEngine &Diags) override {
+    SoftFloat = true;
+    for (unsigned i = 0, e = Features.size(); i != e; ++i) {
+      if (Features[i] == "+hard-float")
+        SoftFloat = false;
+      if (Features[i] == "+soft-float")
+        SoftFloat = true;
+    }
+    return true;
+  }
+
+  bool hasFeature(StringRef Feature) const override {
+    return llvm::StringSwitch<bool>(Feature)
+             .Case("softfloat", SoftFloat)
+             .Case("patmos", true)
+             .Default(false);
+  }
+
+  void getTargetDefines(const LangOptions &Opts,
+                                MacroBuilder &Builder) const {
+    // Target identification.
+    Builder.defineMacro("__patmos__");
+    Builder.defineMacro("__PATMOS__");
+
+    if (SoftFloat)
+      Builder.defineMacro("SOFT_FLOAT", "1");
+  }
+
+  ArrayRef<Builtin::Info> getTargetBuiltins() const override {
+    return None;
+  }
+
+  const char *getClobbers() const override {
+    return "";
+  }
+
+  BuiltinVaListKind getBuiltinVaListKind() const override {
+    return TargetInfo::CharPtrBuiltinVaList;
+  }
+
+  ArrayRef<const char *> getGCCRegNames() const override
+  {
+    // TODO can't we get this from the backend tables somehow??
+    static const char * const GCCRegNames[] = {
+      // CPU register names
+      // Must match second column of GCCRegAliases
+      // The names here must match the register enum names in the .td file,
+      // not the register name string value (case insensitive).
+      "$r0",   "$r1",   "$r2",   "$r3",   "$r4",   "$r5",   "$r6",   "$r7",
+      "$r8",   "$r9",   "$r10",  "$r11",  "$r12",  "$r13",  "$r14",  "$r15",
+      "$r16",  "$r17",  "$r18",  "$r19",  "$r20",  "$r21",  "$r22",  "$r23",
+      "$r24",  "$r25",  "$r26",  "$rtr",  "$rfp",  "$rsp",  "$rfb",  "$rfo",
+      // Predicates
+      "$p0",  "$p1",  "$p2",  "$p3",  "$p4",  "$p5",  "$p6",  "$p7",
+      // Special registers
+      "$s0",  "$sm",  "$sl",  "$sh",  "$s4",  "$ss",  "$st",  "$s7",
+      "$s8",  "$s9",  "$s10", "$s11", "$s12", "$s13", "$s14", "$s15"
+    };
+    return llvm::makeArrayRef(GCCRegNames);
+  }
+
+  ArrayRef<TargetInfo::GCCRegAlias> getGCCRegAliases() const override {
+    static const GCCRegAlias GCCRegAliases[] = {
+        { { "$r27" }, "$rtr" },
+        { { "$r28" }, "$rfp" },
+        { { "$r29" }, "$rsp" },
+        { { "$r30" }, "$rfb" },
+        { { "$r31" }, "$rfo" },
+        { { "$s1"  }, "$sm"  },
+        { { "$s2"  }, "$sl"  },
+        { { "$s3"  }, "$sh"  },
+        { { "$s5"  }, "$ss"  },
+        { { "$s6"  }, "$st"  }
+    };
+    return llvm::makeArrayRef(GCCRegAliases);
+  }
+
+  bool validateAsmConstraint(const char *&Name,
+                             TargetInfo::ConstraintInfo &Info) const override
+  {
+    // clang actually accepts a few generic register constraints more (i,n,m,o,g,..),
+    // not much we can do about it.. For completeness, we list all currently supported
+    // constraints here.
+
+    switch (*Name) {
+    default:
+      return false;
+
+    case 'r': // CPU registers.
+    // TODO do not accept read-only or special registers here
+    case 'R': // r0-r31, currently same as 'r'
+    case 'S': // sz-s15
+    case 'P': // p0-p7
+    // TODO define more classes for subsets of registers (r10-r28, ..)?
+      Info.setAllowsRegister();
+      return true;
+    case '{':
+      Name++;
+      if (!*Name || *Name != '$')
+        return false;
+      Name++;
+      while (*Name) {
+        if (*Name == '}') {
+          return true;
+        }
+        if (*Name != 'r' && *Name != 's' && *Name != 'p' &&
+            (*Name < '0' || *Name > '9')) {
+          return false;
+        }
+        Name++;
+      }
+      return false;
+    }
+  }
+};
+
+
 // Shared base class for SPARC v8 (32-bit) and SPARC v9 (64-bit).
 class SparcTargetInfo : public TargetInfo {
   static const TargetInfo::GCCRegAlias GCCRegAliases[];
@@ -7527,6 +7675,9 @@ static TargetInfo *AllocateTarget(const llvm::Triple &Triple) {
 
   case llvm::Triple::hexagon:
     return new HexagonTargetInfo(Triple);
+
+  case llvm::Triple::patmos:
+    return new PatmosTargetInfo(Triple);
 
   case llvm::Triple::aarch64:
     if (Triple.isOSDarwin())

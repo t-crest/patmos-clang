@@ -84,6 +84,8 @@ private:
                         llvm::opt::ArgStringList &CmdArgs) const;
   void AddHexagonTargetArgs(const llvm::opt::ArgList &Args,
                             llvm::opt::ArgStringList &CmdArgs) const;
+  void AddPatmosTargetArgs(const llvm::opt::ArgList &Args,
+                           llvm::opt::ArgStringList &CmdArgs) const;
   void AddWebAssemblyTargetArgs(const llvm::opt::ArgList &Args,
                                 llvm::opt::ArgStringList &CmdArgs) const;
 
@@ -237,6 +239,165 @@ public:
                     const char *LinkingOutput) const override;
 };
 } // end namespace hexagon.
+
+namespace patmos {
+
+  class PatmosBaseTool {
+    const ToolChain &TC;
+    std::vector<std::string> LibraryPaths;
+  public:
+    PatmosBaseTool(const ToolChain &TC) : TC(TC) {}
+
+  protected:
+    // Some helper methods to construct arguments in ConstructJob
+    llvm::sys::fs::file_magic getFileType(std::string filename) const;
+
+    llvm::sys::fs::file_magic getBufFileType(const char *buf) const;
+
+    bool isBitcodeFile(std::string filename) const {
+      return getFileType(filename) == llvm::sys::fs::file_magic::bitcode;
+    }
+
+    bool isArchive(std::string filename) const {
+      return getFileType(filename) == llvm::sys::fs::file_magic::archive;
+    }
+
+    bool isDynamicLibrary(std::string filename) const;
+
+    bool isBitcodeArchive(std::string filename) const;
+
+    bool isBitcodeOption(StringRef Option,
+                         const std::vector<std::string> &LibPaths) const;
+
+    const char * CreateOutputFilename(Compilation &C, const InputInfo &Output,
+                                      const char * TmpPrefix,
+                                      const char *Suffix,
+                                      bool IsLastPass) const;
+
+    /// Get the option value of an argument
+    std::string getArgOption(const std::string &Arg) const;
+
+    std::string FindLib(StringRef LibName,
+                        const std::vector<std::string> &Directories,
+                        bool OnlyStatic) const;
+
+    std::vector<std::string> FindBitcodeLibPaths(const llvm::opt::ArgList &Args,
+                                                 bool LookupSysPaths) const;
+
+    /// Get the last -O<Lvl> optimization level specifier. If no -O option is
+    /// given, return NULL.
+    llvm::opt::Arg* GetOptLevel(const llvm::opt::ArgList &Args, char &Lvl) const;
+
+    /// Add -L arguments
+    void AddLibraryPaths(const llvm::opt::ArgList &Args, ArgStringList &CmdArgs,
+                         bool LinkBinaries) const;
+
+    /// The HasGoldPass arguments tells the function if
+    /// we will execute gold or if linking with ELFs should throw an error.
+    /// Return the
+    const char * AddInputFiles(const llvm::opt::ArgList &Args,
+                       const std::vector<std::string> &LibPaths,
+                       const InputInfoList &Inputs,
+                       ArgStringList &LinkInputs, ArgStringList &GoldInputs,
+                       const char *linkedBCFileName,
+                       unsigned &linkedOFileInputPos,
+                       bool AddLibSyms, bool LinkLibraries,
+                       bool HasGoldPass, bool UseLTO) const;
+
+    /// Return true if any options have been added to LinkInputs.
+    bool AddSystemLibrary(const llvm::opt::ArgList &Args,
+                          const std::vector<std::string> &LibPaths,
+                          ArgStringList &LinkInputs, ArgStringList &GoldInputs,
+                          const char *libo, const char *libflag,
+                          bool AddLibSyms, bool HasGoldPass, bool UseLTO) const;
+
+    /// Add arguments to link with libc, librt, librtsf, libpatmos
+    void AddStandardLibs(const llvm::opt::ArgList &Args,
+                         const std::vector<std::string> &LibPaths,
+                         ArgStringList &LinkInputs, ArgStringList &GoldInputs,
+                         bool AddRuntimeLibs, bool AddLibGloss, bool AddLibC,
+                         bool AddLibSyms, StringRef FloatABI,
+                         bool HasGoldPass, bool UseLTO) const;
+
+
+    /// Returns linkedBCFileName if files need to be linked, or the filename of
+    /// the only bitcode input file if there is no need to link, or null if
+    /// there are no bitcode inputs.
+    /// @linkedOFileInsertPos - position in GoldInputs where to insert the
+    /// compiled bitcode file into.
+    const char * PrepareLinkerInputs(const llvm::opt::ArgList &Args,
+                         const InputInfoList &Inputs,
+                         llvm::opt::ArgStringList &LinkInputs,
+                         llvm::opt::ArgStringList &GoldInputs,
+                         const char *linkedBCFileName,
+                         unsigned &linkedOFileInsertPos,
+                         bool AddStartFiles,
+                         bool AddRuntimeLibs, bool AddLibGloss, bool AddLibC,
+                         bool AddLibSyms, StringRef FloatABI,
+                         bool LinkLibraries,
+                         bool HasGoldPass, bool UseLTO) const;
+
+    void ConstructLinkJob(const Tool &Creator, Compilation &C,
+                          const JobAction &JA,
+                          const char *OutputFilename,
+                          const llvm::opt::ArgStringList &LinkInputs,
+                          const llvm::opt::ArgList &TCArgs) const;
+
+    // Construct an optimization job
+    // @IsLinkPass - If true, add standard link optimizations
+    bool ConstructOptJob(const Tool &Creator, Compilation &C,
+                         const JobAction &JA,
+                         const char *OutputFilename,
+                         const char *InputFilename,
+                         const llvm::opt::ArgList &TCArgs,
+                         bool IsLinkPass, bool LinkAsObject, bool IsLastPass) const;
+
+    void ConstructLLCJob(const Tool &Creator, Compilation &C,
+                      const JobAction &JA,
+                      const char *OutputFilename,
+                      const char *InputFilename,
+                      const llvm::opt::ArgList &TCArgs,
+                      bool EmitAsm) const;
+
+    void ConstructGoldJob(const Tool &Creator, Compilation &C,
+                          const JobAction &JA,
+                          const char *OutputFilename,
+                          const llvm::opt::ArgStringList &GoldInputs,
+                          const llvm::opt::ArgList &TCArgs, bool UseLTO,
+                          bool LinkRelocatable, bool AddStackSymbols) const;
+  };
+
+  class LLVM_LIBRARY_VISIBILITY Compile : public Clang, protected PatmosBaseTool
+  {
+  public:
+    Compile(const ToolChain &TC) : Clang(TC), PatmosBaseTool(TC) {}
+
+    void ConstructJob(Compilation &C, const JobAction &JA,
+                      const InputInfo &Output,
+                      const InputInfoList &Inputs,
+                      const llvm::opt::ArgList &TCArgs,
+                      const char *LinkingOutput) const override;
+
+    bool hasIntegratedAssembler() const override { return false; }
+  };
+
+  class LLVM_LIBRARY_VISIBILITY Link : public Tool, protected PatmosBaseTool {
+  public:
+    Link(const ToolChain &TC) : Tool("patmos::Link",
+                                     "link  via llvm-link, opt and llc", TC),
+                                PatmosBaseTool(TC) {}
+
+    void ConstructJob(Compilation &C, const JobAction &JA,
+                      const InputInfo &Output,
+                      const InputInfoList &Inputs,
+                      const llvm::opt::ArgList &TCArgs,
+                      const char *LinkingOutput) const override;
+
+    bool hasIntegratedCPP() const override { return false; }
+    bool isLinkJob() const override { return true; }
+
+  };
+} // end namespace patmos
 
 namespace amdgpu {
 

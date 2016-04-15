@@ -143,7 +143,7 @@ public:
   /// \brief Return true if this is a builtin that should translate
   /// to a LLVM intrinsic of the same name
   bool isLLVMIntrinsicFunction(unsigned ID) const {
-    return strncmp("__llvm_", GetRecord(ID).Name, 7) == 0;
+    return strncmp("__llvm_", getRecord(ID).Name, 7) == 0;
   }
 
   /// \brief Determines whether this builtin has custom typechecking.

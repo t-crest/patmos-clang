@@ -581,6 +581,15 @@ void StmtPrinter::VisitSEHLeaveStmt(SEHLeaveStmt *Node) {
   if (Policy.IncludeNewlines) OS << "\n";
 }
 
+void StmtPrinter::VisitFlowfact(Flowfact *Node) {
+  unsigned i;
+  Indent() << "Flowfact (";
+  for (i = 0; i < Node->getNumLhsTerms() - 1; ++i)
+    OS << Node->Multipliers[i] << " " << Node->Markers[i] << " + ";
+  OS << Node->Multipliers[i] << " " << Node->Markers[i]
+    << " <= " << Node->RHS << ")\n";
+}
+
 //===----------------------------------------------------------------------===//
 //  OpenMP clauses printing methods
 //===----------------------------------------------------------------------===//

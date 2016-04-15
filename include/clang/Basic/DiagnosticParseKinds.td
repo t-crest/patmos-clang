@@ -982,4 +982,12 @@ def err_for_co_await_not_range_for : Error<
   "'co_await' modifier can only be applied to range-based for loop">;
 }
 
+// - #pragma loopbound
+def err_pragma_loopbound_malformed : Error<
+  "pragma loopbound is malformed; expecting "
+  "'#pragma loopbound min NUM max NUM'">;
+
+def err_pragma_platin_malformed : Error<
+  "platin pragma needs to be flowfact: (c1 @x + c2 @y <= c3)">;
+
 } // end of Parser diagnostics

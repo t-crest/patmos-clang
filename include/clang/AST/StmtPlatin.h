@@ -26,8 +26,8 @@ public:
   /// \brief Returns ending location of the flowfact.
   SourceLocation getLocEnd() const { return Range.getEnd(); }
 
-  StmtRange children() {
-    return StmtRange();
+  child_range children() {
+    return child_range(child_iterator(), child_iterator());
   }
 
   unsigned getNumLhsTerms() const { return Multipliers.size(); }

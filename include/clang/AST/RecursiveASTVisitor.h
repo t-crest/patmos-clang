@@ -2341,6 +2341,9 @@ DEF_TRAVERSE_STMT(ObjCBoxedExpr, {})
 DEF_TRAVERSE_STMT(ObjCArrayLiteral, {})
 DEF_TRAVERSE_STMT(ObjCDictionaryLiteral, {})
 
+// Traverse Flowfact
+DEF_TRAVERSE_STMT(Flowfact, {})
+
 // Traverse OpenCL: AsType, Convert.
 DEF_TRAVERSE_STMT(AsTypeExpr, {})
 

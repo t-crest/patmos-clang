@@ -90,13 +90,13 @@ namespace  {
 
       tool_output_file *OutFile;
       yaml::Output *Output;
-      std::string ErrorInfo;
+      std::error_code ErrorInfo;
 
-      OutFile = new tool_output_file(OutFileName.str().c_str(), ErrorInfo);
-      if (!ErrorInfo.empty()) {
+      OutFile = new tool_output_file(OutFileName, ErrorInfo, sys::fs::F_Text);
+      if (ErrorInfo) {
         delete OutFile;
         errs() << "[clang-ff] Opening Export File failed: " << OutFileName << "\n";
-        errs() << "[clang-ff] Reason: " << ErrorInfo;
+        errs() << "[clang-ff] Reason: " << ErrorInfo.message();
         return;
       }
       else {
@@ -113,6 +113,8 @@ namespace  {
   };
 }
 
-ASTConsumer *clang::CreateFlowfactExporter(StringRef filename) {
-  return new FlowfactExporter(filename);
+namespace clang {
+std::unique_ptr<ASTConsumer> CreateFlowfactExporter(StringRef filename) {
+  return llvm::make_unique<FlowfactExporter>(filename);
+}
 }

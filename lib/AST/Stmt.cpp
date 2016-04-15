@@ -1109,3 +1109,35 @@ bool CapturedStmt::capturesVariable(const VarDecl *Var) const {
 
   return false;
 }
+
+Flowfact::Flowfact(SourceRange Range,
+                   ArrayRef<int> Multipliers,
+                   ArrayRef<std::string> Markers,
+                   int rhs)
+  : Stmt(FlowfactClass), Range(Range),
+    Multipliers(Multipliers.begin(), Multipliers.end()),
+    Markers(Markers.begin(), Markers.end()),
+    RHS(rhs) {
+    assert(Markers.size() == Multipliers.size());
+}
+
+Flowfact *Flowfact::Create(const ASTContext &C,
+                           SourceRange Range,
+                           ArrayRef<int> Multipliers,
+                           ArrayRef<std::string> Markers,
+                           int rhs) {
+  // XXX this is not he clang way of allocating the Flowfact statement, at least
+  // the LHS terms should be stored as sub-expressions and allocated here
+  void *Mem = C.Allocate(sizeof(Flowfact),
+                         llvm::alignOf<Flowfact>());
+  return new (Mem) Flowfact(Range, Multipliers, Markers, rhs);
+}
+
+Flowfact *Flowfact::CreateEmpty(const ASTContext &C) {
+  void *Mem = C.Allocate(sizeof(Flowfact),
+                         llvm::alignOf<Flowfact>());
+  return new (Mem) Flowfact(SourceRange(),
+                            ArrayRef<int>(),
+                            ArrayRef<std::string>(),
+                            -1);
+}

@@ -370,8 +370,8 @@ static llvm::Triple computeTargetTriple(StringRef DefaultTargetTriple,
 
 // \brief Parse the LTO options and record the type of LTO compilation
 // based on which -f(no-)?lto(=.*)? option occurs last.
-void Driver::setLTOMode(const llvm::opt::ArgList &Args) {
-  LTOMode = LTOK_None;
+void Driver::setLTOMode(const ToolChain &TC, const llvm::opt::ArgList &Args) {
+  LTOMode = TC.isUsingLTODefault() ? LTOK_Full : LTOK_None;
   if (!Args.hasFlag(options::OPT_flto, options::OPT_flto_EQ,
                     options::OPT_fno_lto, false))
     return;
@@ -477,8 +477,6 @@ Compilation *Driver::BuildCompilation(ArrayRef<const char *> ArgList) {
                     .Default(SaveTempsCwd);
   }
 
-  setLTOMode(Args);
-
   std::unique_ptr<llvm::opt::InputArgList> UArgs =
       llvm::make_unique<InputArgList>(std::move(Args));
 
@@ -488,6 +486,8 @@ Compilation *Driver::BuildCompilation(ArrayRef<const char *> ArgList) {
   // Owned by the host.
   const ToolChain &TC =
       getToolChain(*UArgs, computeTargetTriple(DefaultTargetTriple, *UArgs));
+
+  setLTOMode(TC, *UArgs);
 
   // The compilation takes ownership of Args.
   Compilation *C = new Compilation(*this, TC, UArgs.release(), TranslatedArgs);
@@ -2289,6 +2289,9 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
         break;
       case llvm::Triple::hexagon:
         TC = new toolchains::HexagonToolChain(*this, Target, Args);
+        break;
+      case llvm::Triple::patmos:
+        TC = new toolchains::PatmosToolChain(*this, Target, Args);
         break;
       case llvm::Triple::xcore:
         TC = new toolchains::XCoreToolChain(*this, Target, Args);

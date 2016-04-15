@@ -8193,6 +8193,12 @@ public:
                                        SourceLocation LParenLoc,
                                        SourceLocation EndLoc);
 
+  StmtResult ActOnFlowfact(SourceLocation StartLoc,
+                           SourceLocation EndLoc,
+                           ArrayRef<int> Multipliers,
+                           ArrayRef<std::string> Markers,
+                           int Rhs);
+
   /// \brief The kind of conversion being performed.
   enum CheckedConversionKind {
     /// \brief An implicit conversion.

@@ -45,7 +45,6 @@ void InitOnlyAction::ExecuteAction() {
 //===----------------------------------------------------------------------===//
 // AST Consumer Actions
 //===----------------------------------------------------------------------===//
-
 std::unique_ptr<ASTConsumer>
 ASTPrintAction::CreateASTConsumer(CompilerInstance &CI, StringRef InFile) {
   if (raw_ostream *OS = CI.createDefaultOutputFile(false, InFile))
@@ -74,6 +73,12 @@ std::unique_ptr<ASTConsumer>
 DeclContextPrintAction::CreateASTConsumer(CompilerInstance &CI,
                                           StringRef InFile) {
   return CreateDeclContextPrinter();
+}
+
+std::unique_ptr<ASTConsumer>
+FlowfactExportAction::CreateASTConsumer(CompilerInstance &CI,
+                                        StringRef InFile) {
+  return CreateFlowfactExporter(CI.getFrontendOpts().FlowfactExportFile);
 }
 
 std::unique_ptr<ASTConsumer>

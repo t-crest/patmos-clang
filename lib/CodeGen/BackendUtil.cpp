@@ -407,12 +407,6 @@ void EmitAssemblyHelper::CreatePasses(FunctionInfoIndex *FunctionIndex) {
     FPM->add(createVerifierPass());
   PMBuilder.populateFunctionPassManager(*FPM);
 
-  // Add baseline opts when the build is going to optimize bitcode later
-  if (CodeGenOpts.EnableLLVMBaselineOpts) {
-    assert(CodeGenOpts.DisableLLVMOpts && "baseline opts imply DisableLLVMOpts");
-    PMBuilder.populateFPMBaseline(*FPM);
-  }
-
   // Set up the per-module pass manager.
   if (!CodeGenOpts.RewriteMapFiles.empty())
     addSymbolRewriterPass(CodeGenOpts, MPM);

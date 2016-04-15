@@ -95,6 +95,11 @@ def m_ppc_Features_Group : OptionGroup<"<ppc features group>">,
                            Group<m_Group>;
 def m_wasm_Features_Group : OptionGroup<"<wasm features group>">,
                             Group<m_Group>;
+def m_patmos_Features_Group : OptionGroup<"<m Patmos features group>">,
+                              Group<m_Group>;
+def m_patmos_llc_Group    : OptionGroup<"<m Patmos llc group>">;
+
+def m_PML_Group           : OptionGroup<"<m PML group>">;
 
 def m_libc_Group          : OptionGroup<"<m libc group>">, Group<m_Group>;
 def u_Group               : OptionGroup<"<u group>">;
@@ -340,6 +345,8 @@ def z : Separate<["-"], "z">, Flags<[LinkerInput, RenderAsInput]>,
   HelpText<"Pass -z <arg> to the linker">, MetaVarName<"<arg>">;
 def Xlinker : Separate<["-"], "Xlinker">, Flags<[LinkerInput, RenderAsInput]>,
   HelpText<"Pass <arg> to the linker">, MetaVarName<"<arg>">;
+def Xpreprocessor : Separate<["-"], "Xpreprocessor">,
+  HelpText<"Pass <arg> to the preprocessor">, MetaVarName<"<arg>">;
 def Xopt : Separate<["-"], "Xopt">, Flags<[RenderAsInput]>,
   HelpText<"Pass <arg> to the bitcode optimizer (Patmos only)">, 
   MetaVarName<"<arg>">;
@@ -349,8 +356,6 @@ def Xllc : Separate<["-"], "Xllc">, Flags<[RenderAsInput]>,
 def Xgold : Separate<["-"], "Xgold">, Flags<[LinkerInput, RenderAsInput]>,
   HelpText<"Pass <arg> to the gold ELF linker (Patmos only)">, 
   MetaVarName<"<arg>">;
-def Xpreprocessor : Separate<["-"], "Xpreprocessor">,
-  HelpText<"Pass <arg> to the preprocessor">, MetaVarName<"<arg>">;
 def X_Flag : Flag<["-"], "X">;
 def X_Joined : Joined<["-"], "X">;
 def Z_Flag : Flag<["-"], "Z">;
@@ -992,17 +997,17 @@ def fpascal_strings : Flag<["-"], "fpascal-strings">, Group<f_Group>, Flags<[CC1
 
 def fpatmos_emit_llvm : Flag<["-"], "fpatmos-emit-llvm">,
   HelpText<"Generate bitcode instead of a native binary">;
-def fpatmos_emit_reloc : Flag<["-"], "fpatmos-emit-reloc">, 
+def fpatmos_emit_reloc : Flag<["-"], "fpatmos-emit-reloc">,
   HelpText<"Generate a relocatable object instead of an executable or bitcode">;
 def fpatmos_emit_asm : Flag<["-"], "fpatmos-emit-asm">,
   HelpText<"Generate native assembler code">;
-def fpatmos_link_object: Flag<["-"], "fpatmos-link-object">, 
+def fpatmos_link_object: Flag<["-"], "fpatmos-link-object">,
   HelpText<"Link as (relocatable) object, i.e., do not link in libraries or startup code. Emits bitcode by default.">;
-def fpatmos_disable_internalize: Flag<["-"], "fpatmos-disable-internalize">, 
+def fpatmos_disable_internalize: Flag<["-"], "fpatmos-disable-internalize">,
   HelpText<"Disable internalize pass after bitcode linking">;
 def fpatmos_no_std_link_opts: Flag<["-"], "fpatmos-no-std-link-opts">,
   HelpText<"Disable default opt passes after bitcode linking">;
-def fpatmos_skip_opt: Flag<["-"], "fpatmos-skip-opt">, 
+def fpatmos_skip_opt: Flag<["-"], "fpatmos-skip-opt">,
   HelpText<"Skip opt phase after bitcode linker">;
 
 def fpcc_struct_return : Flag<["-"], "fpcc-struct-return">, Group<f_Group>, Flags<[CC1Option]>,
@@ -1651,61 +1656,61 @@ def multiply__defined__unused : Separate<["-"], "multiply_defined_unused">;
 def multiply__defined : Separate<["-"], "multiply_defined">;
 def mwarn_nonportable_cfstrings : Flag<["-"], "mwarn-nonportable-cfstrings">, Group<m_Group>;
 
-def mpatmos_stack_base : Joined<["-"], "mpatmos-stack-base=">, Group<m_Patmos_Group>, 
+def mpatmos_stack_base : Joined<["-"], "mpatmos-stack-base=">, Group<m_patmos_Features_Group>,
   HelpText<"Set the address for the stack cache base address symbol">, Flags<[HelpHidden]>;
-def mpatmos_shadow_stack_base : Joined<["-"], "mpatmos-shadow-stack-base=">, Group<m_Patmos_Group>, 
+def mpatmos_shadow_stack_base : Joined<["-"], "mpatmos-shadow-stack-base=">, Group<m_patmos_Features_Group>,
   HelpText<"Set the address for the shadow stack base address symbol">, Flags<[HelpHidden]>;
-def mpatmos_heap_end : Joined<["-"], "mpatmos-heap-end=">, Group<m_Patmos_Group>, 
+def mpatmos_heap_end : Joined<["-"], "mpatmos-heap-end=">, Group<m_patmos_Features_Group>,
   HelpText<"Set the address for the upper heap address symbol">, Flags<[HelpHidden]>;
 
 // Some common patmos-llc options that should be passed through. Keep in sync with patmos-llc option names and help.
 // These options might be deprecated in favor of -Xllc in the future.
-def mpatmos_disable_function_splitter : Flag<["-"], "mpatmos-disable-function-splitter">, Group<m_Patmos_llc_Group>,
+def mpatmos_disable_function_splitter : Flag<["-"], "mpatmos-disable-function-splitter">, Group<m_patmos_llc_Group>,
   HelpText<"Disable the Patmos function splitter">, Flags<[HelpHidden]>;
-def mpatmos_disable_ifcvt : Flag<["-"], "mpatmos-disable-ifcvt">, Group<m_Patmos_llc_Group>,
+def mpatmos_disable_ifcvt : Flag<["-"], "mpatmos-disable-ifcvt">, Group<m_patmos_llc_Group>,
   HelpText<"Disable if-converter for Patmos">, Flags<[HelpHidden]>;
-def mpatmos_disable_post_ra : Flag<["-"], "mpatmos-disable-post-ra">, Group<m_Patmos_llc_Group>,
+def mpatmos_disable_post_ra : Flag<["-"], "mpatmos-disable-post-ra">, Group<m_patmos_llc_Group>,
   HelpText<"Disable any post-RA scheduling">, Flags<[HelpHidden]>;
-def mpatmos_disable_stack_cache : Flag<["-"], "mpatmos-disable-stack-cache">, Group<m_Patmos_llc_Group>,
+def mpatmos_disable_stack_cache : Flag<["-"], "mpatmos-disable-stack-cache">, Group<m_patmos_llc_Group>,
   HelpText<"Disable the use of Patmos' stack cache">, Flags<[HelpHidden]>;
-def mpatmos_disable_vliw : Flag<["-"], "mpatmos-disable-vliw">, Group<m_Patmos_llc_Group>,
+def mpatmos_disable_vliw : Flag<["-"], "mpatmos-disable-vliw">, Group<m_patmos_llc_Group>,
   HelpText<"Schedule instructions only in first slot">, Flags<[HelpHidden]>;
-def mpatmos_enable_bypass_from_pml : Flag<["-"], "mpatmos-enable-bypass-from-pml">, Group<m_Patmos_llc_Group>,
+def mpatmos_enable_bypass_from_pml : Flag<["-"], "mpatmos-enable-bypass-from-pml">, Group<m_patmos_llc_Group>,
   HelpText<"Enable rewriting unanalyzable (aiT) memory accesses to bypass the cache">, Flags<[HelpHidden]>;
-def mpatmos_enable_stack_cache_analysis : Flag<["-"], "mpatmos-enable-stack-cache-analysis">, Group<m_Patmos_llc_Group>,
+def mpatmos_enable_stack_cache_analysis : Flag<["-"], "mpatmos-enable-stack-cache-analysis">, Group<m_patmos_llc_Group>,
   HelpText<"Enable the Patmos stack cache analysis">, Flags<[HelpHidden]>;
-def mpatmos_sca_preemption : Flag<["-"], "mpatmos-sca-preemption">, Group<m_Patmos_llc_Group>,
+def mpatmos_sca_preemption : Flag<["-"], "mpatmos-sca-preemption">, Group<m_patmos_llc_Group>,
   HelpText<"Enable the analysis of preemption costs during Stack Cache Analysis.">, Flags<[HelpHidden]>;
-def mpatmos_ilp_solver : Joined<["-"], "mpatmos-ilp-solver=">, Group<m_Patmos_llc_Group>,
+def mpatmos_ilp_solver : Joined<["-"], "mpatmos-ilp-solver=">, Group<m_patmos_llc_Group>,
   HelpText<"Path to an ILP solver">, Flags<[HelpHidden]>;
-def mpatmos_max_subfunction_size : Joined<["-"], "mpatmos-max-subfunction-size=">, Group<m_Patmos_llc_Group>,
+def mpatmos_max_subfunction_size : Joined<["-"], "mpatmos-max-subfunction-size=">, Group<m_patmos_llc_Group>,
   HelpText<"Maximum size of subfunctions after function splitting, defaults to the method cache size if set to 0">, Flags<[HelpHidden]>;
-def mpatmos_method_cache_size : Joined<["-"], "mpatmos-method-cache-size=">, Group<m_Patmos_llc_Group>,
+def mpatmos_method_cache_size : Joined<["-"], "mpatmos-method-cache-size=">, Group<m_patmos_llc_Group>,
   HelpText<"Total size of the instruction cache in bytes (default 4096)">, Flags<[HelpHidden]>;
-def mpatmos_nested_branches : Flag<["-"], "mpatmos-nested-branches">, Group<m_Patmos_llc_Group>,
+def mpatmos_nested_branches : Flag<["-"], "mpatmos-nested-branches">, Group<m_patmos_llc_Group>,
   HelpText<"Enable scheduling of branch instructions inside CFL delay slots">, Flags<[HelpHidden]>;
-def mpatmos_preferred_scc_size : Joined<["-"], "mpatmos-preferred-scc-size=">, Group<m_Patmos_llc_Group>,
+def mpatmos_preferred_scc_size : Joined<["-"], "mpatmos-preferred-scc-size=">, Group<m_patmos_llc_Group>,
   HelpText<"Preferred maximum size for SCC subfunctions, defaults to mpatmos-preferred-subfunction-size if 0">, Flags<[HelpHidden]>;
-def mpatmos_preferred_subfunction_size : Joined<["-"], "mpatmos-preferred-subfunction-size=">, Group<m_Patmos_llc_Group>,
+def mpatmos_preferred_subfunction_size : Joined<["-"], "mpatmos-preferred-subfunction-size=">, Group<m_patmos_llc_Group>,
   HelpText<"Preferred maximum size of subfunctions, defaults to mpatmos-max-subfunction-size if 0. Larger basic blocks and inline asm are not split">, Flags<[HelpHidden]>;
-def mpatmos_sca_remove_ensures : Flag<["-"], "mpatmos-sca-remove-ensures">, Group<m_Patmos_llc_Group>,
+def mpatmos_sca_remove_ensures : Flag<["-"], "mpatmos-sca-remove-ensures">, Group<m_patmos_llc_Group>,
   HelpText<"Remove unnecessary ensure instructions during Stack Cache Analysis">, Flags<[HelpHidden]>;
-def mpatmos_sca_serialize : Joined<["-"], "mpatmos-sca-serialize=">, Group<m_Patmos_llc_Group>,
+def mpatmos_sca_serialize : Joined<["-"], "mpatmos-sca-serialize=">, Group<m_patmos_llc_Group>,
   HelpText<"Export PML specification of generated machine code to FILE">, Flags<[HelpHidden]>;
-def mpatmos_singlepath : Joined<["-"], "mpatmos-singlepath=">, Group<m_Patmos_llc_Group>,
+def mpatmos_singlepath : Joined<["-"], "mpatmos-singlepath=">, Group<m_patmos_llc_Group>,
   HelpText<"Functions for which single-path code is generated">, Flags<[HelpHidden]>;
-def mpatmos_split_call_blocks : Flag<["-"], "mpatmos-split-call-blocks">, Group<m_Patmos_llc_Group>,
+def mpatmos_split_call_blocks : Flag<["-"], "mpatmos-split-call-blocks">, Group<m_patmos_llc_Group>,
   HelpText<"Split basic blocks containing calls into own subfunctions">, Flags<[HelpHidden]>;
-def mpatmos_stack_cache_analysis_bounds : Joined<["-"], "mpatmos-stack-cache-analysis-bounds=">, Group<m_Patmos_llc_Group>,
+def mpatmos_stack_cache_analysis_bounds : Joined<["-"], "mpatmos-stack-cache-analysis-bounds=">, Group<m_patmos_llc_Group>,
   HelpText<"File containing bounds for the stack cache analysis">, Flags<[HelpHidden]>;
-def mpatmos_stack_cache_size : Joined<["-"], "mpatmos-stack-cache-size=">, Group<m_Patmos_llc_Group>,
+def mpatmos_stack_cache_size : Joined<["-"], "mpatmos-stack-cache-size=">, Group<m_patmos_llc_Group>,
   HelpText<"Total size of the stack cache in bytes">, Flags<[HelpHidden]>;
-def mpatmos_stack_cache_block_size : Joined<["-"], "mpatmos-stack-cache-block-size=">, Group<m_Patmos_llc_Group>,
+def mpatmos_stack_cache_block_size : Joined<["-"], "mpatmos-stack-cache-block-size=">, Group<m_patmos_llc_Group>,
   HelpText<"Block size of the stack cache in bytes">, Flags<[HelpHidden]>;
-def mpatmos_enable_block_aligned_stack_cache : Joined<["-"], "mpatmos-enable-block-aligned-stack-cache">, Group<m_Patmos_llc_Group>,
+def mpatmos_enable_block_aligned_stack_cache : Joined<["-"], "mpatmos-enable-block-aligned-stack-cache">, Group<m_patmos_llc_Group>,
   HelpText<"Enable the use of Patmos' block-aligned stack cache">, Flags<[HelpHidden]>;
 
-def mimport_pml : Joined<["-"], "mimport-pml=">, Group<m_PML_Group>, 
+def mimport_pml : Joined<["-"], "mimport-pml=">, Group<m_PML_Group>,
   HelpText<"Read external analysis results from PML file">, Flags<[HelpHidden]>;
 def mpreemit_bitcode : Joined<["-"], "mpreemit-bitcode=">, Group<m_PML_Group>,
   HelpText<"Write the final bitcode representation (before emit) to FILE">, Flags<[HelpHidden]>;
@@ -1726,22 +1731,19 @@ def nocudainc : Flag<["-"], "nocudainc">;
 def nocudalib : Flag<["-"], "nocudalib">;
 def nodefaultlibs : Flag<["-"], "nodefaultlibs">;
 def nofixprebinding : Flag<["-"], "nofixprebinding">;
-def nolibc : Flag<["-"], "nolibc">, Flags<[HelpHidden]>,
-  HelpText<"Do not link with libc.">;
+def nolibc : Flag<["-"], "nolibc">;
 def nomultidefs : Flag<["-"], "nomultidefs">;
 def nopie : Flag<["-"], "nopie">;
 def noprebind : Flag<["-"], "noprebind">;
 def noruntimelibs : Flag<["-"], "noruntimelibs">, Flags<[HelpHidden]>,
   HelpText<"Do not link with default runtime libraries.">;
 def noseglinkedit : Flag<["-"], "noseglinkedit">;
-def nostartfiles : Flag<["-"], "nostartfiles">, Flags<[HelpHidden]>,
-  HelpText<"Do not link with start files such as crt0.">;
+def nostartfiles : Flag<["-"], "nostartfiles">;
 def nostdinc : Flag<["-"], "nostdinc">;
 def nostdlibinc : Flag<["-"], "nostdlibinc">;
 def nostdincxx : Flag<["-"], "nostdinc++">, Flags<[CC1Option]>,
   HelpText<"Disable standard #include directories for the C++ standard library">;
-def nostdlib : Flag<["-"], "nostdlib">, Flags<[HelpHidden]>,
-  HelpText<"Do not link with standard libraries such as libc.">;
+def nostdlib : Flag<["-"], "nostdlib">;
 def object : Flag<["-"], "object">;
 def o : JoinedOrSeparate<["-"], "o">, Flags<[DriverOption, RenderAsInput, CC1Option, CC1AsOption]>,
   HelpText<"Write output to <file>">, MetaVarName<"<file>">;

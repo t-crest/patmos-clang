@@ -2281,6 +2281,11 @@ void ASTStmtWriter::VisitOMPDistributeDirective(OMPDistributeDirective *D) {
   Code = serialization::STMT_OMP_DISTRIBUTE_DIRECTIVE;
 }
 
+void ASTStmtWriter::VisitFlowfact(Flowfact *F) {
+  VisitStmt(F);
+  Code = serialization::STMT_PLATIN;
+}
+
 //===----------------------------------------------------------------------===//
 // ASTWriter Implementation
 //===----------------------------------------------------------------------===//

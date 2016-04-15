@@ -718,6 +718,9 @@ LANGBUILTIN(__va_start,       "vc**.", "nt", ALL_MS_LANGUAGES)
 // Microsoft library builtins.
 LIBBUILTIN(_setjmpex, "iJ", "fj",   "setjmpex.h", ALL_MS_LANGUAGES)
 
+// Builtins for LLVM intrinsics
+BUILTIN(__llvm_pcmarker, "vi", "n")
+
 // C99 library functions
 // C99 stdlib.h
 LIBBUILTIN(abort, "v",            "fr",    "stdlib.h", ALL_LANGUAGES)

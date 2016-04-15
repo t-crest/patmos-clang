@@ -53,8 +53,8 @@ protected:
 
 class FlowfactExportAction : public ASTFrontendAction {
 protected:
-  virtual ASTConsumer *CreateASTConsumer(CompilerInstance &CI,
-                                         StringRef InFile);
+  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
+                                                 StringRef InFile) override;
 };
 
 class ASTDeclListAction : public ASTFrontendAction {

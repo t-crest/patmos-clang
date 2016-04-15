@@ -258,6 +258,7 @@ def TargetWindows : TargetArch<["x86", "x86_64", "arm", "thumb"]> {
 def TargetMicrosoftCXXABI : TargetArch<["x86", "x86_64", "arm", "thumb"]> {
   let CXXABIs = ["Microsoft"];
 }
+def TargetSinglePath : TargetArch<["patmos"]>;
 
 class Attr {
   // The various ways in which an attribute can be spelled in source
@@ -1320,9 +1321,10 @@ def Sentinel : InheritableAttr {
 }
 
 // For targets that support single-path code generation
-def SinglePath : InheritableAttr, TargetSpecificAttr {
+def SinglePath : InheritableAttr, TargetSpecificAttr<TargetSinglePath> {
   let Spellings = [GNU<"singlepath">, CXX11<"gnu", "singlepath">];
-  let Subjects = [Function];
+  let Subjects = SubjectList<[Function]>;
+  let Documentation = [Undocumented];
 }
 
 def StdCall : InheritableAttr {
@@ -2155,6 +2157,28 @@ def LoopHint : Attr {
   }];
 
   let Documentation = [LoopHintDocs, UnrollHintDocs];
+}
+
+def Loopbound : Attr {
+  // #pragma loopbound min VALUE max VALUE
+  let Spellings = [Pragma<"", "loopbound">];
+  let Args = [DefaultIntArgument<"Min", -1>,
+              DefaultIntArgument<"Max", -1>];
+  let Documentation = [Undocumented];
+
+  let AdditionalMembers = [{
+    void printPrettyPragma(raw_ostream &OS, const PrintingPolicy &Policy) const {
+      OS << "min " << getValueString(min, Policy)
+         << "max " << getValueString(max, Policy) << "\n";
+     }
+
+    std::string getValueString(int val, const PrintingPolicy &Policy) const {
+      std::string ValueName;
+      llvm::raw_string_ostream OS(ValueName);
+      OS << val << " ";
+      return OS.str();
+    }
+  }];
 }
 
 def CapturedRecord : InheritableAttr {

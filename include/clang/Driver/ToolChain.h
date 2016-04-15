@@ -225,13 +225,6 @@ public:
   /// IsBlocksDefault - Does this tool chain enable -fblocks by default.
   virtual bool IsBlocksDefault() const { return false; }
 
-  /// ShouldUseClangCompiler - Should the clang compiler be used to
-  /// handle this action.
-  virtual bool ShouldUseClangCompiler(const JobAction &JA) const;
-
-  /// IsUsingLTODefault - Does this tool chain enable -flto by default.
-  virtual bool IsUsingLTODefault() const { return false; }
-
   /// IsIntegratedAssemblerDefault - Does this tool chain enable -integrated-as
   /// by default.
   virtual bool IsIntegratedAssemblerDefault() const { return false; }
@@ -278,6 +271,9 @@ public:
   /// IsUnwindTablesDefault - Does this tool chain use -funwind-tables
   /// by default.
   virtual bool IsUnwindTablesDefault() const;
+
+  /// \brief Test whether this toolchain uses LTO by default
+  virtual bool isUsingLTODefault() const { return false; }
 
   /// \brief Test whether this toolchain defaults to PIC.
   virtual bool isPICDefault() const = 0;

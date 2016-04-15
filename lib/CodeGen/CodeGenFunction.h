@@ -1485,9 +1485,7 @@ public:
   llvm::BasicBlock *createBasicBlock(const Twine &name = "",
                                      llvm::Function *parent = nullptr,
                                      llvm::BasicBlock *before = nullptr) {
-#ifdef NDEBUG
-    return llvm::BasicBlock::Create(getLLVMContext(), "", parent, before);
-#else
+    // Patmos-specific: always keep basic block names for PML export
     return llvm::BasicBlock::Create(getLLVMContext(), name, parent, before);
   }
 
@@ -2138,6 +2136,11 @@ public:
   void EmitGotoStmt(const GotoStmt &S);
   void EmitIndirectGotoStmt(const IndirectGotoStmt &S);
   void EmitIfStmt(const IfStmt &S);
+
+  void EmitCondBrBounds(llvm::LLVMContext &Context, llvm::BranchInst *CondBr,
+                        const ArrayRef<const Attr *> &Attrs);
+  void EmitHeaderBounds(llvm::BasicBlock *Header,
+                        const ArrayRef<const Attr *> &Attrs);
 
   void EmitWhileStmt(const WhileStmt &S,
                      ArrayRef<const Attr *> Attrs = None);

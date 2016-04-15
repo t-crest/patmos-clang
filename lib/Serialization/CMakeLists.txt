@@ -12,6 +12,7 @@ add_clang_library(clangSerialization
   ASTWriter.cpp
   ASTWriterDecl.cpp
   ASTWriterStmt.cpp
+  FlowfactExporter.cpp
   GeneratePCH.cpp
   GlobalModuleIndex.cpp
   Module.cpp

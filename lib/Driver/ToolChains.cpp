@@ -2726,6 +2726,133 @@ const StringRef HexagonToolChain::GetTargetCPUVersion(const ArgList &Args) {
 }
 // End Hexagon
 
+/// PatmosToolChain - A tool chain using the llvm bitcode tools to perform
+/// all sub-commands.
+
+PatmosToolChain::PatmosToolChain(const Driver &D, const llvm::Triple& Triple,
+                                const ArgList &Args)
+  : ToolChain(D, Triple, Args) {
+  // Get install path to find tools and libraries
+  std::string Path(D.getInstalledDir());
+
+  // tools?
+  getProgramPaths().push_back(Path);
+  if (llvm::sys::fs::exists(Path + "/bin/"))
+    getProgramPaths().push_back(Path + "/bin/");
+  if (llvm::sys::fs::exists(Path + "/../bin/"))
+    getProgramPaths().push_back(Path + "/../bin/");
+
+  // add lib to search paths so that we can look for LLVMgold.so
+  if (llvm::sys::fs::exists(Path + "/lib/"))
+    getProgramPaths().push_back(Path + "/lib/");
+  if (llvm::sys::fs::exists(Path + "/../lib/"))
+    getProgramPaths().push_back(Path + "/../lib/");
+
+  // TODO merge with ComputeLLVMTriple below somehow?
+  std::string TripleString = Triple.getTriple();
+  if (TripleString == "patmos")
+    TripleString = "patmos-unknown-unknown-elf";
+
+  // newlib libraries and includes?
+  // checking patmos-unknown-elf for backward-compatibility reasons
+  if (llvm::sys::fs::exists(Path + "/" + TripleString + "/"))
+    getFilePaths().push_back(Path + "/" + TripleString + "/");
+  else if (llvm::sys::fs::exists(Path + "/patmos-unknown-elf/"))
+    getFilePaths().push_back(Path + "/patmos-unknown-elf/");
+
+  if (llvm::sys::fs::exists(Path + "/../" + TripleString + "/"))
+    getFilePaths().push_back(Path + "/../" + TripleString + "/");
+  else if (llvm::sys::fs::exists(Path + "/../patmos-unknown-elf/"))
+    getFilePaths().push_back(Path + "/../patmos-unknown-elf/");
+}
+
+PatmosToolChain::~PatmosToolChain() {
+}
+
+std::string PatmosToolChain::ComputeLLVMTriple(const ArgList &Args,
+                               types::ID InputType) const
+{
+  if (getTriple().getArch() != llvm::Triple::patmos) {
+    llvm_unreachable("Invalid architecture for Patmos tool chain");
+  }
+
+  std::string Triple = getTripleString();
+
+  // This is a bit of a workaround: when we call patmos-clang without
+  // -target, then clang uses 'patmos' as default target (the prefix of the
+  // program call). To avoid target-name mismatches, we normalize that to
+  // the full default triple.
+  if (Triple == "patmos") {
+    return "patmos-unknown-unknown-elf";
+  }
+
+  return Triple;
+}
+
+bool PatmosToolChain::IsMathErrnoDefault() const {
+  return true;
+}
+
+bool PatmosToolChain::IsUnwindTablesDefault() const {
+  return false;
+}
+
+const char *PatmosToolChain::GetDefaultRelocationModel() const {
+  return "static";
+}
+
+const char *PatmosToolChain::GetForcedPicModel() const {
+  return 0;
+}
+
+void PatmosToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
+                                                ArgStringList &CC1Args) const
+{
+  if (!DriverArgs.hasArg(options::OPT_nostdinc) &&
+      !DriverArgs.hasArg(options::OPT_nostdlibinc)) {
+    const ToolChain::path_list &filePaths = getFilePaths();
+    for(ToolChain::path_list::const_iterator i = filePaths.begin(),
+        ie = filePaths.end(); i != ie; i++) {
+      // construct a library search path
+      CC1Args.push_back("-isystem");
+      CC1Args.push_back(DriverArgs.MakeArgString(Twine(*i) + "include/"));
+    }
+  }
+}
+
+Tool *PatmosToolChain::getTool(Action::ActionClass AC) const
+{
+  if (AC == Action::CompileJobClass ||
+      AC == Action::BackendJobClass) {
+    // Use a special clang driver that supports compiling to ELF with
+    // -fpatmos-emit-obj
+    return getPatmosClang();
+  }
+  return ToolChain::getTool(AC);
+}
+
+Tool *PatmosToolChain::SelectTool(const JobAction &JA) const {
+  Action::ActionClass AC = JA.getKind();
+  if (AC == Action::CompileJobClass ||
+      AC == Action::BackendJobClass) {
+    // override the default tool selection for the compiler
+    return getTool(AC);
+  }
+  return ToolChain::SelectTool(JA);
+}
+
+Tool *PatmosToolChain::getPatmosClang() const {
+  if (!PatmosClang)
+    PatmosClang.reset(new tools::patmos::Compile(*this));
+  return PatmosClang.get();
+}
+
+Tool* PatmosToolChain::buildLinker() const {
+  return new tools::patmos::Link(*this);
+}
+// End Patmos
+
+
 /// AMDGPU Toolchain
 AMDGPUToolChain::AMDGPUToolChain(const Driver &D, const llvm::Triple &Triple,
                                  const ArgList &Args)

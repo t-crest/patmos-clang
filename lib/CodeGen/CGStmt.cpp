@@ -181,6 +181,8 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
   case Stmt::SEHTryStmtClass:
     EmitSEHTryStmt(cast<SEHTryStmt>(*S));
     break;
+  case Stmt::FlowfactClass:
+    // flowfacts are not being translated at this point
   case Stmt::OMPParallelDirectiveClass:
     EmitOMPParallelDirective(cast<OMPParallelDirective>(*S));
     break;
@@ -610,6 +612,78 @@ void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
   EmitBlock(ContBlock, true);
 }
 
+// This inserts a loopbound intrinsic into the basic block that
+// is the header of an emitted loop.
+// We assume here that the block is already filled with instructions.
+void CodeGenFunction::EmitHeaderBounds(llvm::BasicBlock *Header,
+                                       const ArrayRef<const Attr *> &Attrs) {
+  // Return if there are no hints.
+  if (Attrs.empty())
+    return;
+
+  for (unsigned i = 0; i < Attrs.size(); ++i) {
+    const Attr *A = Attrs[i];
+    const LoopboundAttr *LB = dyn_cast<LoopboundAttr>(A);
+
+    // Skip non loopbound attributes
+    if (!LB) continue;
+
+    SmallVector<llvm::Value*, 16> Args;
+    llvm::Value *MinVal = llvm::ConstantInt::get(Int32Ty, LB->getMin());
+    llvm::Value *MaxVal = llvm::ConstantInt::get(Int32Ty, LB->getMax());
+
+    Args.push_back(MinVal);
+    Args.push_back(MaxVal);
+    llvm::BasicBlock::iterator I = Header->getFirstInsertionPt();
+
+    llvm::Value *Callee =
+      CGM.getIntrinsic(llvm::Intrinsic::loopbound);
+    llvm::CallSite CS = llvm::CallInst::Create(Callee, Args, "", &*I);
+    (void) CS;
+  }
+
+}
+
+void CodeGenFunction::EmitCondBrBounds(llvm::LLVMContext &Context,
+                                       llvm::BranchInst *CondBr,
+                                       const ArrayRef<const Attr *> &Attrs) {
+  // Return if there are no hints.
+  if (Attrs.empty())
+    return;
+
+  // Add loopbounds to the metadata on the conditional branch.
+  SmallVector<llvm::Metadata *, 2> Metadata;
+  for (unsigned i = 0; i < Attrs.size(); ++i) {
+    const Attr *A = Attrs[i];
+    const LoopboundAttr *LB = dyn_cast<LoopboundAttr>(A);
+
+    // Skip non loopbound attributes
+    if (!LB) continue;
+
+    const char *MetadataName = "llvm.loop.bound";
+    llvm::MDString *Name = llvm::MDString::get(Context, MetadataName);
+    llvm::Value *MinVal = llvm::ConstantInt::get(Int32Ty, LB->getMin());
+    llvm::Value *MaxVal = llvm::ConstantInt::get(Int32Ty, LB->getMax());
+
+    SmallVector<llvm::Metadata *, 3> OpValues;
+    OpValues.push_back(Name);
+    OpValues.push_back(llvm::ValueAsMetadata::get(MinVal));
+    OpValues.push_back(llvm::ValueAsMetadata::get(MaxVal));
+
+    // Set or overwrite metadata indicated by Name.
+    Metadata.push_back(llvm::MDNode::get(Context, OpValues));
+  }
+
+  if (!Metadata.empty()) {
+    // Add llvm.loop MDNode to CondBr.
+    llvm::MDNode *LoopID = llvm::MDNode::get(Context, Metadata);
+    LoopID->replaceOperandWith(0, LoopID); // First op points to itself.
+
+    CondBr->setMetadata("llvm.loop", LoopID);
+  }
+
+}
+
 void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
                                     ArrayRef<const Attr *> WhileAttrs) {
   // Emit the header for the loop, which will also become
@@ -656,7 +730,9 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
     llvm::BasicBlock *ExitBlock = LoopExit.getBlock();
     if (ConditionScope.requiresCleanups())
       ExitBlock = createBasicBlock("while.exit");
-    Builder.CreateCondBr(
+
+    llvm::BranchInst *CondBr =
+      Builder.CreateCondBr(
         BoolCondVal, LoopBody, ExitBlock,
         createProfileWeightsForLoop(S.getCond(), getProfileCount(S.getBody())));
 
@@ -664,6 +740,9 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
       EmitBlock(ExitBlock);
       EmitBranchThroughCleanup(LoopExit);
     }
+
+    // Attach metadata to loop body conditional branch.
+    EmitCondBrBounds(LoopBody->getContext(), CondBr, WhileAttrs);
   }
 
   // Emit the loop body.  We have to emit this in a cleanup scope
@@ -676,7 +755,7 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
   }
 
   // Insert loopbound instrinsic
-  EmitHeaderBounds(LoopHeader.getBlock(), Attrs);
+  EmitHeaderBounds(LoopHeader.getBlock(), WhileAttrs);
 
 
   BreakContinueStack.pop_back();
@@ -720,6 +799,9 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S,
     EmitStmt(S.getBody());
   }
 
+  // Insert loopbound instrinsic
+  EmitHeaderBounds(LoopBody, DoAttrs);
+
   EmitBlock(LoopCond.getBlock());
 
   // C99 6.8.5.2: "The evaluation of the controlling expression takes place
@@ -742,9 +824,13 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S,
   // As long as the condition is true, iterate the loop.
   if (EmitBoolCondBranch) {
     uint64_t BackedgeCount = getProfileCount(S.getBody()) - ParentCount;
-    Builder.CreateCondBr(
+    llvm::BranchInst *CondBr =
+      Builder.CreateCondBr(
         BoolCondVal, LoopBody, LoopExit.getBlock(),
         createProfileWeightsForLoop(S.getCond(), BackedgeCount));
+
+    // Attach metadata to loop body conditional branch.
+    EmitCondBrBounds(LoopBody->getContext(), CondBr, DoAttrs);
   }
 
   LoopStack.pop();
@@ -809,9 +895,13 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
     // C99 6.8.5p2/p4: The first substatement is executed if the expression
     // compares unequal to 0.  The condition must be a scalar type.
     llvm::Value *BoolCondVal = EvaluateExprAsBool(S.getCond());
-    Builder.CreateCondBr(
+    llvm::BranchInst *CondBr =
+      Builder.CreateCondBr(
         BoolCondVal, ForBody, ExitBlock,
         createProfileWeightsForLoop(S.getCond(), getProfileCount(S.getBody())));
+
+    // Attach metadata to loop body conditional branch.
+    EmitCondBrBounds(ForBody->getContext(), CondBr, ForAttrs);
 
     if (ExitBlock != LoopExit.getBlock()) {
       EmitBlock(ExitBlock);
@@ -846,7 +936,7 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
   EmitBranch(CondBlock);
 
   // Insert loopbound instrinsic
-  EmitHeaderBounds(CondBlock, Attrs);
+  EmitHeaderBounds(CondBlock, ForAttrs);
 
 
   ForScope.ForceCleanup();
@@ -888,9 +978,13 @@ CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S,
   // The body is executed if the expression, contextually converted
   // to bool, is true.
   llvm::Value *BoolCondVal = EvaluateExprAsBool(S.getCond());
-  Builder.CreateCondBr(
+  llvm::BranchInst *CondBr =
+    Builder.CreateCondBr(
       BoolCondVal, ForBody, ExitBlock,
       createProfileWeightsForLoop(S.getCond(), getProfileCount(S.getBody())));
+
+  // Attach metadata to loop body conditional branch.
+  EmitCondBrBounds(ForBody->getContext(), CondBr, ForAttrs);
 
   if (ExitBlock != LoopExit.getBlock()) {
     EmitBlock(ExitBlock);
@@ -923,7 +1017,7 @@ CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S,
   EmitBranch(CondBlock);
 
   // Insert loopbound instrinsic
-  EmitHeaderBounds(CondBlock, Attrs);
+  EmitHeaderBounds(CondBlock, ForAttrs);
 
   ForScope.ForceCleanup();
 

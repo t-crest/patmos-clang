@@ -611,6 +611,10 @@ void StmtProfiler::VisitOMPDistributeDirective(
   VisitOMPLoopDirective(S);
 }
 
+void StmtProfiler::VisitFlowfact(const Flowfact *Node) {
+  VisitStmt(Node);
+}
+
 void StmtProfiler::VisitExpr(const Expr *S) {
   VisitStmt(S);
 }

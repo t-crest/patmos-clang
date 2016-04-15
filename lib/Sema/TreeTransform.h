@@ -26,6 +26,7 @@
 #include "clang/AST/StmtCXX.h"
 #include "clang/AST/StmtObjC.h"
 #include "clang/AST/StmtOpenMP.h"
+#include "clang/AST/StmtPlatin.h"
 #include "clang/Sema/Designator.h"
 #include "clang/Sema/Lookup.h"
 #include "clang/Sema/Ownership.h"
@@ -1366,6 +1367,15 @@ public:
   StmtResult RebuildObjCAtThrowStmt(SourceLocation AtLoc,
                                           Expr *Operand) {
     return getSema().BuildObjCAtThrowStmt(AtLoc, Operand);
+  }
+
+  /// \brief Build a new flow fact.
+  ///
+  StmtResult RebuildFlowfact(SourceRange Range) {
+    SmallVector<int, 2> foo;
+    SmallVector<std::string, 2> bar;
+    llvm_unreachable("not implemented");
+    return getSema().ActOnFlowfact(Range.getBegin(), Range.getEnd(), foo, bar, -1);
   }
 
   /// \brief Build a new OpenMP executable directive.
@@ -11627,6 +11637,12 @@ TreeTransform<Derived>::TransformCapturedStmt(CapturedStmt *S) {
   }
 
   return getSema().ActOnCapturedRegionEnd(Body.get());
+}
+
+template<typename Derived>
+StmtResult
+TreeTransform<Derived>::TransformFlowfact(Flowfact *F) {
+  return getDerived().RebuildFlowfact(F->getSourceRange());
 }
 
 } // end namespace clang

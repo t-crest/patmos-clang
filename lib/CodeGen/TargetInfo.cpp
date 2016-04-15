@@ -6974,6 +6974,33 @@ Address XCoreABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
   return Val;
 }
 
+//===----------------------------------------------------------------------===//
+// Patmos ABI Implementation
+//===----------------------------------------------------------------------===//
+namespace {
+class PatmosABIInfo : public DefaultABIInfo {
+public:
+  PatmosABIInfo(CodeGen::CodeGenTypes &CGT) : DefaultABIInfo(CGT) {}
+};
+
+class PatmosTargetCodeGenInfo : public TargetCodeGenInfo {
+public:
+  PatmosTargetCodeGenInfo(CodeGenTypes &CGT)
+    : TargetCodeGenInfo(new PatmosABIInfo(CGT)) {}
+
+  void SetTargetAttributes(const Decl *D, llvm::GlobalValue *GV,
+                           CodeGen::CodeGenModule &CGM) const {
+    const FunctionDecl *FD = dyn_cast<FunctionDecl>(D);
+    if (!FD) return;
+    llvm::Function *Fn = cast<llvm::Function>(GV);
+    if (FD->hasAttr<SinglePathAttr>()) {
+      Fn->addFnAttr("sp-root");
+      Fn->addFnAttr(llvm::Attribute::NoInline);
+    }
+  }
+};
+}
+
 /// During the expansion of a RecordType, an incomplete TypeString is placed
 /// into the cache as a means to identify and break recursion.
 /// If there is a Recursive encoding in the cache, it is swapped out and will

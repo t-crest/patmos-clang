@@ -2476,6 +2476,10 @@ void ASTStmtReader::VisitOMPDistributeDirective(OMPDistributeDirective *D) {
   VisitOMPLoopDirective(D);
 }
 
+void ASTStmtReader::VisitFlowfact(Flowfact *F) {
+  VisitStmt(F);
+}
+
 //===----------------------------------------------------------------------===//
 // ASTReader Implementation
 //===----------------------------------------------------------------------===//
@@ -2962,6 +2966,10 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
                                               NestedNameSpecifierLoc(),
                                               DeclarationNameInfo(),
                                               nullptr);
+      break;
+
+    case STMT_PLATIN:
+      llvm_unreachable("deserializing flowfact not implemented");
       break;
 
     case STMT_OMP_PARALLEL_DIRECTIVE:

@@ -267,6 +267,9 @@ public:
   /// \brief Auxiliary triple for CUDA compilation.
   std::string AuxTriple;
 
+  /// Name of the flowfact export file.
+  std::string FlowfactExportFile;
+
 public:
   FrontendOptions() :
     DisableFree(false), RelocatablePCH(false), ShowHelp(false),

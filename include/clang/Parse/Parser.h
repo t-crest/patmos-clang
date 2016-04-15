@@ -20,6 +20,7 @@
 #include "clang/Lex/CodeCompletionHandler.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Sema/DeclSpec.h"
+#include "clang/Sema/Loopbound.h"
 #include "clang/Sema/LoopHint.h"
 #include "clang/Sema/Sema.h"
 #include "llvm/ADT/SmallVector.h"
@@ -165,6 +166,8 @@ class Parser : public CodeCompletionHandler {
   std::unique_ptr<PragmaHandler> MSSection;
   std::unique_ptr<PragmaHandler> MSRuntimeChecks;
   std::unique_ptr<PragmaHandler> OptimizeHandler;
+  std::unique_ptr<PragmaHandler> LoopboundHandler;
+  std::unique_ptr<PragmaHandler> PlatinHandler;
   std::unique_ptr<PragmaHandler> LoopHintHandler;
   std::unique_ptr<PragmaHandler> UnrollHintHandler;
   std::unique_ptr<PragmaHandler> NoUnrollHintHandler;
@@ -528,6 +531,10 @@ private:
   /// \brief Handle the annotation token produced for
   /// #pragma clang __debug captured
   StmtResult HandlePragmaCaptured();
+
+  /// \brief Handle the annotation token produced for
+  /// #pragma loopbound
+  void HandlePragmaLoopbound(Loopbound &LB);
 
   /// \brief Handle the annotation token produced for
   /// #pragma clang loop and #pragma unroll.
@@ -1687,6 +1694,10 @@ private:
   StmtResult ParseReturnStatement();
   StmtResult ParseAsmStatement(bool &msAsm);
   StmtResult ParseMicrosoftAsmStatement(SourceLocation AsmLoc);
+  StmtResult ParsePragmaLoopbound(StmtVector &Stmts,
+                                  AllowedContsructsKind Allowed,
+                                  SourceLocation *TrailingElseLoc,
+                                  ParsedAttributesWithRange &Attrs);
   StmtResult ParsePragmaLoopHint(StmtVector &Stmts,
                                  AllowedContsructsKind Allowed,
                                  SourceLocation *TrailingElseLoc,
@@ -2497,6 +2508,8 @@ private:
   OMPClause *ParseOpenMPVarListClause(OpenMPDirectiveKind DKind,
                                       OpenMPClauseKind Kind);
 
+  /// \brief Parses declarative or executable directive.
+  StmtResult ParsePlatinPragma();
 public:
   bool ParseUnqualifiedId(CXXScopeSpec &SS, bool EnteringContext,
                           bool AllowDestructorName,

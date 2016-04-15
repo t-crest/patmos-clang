@@ -2274,7 +2274,11 @@ enum CXCursorKind {
    */
   CXCursor_OMPDistributeDirective        = 260,
 
-  CXCursor_LastStmt                      = CXCursor_OMPDistributeDirective,
+   /** \brief Flowfact sepcification.
+   */
+  CXCursor_Flowfact                      = 261,
+
+  CXCursor_LastStmt                      = CXCursor_Flowfact,
 
   /**
    * \brief Cursor that represents the translation unit itself.

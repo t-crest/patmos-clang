@@ -64,7 +64,7 @@ llvm::Value *CodeGenModule::getLLVMIntrinsicFunction(const FunctionDecl *FD,
     cast<llvm::FunctionType>(getTypes().ConvertType(FD->getType()));
   switch (BuiltinID) {
   default: // not yet supported
-    this->ErrorUnsupported(FD, Context.BuiltinInfo.GetName(BuiltinID));
+    this->ErrorUnsupported(FD, Context.BuiltinInfo.getName(BuiltinID));
     return llvm::UndefValue::get(Ty);
     ;
   case Builtin::BI__llvm_pcmarker:
@@ -1993,6 +1993,12 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
   // using exactly the normal call path.
   if (getContext().BuiltinInfo.isPredefinedLibFunction(BuiltinID))
     return emitLibraryCall(*this, FD, E, EmitScalarExpr(E->getCallee()));
+
+  // If this a call to a LLVM intrinsic (e.g. __llvm_pcmarker), generate the
+  // corresponding call to the intrinsic function (e.g., @llvm.pcmarker)
+  if (getContext().BuiltinInfo.isLLVMIntrinsicFunction(BuiltinID))
+    return emitLibraryCall(*this, FD, E,
+                           CGM.getLLVMIntrinsicFunction(FD, BuiltinID));
 
   // Check that a call to a target specific builtin has the correct target
   // features.

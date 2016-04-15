@@ -85,9 +85,6 @@ Parser::Parser(Preprocessor &pp, Sema &actions, bool skipFunctionBodies)
   // destructor.
   initializePragmaHandlers();
 
-  LoopboundHandler.reset(new PragmaLoopboundHandler());
-  PP.AddPragmaHandler(LoopboundHandler.get());
-
   CommentSemaHandler.reset(new ActionCommentHandler(actions));
   PP.addCommentHandler(CommentSemaHandler.get());
 
@@ -433,9 +430,6 @@ Parser::~Parser() {
     delete ScopeCache[i];
 
   resetPragmaHandlers();
-
-  PP.RemovePragmaHandler(LoopboundHandler.get());
-  LoopboundHandler.reset();
 
   PP.removeCommentHandler(CommentSemaHandler.get());
 

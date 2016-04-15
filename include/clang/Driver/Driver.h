@@ -426,7 +426,7 @@ public:
 private:
   /// Parse the \p Args list for LTO options and record the type of LTO
   /// compilation based on which -f(no-)?lto(=.*)? option occurs last.
-  void setLTOMode(const llvm::opt::ArgList &Args);
+  void setLTOMode(const ToolChain &TC, const llvm::opt::ArgList &Args);
 
   /// \brief Retrieves a ToolChain for a particular \p Target triple.
   ///
